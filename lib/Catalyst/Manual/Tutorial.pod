@@ -1,0 +1,497 @@
+=head1 NAME
+
+Catalyst::Manual::Tutorial - Catalyst Tutorial: Overview
+
+=head1 DESCRIPTION
+
+The Catalyst framework is a flexible and comprehensive environment for
+quickly building high-functionality web applications.  This tutorial is
+designed to provide a rapid introduction to its basics and its most
+commonly used features while focusing on real-world best practices.
+
+The tutorial is divided into the following sections:
+
+=over 4
+
+=item *
+
+L<Introduction|Catalyst::Manual::Tutorial::Intro>
+
+=item * 
+
+L<Catalyst Basics|Catalyst::Manual::Tutorial::CatalystBasics>
+
+=item * 
+
+L<Basic CRUD|Catalyst::Manual::Tutorial::BasicCRUD>
+
+=item * 
+
+L<Authentication|Catalyst::Manual::Tutorial::Authentication>
+
+=item * 
+
+L<Authorization|Catalyst::Manual::Tutorial::Authorization>
+
+=item * 
+
+L<Testing|Catalyst::Manual::Tutorial::Testing>
+
+=item * 
+
+L<Advanced CRUD|Catalyst::Manual::Tutorial::AdvancedCRUD>
+
+=item * 
+
+L<Appendices|Catalyst::Manual::Tutorial::Appendices>
+
+=back
+
+A tarball of the final application is available at
+C<to_be_compled_in_final_version>.
+
+=head1 Detailed Table Of Contents
+
+=head2 Part 1: Introduction
+
+=over 4
+
+=item *
+
+VERSIONS AND CONVENTIONS USED IN THIS TUTORIAL
+
+=item *
+
+CATALYST INSTALLATION
+
+=item *
+
+DATABASES
+
+=item *
+
+WHERE TO GET WORKING CODE
+
+=back
+
+
+=head2 Part 2: Catalyst Application Development Basics
+
+=over 4
+
+=item *
+
+CREATE A CATALYST PROJECT
+
+=item *
+
+CREATE A SQLITE DATABASE
+
+=item *
+
+EDIT THE LIST OF CATALYST PLUGINS
+
+=item *
+
+DATABASE ACCESS WITH DBIx::Class
+
+=item *
+
+Create a DBIC Schema File
+
+=item *
+
+Create the DBIC ``Result Source'' Files
+
+=item *
+
+Use Catalyst::Model::DBIC::Schema to Load the Model Class
+
+    =item *
+
+CREATE A CATALYST CONTROLLER
+
+=item *
+
+CATALYST VIEWS
+
+=over 4
+
+=item *
+
+Create a Catalyst View Using TTSite
+
+=item *
+
+Globally Customize Every View
+
+=item *
+
+Create a TT Template Page
+
+=back
+
+=item *
+
+RUN THE APPLICATION
+
+=back
+
+=head2 Part 3: Basic CRUD
+
+=over 4
+
+=item *
+
+FORMLESS SUBMISSION
+
+=over 4
+
+=item *
+
+Include a Create Action in the Books Controller
+
+=item *
+
+Include a Template for the url_create Action:
+
+=item *
+
+Try the url_create Feature
+
+=back
+
+=item *
+
+MANUALLY BUILDING A CREATE FORM
+
+=over 4
+
+=item *
+
+Add a Method to Display the Form
+
+=item *
+
+Add a Template for the Form
+
+=item *
+
+Add Method to Process Form Values and Update Database
+
+=item *
+
+Test Out the Form
+
+=back
+
+=item *
+
+A SIMPLE DELETE FEATURE
+
+=over 4
+
+=item *
+
+Include a Delete Link in the List
+
+=item *
+
+Add a Delete Action to the Controller
+
+=item *
+
+Try the Delete Feature
+
+=back
+
+=back
+
+=head2 Part 4: Authentication
+
+=over 4
+
+=item *
+
+BASIC AUTHENTICATION
+
+=over 4
+
+=item *
+
+Add Users and Roles to the Database
+
+=item *
+
+Add User and Role Information to DBIC Schema
+
+=item *
+
+Create New ``Result Source Objects''
+
+=item *
+
+Sanity-Check Reload of Development Server
+
+=item *
+
+Include Authentication and Session Plugins
+
+=item *
+
+Configure Authentication
+
+=item *
+
+Add Login and Logout Controllers
+
+=item *
+
+Add a Login Form TT Template Page
+
+=item *
+
+Add Valid User Check
+
+=item *
+
+Displaying Content Only to Authenticated Users
+
+=item *
+
+Try Out Authentication
+
+=back
+
+=item *
+
+USING PASSWORD HASHES
+
+=over 4
+
+=item *
+
+Get a SHA-1 Hash for the Password
+
+=item *
+
+Switch to SHA-1 Password Hashes in the Database
+
+=item *
+
+Enable SHA-1 Hash Passwords in Catalyst::Plugin::Authentication::Store::DBIC
+
+=item *
+
+Try Out the Hashed Passwords
+
+=back
+
+=back
+
+=head2 Part 5: Authorization
+
+=over 4
+
+=item *
+
+BASIC AUTHORIZATION
+
+=over 4
+
+=item *
+
+Update Plugins to Include Support for Authorization
+
+=item *
+
+Add Config Information for Authorization
+
+=item *
+
+Add Role-Specific Logic to the ``Book List'' Template
+
+=item *
+
+Limit Books::add to admin Users
+
+=item *
+
+Try Out Authentication And Authorization
+
+=back
+
+=item *
+
+ENABLE ACL-BASED AUTHORIZATION
+
+=over 4
+
+=item *
+
+Add the Catalyst::Plugin::Authorization::ACL Plugin
+
+=item *
+
+Add ACL Rules to the Application Class
+
+=item *
+
+Add a Method to Handle Access Violations
+
+=back
+
+=back
+
+=head2 Part 6: Debugging
+
+=over 4
+
+=item *
+
+LOG STATEMENTS
+
+=item *
+
+RUNNING CATALYST UNDER THE PERL DEBUGGER
+
+=back
+
+=head2 Part 7: Testing
+
+=over 4
+
+=item *
+
+RUNNING THE "CANNED" CATALYST TESTS
+
+=item *
+
+RUNNING A SINGLE TEST
+
+=item *
+
+ADDING YOUR OWN TEST SCRIPT
+
+=item *
+
+SUPPORTING BOTH PRODUCTION AND TEST DATABASES
+
+=back
+
+=head2 Part 8: Advanced CRUD
+
+=over 4
+
+=item *
+
+HTML::WIDGET FORM CREATION
+
+=over 4
+
+=item *
+
+Add the HTML::Widget Plugin
+
+=item *
+
+Add a Form Creation Helper Method
+
+=item *
+
+Add Actions to Display and Save the Form
+
+=item *
+
+Update the CSS
+
+=item *
+
+Create a Template Page To Display The Form
+
+=item *
+
+Add Links for Create and Update via HTML::Widget
+
+=item *
+
+Test The <HTML::Widget> Create Form
+
+=back
+
+=item *
+
+HTML::WIDGET VALIDATION AND FILTERING
+
+=over 4
+
+=item *
+
+Add Constraints and Filters to the Widget Creation Method
+
+=item *
+
+Rebuild the Form Submission Method to Include Validation
+
+=item *
+
+Try Out the Form
+
+=back
+
+=item *
+
+Enable DBIx::Class::HTMLWidget Support
+
+=over 4
+
+=item *
+
+Add DBIx::Class::HTMLWidget to DBIC Model
+
+=item *
+
+Use populate_from_widget in hw_create_do
+
+=back
+
+=back
+
+=head2 Part 9: Appendices
+
+=over 4
+
+=item *
+
+APPENDIX 1: CUT AND PASTE FOR POD-BASED EXAMPLES
+
+=over 4
+
+=item *
+
+"Un-indenting" with Vi/Vim
+
+=item *
+
+"Un-indenting" with Emacs
+
+=back
+
+=item *
+
+APPENDIX 2: USING MYSQL AND POSTGRESQL
+
+=over 4
+
+=item *
+
+MySQL
+
+=item *
+
+PostgreSQL
+
+=back
+
+=back
+
