@@ -42,7 +42,6 @@ lib/Catalyst/Manual/Installation/CentOS4.pod
 lib/Catalyst/Manual/Internals.pod
 lib/Catalyst/Manual/Intro.pod
 lib/Catalyst/Manual/Plugins.pod
-lib/Catalyst/Manual/Tutorial-orig.pod
 lib/Catalyst/Manual/Tutorial.pod
 lib/Catalyst/Manual/Tutorial/AdvancedCRUD.pod
 lib/Catalyst/Manual/Tutorial/Appendices.pod
