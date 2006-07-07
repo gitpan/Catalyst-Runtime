@@ -34,4 +34,4 @@ requires:
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
   perl: 5.8.1
-version: 5.70_03
+version: 5.7000

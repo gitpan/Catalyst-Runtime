@@ -58,36 +58,36 @@ validation of user-entered data, and automated transfer of data between
 forms and model objects.
 
 In keeping with the Catalyst (and Perl) spirit of flexibility, there are
-many different ways approach advanced CRUD operations in a Catalyst
+many different ways to approach advanced CRUD operations in a Catalyst
 environment.  One alternative is to use
-L<Catalyst::Helper::Controller::Scaffold> to instantly construct a set
-of Controller methods and templates for basic CRUD operations.  Although
-a popular subject in Quicktime movies that serve as promotional material
-for various frameworks, more real-world applications require more
-control.  Other options include L<Data::FormValidator> and
-L<HTML::FillInForm>.
+L<Catalyst::Helper::Controller::Scaffold|Catalyst::Helper::Controller::Scaffold> 
+to instantly construct a set of Controller methods and templates for 
+basic CRUD operations.  Although a popular subject in Quicktime 
+movies that serve as promotional material for various frameworks, 
+real-world applications generally require more control.  Other 
+options include L<Data::FormValidator|Data::FormValidator> and
+L<HTML::FillInForm|HTML::FillInForm>.
 
-Here, we will make use of the L<HTML::Widget> to not only ease form
-creation, but to also provide validation of the submitted data.  The
-approached used by the part of the tutorial is to slowly incorporate
-additional L<HTML::Widget> functionality in a step-wise fashion (we
-start with fairly simple form creation and then move on to more complex
-and "magical" features such as validation and
+Here, we will make use of the L<HTML::Widget|HTML::Widget> to not only 
+ease form creation, but to also provide validation of the submitted 
+data.  The approached used by the part of the tutorial is to slowly 
+incorporate additional L<HTML::Widget|HTML::Widget> functionality in a 
+step-wise fashion (we start with fairly simple form creation and then 
+move on to more complex and "magical" features such as validation and 
 auto-population/auto-saving).
 
 B<Note:> Part 8 of the tutorial is optional.  Users who do not wish to
-use L<HTML::Widget|HTML::Widget> may skip this section.
+use L<HTML::Widget|HTML::Widget> may skip this part.
 
 B<TIP>: Note that all of the code for this part of the tutorial can be
 pulled from the Catalyst Subversion repository in one step with the
 following command:
 
-    svn checkout http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/Tutorial@###
-    IMPORTANT: Does not work yet.  Will be completed for final version.
+    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/AdvancedCRUD MyApp
 
 =head1 C<HTML::WIDGET> FORM CREATION
 
-This section looks at how L<HTML::Widget> can be used to
+This section looks at how L<HTML::Widget|HTML::Widget> can be used to
 add additional functionality to the manually created form from Part 3.
 
 =head2 Add the C<HTML::Widget> Plugin
@@ -110,7 +110,7 @@ following method:
     
     sub make_book_widget {
         my ($self, $c) = @_;
-
+    
         # Create an HTML::Widget to build the form
         my $w = $c->widget('book_form')->method('post');
     
@@ -125,17 +125,17 @@ following method:
         $w->element('Select',    'authors')->label('Authors')
             ->options(@authors);
         $w->element('Submit',    'submit' )->value('submit');
-
+    
         # Return the widget    
         return $w;
     }
 
-This method provides a central location (so it can be called by multiple
-actions, such as C<create> and C<edit>) that builds an HTML::Widget-based
-form with the appropriate fields. The "Get Authors" code uses DBIC to
-retrieve a list of model objects and then uses C<map> to create a hash
-where the hash keys are the database primary keys from the authors table
-and the associated values are the last names of the authors.
+This method provides a central location that builds an 
+HTML::Widget-based form with the appropriate fields.  The "Get authors" 
+code uses DBIC to retrieve a list of model objects and then uses C<map> 
+to create a hash where the hash keys are the database primary keys from 
+the authors table and the associated values are the last names of the 
+authors.
 
 =head2 Add Actions to Display and Save the Form
 
@@ -193,7 +193,6 @@ following methods:
     
         # Use 'hw_create' to redisplay the form
         $c->detach('hw_create');
-    
     }
 
 Note how we use C<make_book_widget> to build the core parts of the form
@@ -237,7 +236,8 @@ in the CSS from a single location.
 
 =head2 Create a Template Page To Display The Form
 
-C<root/src/books/hw_form.tt2>
+Open C<root/src/books/hw_form.tt2> in your editor and enter the following:
+
     [% META title = 'Create/Update Book' %]
     
     [% widget_result.as_xml %]
@@ -302,7 +302,7 @@ been marked with a C<*** NEW:> comment):
 
     sub make_book_widget {
         my ($self, $c) = @_;
-
+    
         # Create an HTML::Widget to build the form
         my $w = $c->widget('book_form')->method('post');
             
@@ -310,7 +310,7 @@ been marked with a C<*** NEW:> comment):
         my @authorObjs = $c->model("MyAppDB::Author")->all();
         my @authors = map {$_->id => $_->last_name }
                            sort {$a->last_name cmp $b->last_name} @authorObjs;
-   
+    
         # Create the form feilds
         $w->element('Textfield', 'title'  )->label('Title')->size(60);
         $w->element('Textfield', 'rating' )->label('Rating')->size(1);
@@ -428,6 +428,8 @@ now has a C<$c-E<gt>stash-E<gt>{template}> line).  Note that if we
 process the form in C<hw_create_do> I<and> forward/detach back to
 <hw_create>, we would end up with C<make_book_widget> being called
 twice, resulting in a duplicate set of elements being added to the form.
+(There are other ways to address the "duplicate form rendering" issue --
+just be aware that it exists.)
 
 =item *
 
@@ -447,7 +449,8 @@ similar to the prior version of the C<hw_create_do> method.
 
 =head2 Try Out the Form
 
-Press C<Ctrl-C> to kill the previous server instance (if it's still running) and restart it:
+Press C<Ctrl-C> to kill the previous server instance (if it's still 
+running) and restart it:
 
     $ script/myapp_server.pl
 
@@ -456,6 +459,7 @@ non-numeric rating, a rating of 0 or 6, etc.  Also try selecting one,
 two, and zero authors.  When you click Submit, the HTML::Widget
 C<constraint> items will validate the logic and insert feedback as
 appropriate.
+
 
 =head1 Enable C<DBIx::Class::HTMLWidget> Support
 
@@ -540,6 +544,9 @@ match the following code:
     
             # Set a status message for the user
             $c->stash->{status_msg} = 'Book created';
+            
+            # Redisplay an empty form for another
+            $c->stash->{widget_result} = $w->result;
         }
     
         # Set the template
@@ -552,14 +559,200 @@ C<$c-E<gt>model('MyAppDB::Book')-E<gt>create> and replaced it with a
 single call to C<$book-E<gt>populate_from_widget>.  Note that we still
 have to call C<$book-E<gt>add_to_book_authors> once per author because
 C<populate_from_widget> does not currently handle the relationships
-between tables.
+between tables.  Also, we reset the form to an empty fields by adding
+another call to C<$w-E<gt>result> and storing the output in the stash 
+(if we don't override the output from C<$w-E<gt>process($c-E<gt>req)>,
+the form values already entered will be retained on redisplay --
+although this could be desirable for some applications, we avoid it
+here to help avoid the creation of duplicate records).
+
+
+=head2 Try Out the Form
+
+Press C<Ctrl-C> to kill the previous server instance (if it's still 
+running) and restart it:
+
+    $ script/myapp_server.pl
+
+Try adding a book that validate.  Return to the book list and the book 
+you added should be visible.
+
+
+
+=head1 Rendering C<HTMLWidget> Forms in a Table
+
+Some developers my wish to use the "old-fashioned" table style of 
+rendering a form in lieu of the default C<HTML::Widget> rendering that 
+assumes you will use CSS for formatting.  This section demonstrates
+some techniques that can override the default rendering with a 
+custom class.
+
+
+=head2 Add a New "Element Container"
+
+Open C<lib/FormElementContainer.pm> in your editor and enter:
+
+    package FormElementContainer;
+    
+    use base 'HTML::Widget::Container';
+    
+    sub _build_element {
+        my ($self, $element) = @_;
+    
+        return () unless $element;
+        if (ref $element eq 'ARRAY') {
+            return map { $self->_build_element($_) } @{$element};
+        }
+        my $e = $element->clone;
+        my $class = $e->attr('class') || '';
+        $e = new HTML::Element('span', class => 'fields_with_errors')->push_content($e)
+            if $self->error && $e->tag eq 'input';
+    
+        return $e ? ($e) : ();
+    }
+    
+    1;
+
+This simply dumps the HTML code for a given form element, followed by a 
+C<span> that can contain validation error message.
+
+
+=head2 Enable the New Element Container When Building the Form
+
+Open C<lib/MyApp/Controller/Books.pm> in your editor.  First add a
+C<use> for your element container class:
+
+    use FormElementContainer;
+
+B<Note:> If you forget to C<use> your container class in your 
+controller, then your form will not be displayed and no error messages 
+will be generated. Don't forget this important step!
+
+Then tell C<HTML::Widget> to use that class during rendering by updating
+C<make_book_widget> to match the following:
+
+    sub make_book_widget {
+        my ($self, $c) = @_;
+    
+        # Create an HTML::Widget to build the form
+        my $w = $c->widget('book_form')->method('post');
+    
+        # ***New: Use custom class to render each element in the form    
+        $w->element_container_class('FormElementContainer');
+        
+        # Get authors
+        my @authorObjs = $c->model("MyAppDB::Author")->all();
+        my @authors = map {$_->id => $_->last_name }
+                           sort {$a->last_name cmp $b->last_name} @authorObjs;
+    
+        # Create the form feilds
+        $w->element('Textfield', 'title'  )->label('Title')->size(60);
+        $w->element('Textfield', 'rating' )->label('Rating')->size(1);
+        # Convert to multi-select list
+        $w->element('Select',    'authors')->label('Authors')
+            ->options(@authors)->multiple(1)->size(3);
+        $w->element('Submit',    'submit' )->value('submit');
+    
+        # Set constraints
+        $w->constraint(All     => qw/title rating authors/)
+            ->message('Required. ');
+        $w->constraint(Integer => qw/rating/)
+            ->message('Must be an integer. ');
+        $w->constraint(Range   => qw/rating/)->min(1)->max(5)
+            ->message('Must be a number between 1 and 5. ');
+        $w->constraint(Length  => qw/title/)->min(5)->max(50)
+            ->message('Must be between 5 and 50 characters. ');
+    
+        # Set filters
+        for my $column (qw/title rating authors/) {
+            $w->filter( HTMLEscape => $column );
+            $w->filter( TrimEdges  => $column );
+        }
+    
+        # Return the widget    
+        return $w;
+    }
+
+The two new lines are marked with C<***New:>.
+
+
+=head2 Update the TT Template
+
+Open C<root/src/books/hw_form.tt2> and edit it to match:
+
+    [% META title = 'Create/Update Book' %]
+    
+    [%# Comment out the auto-rendered form %]
+    [%# widget_result.as_xml %]
+    
+    
+    [%# Iterate over the form elements and display each -%]
+    <form name="book_form" action="[% widget_result.action %]" method="post">
+    <table border="0">
+    [% FOREACH element = widget_result.elements %]
+      <tr>
+        <td class="form-label">
+          [% element.label.as_text %]
+        </td>
+        <td class="form-element">
+          [% element.element_xml %]
+          <span class="form-error">
+            [% element.error_xml %]
+          </span>
+        </td>
+      </tr>
+    [% END %]
+    </table>
+    </form>
+    
+    
+    <p><a href="[% Catalyst.uri_for('list') %]">Return to book list</a></p>
+    
+    
+    [%# A little JavaScript to move the cursor to the first field %]
+    <script LANGUAGE="JavaScript">
+    document.book_form.book_form_title.focus();
+    </script>
+
+This represents three changes:
+
+=over 4
+
+=item *
+
+The existing C<widget_result.as_xml> has been commented out.
+
+=item *
+
+It loops through each form element, displaying the field name in the 
+first table cell along with the form element and validation errors in 
+the second field.
+
+=item *
+
+JavaScript to position the user's cursor in the first field of the form.
+
+=back
+
+
+=head2 Try Out the Form
+
+Press C<Ctrl-C> to kill the previous server instance (if it's still 
+running) and restart it:
+
+    $ script/myapp_server.pl
+
+Try adding a book that validate.  Return to the book list and the book 
+you added should be visible.
 
 
 =head1 AUTHOR
 
 Kennedy Clark, C<hkclark@gmail.com>
 
-Please report any errors, issues or suggestions to the author.
+Please report any errors, issues or suggestions to the author.  The
+most recent version of the Catalyst Tutorial can be found at
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Runtime/lib/Catalyst/Manual/Tutorial/>.
 
 Copyright 2006, Kennedy Clark, under Creative Commons License
 (L<http://creativecommons.org/licenses/by-nc-sa/2.5/>).

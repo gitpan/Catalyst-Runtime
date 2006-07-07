@@ -12,13 +12,13 @@ use Catalyst::Utils;
 use Catalyst::Controller;
 use Devel::InnerPackage ();
 use File::stat;
-use Module::Pluggable::Object;
+use Module::Pluggable::Object ();
 use NEXT;
-use Text::SimpleTable;
-use Path::Class::Dir;
-use Path::Class::File;
+use Text::SimpleTable ();
+use Path::Class::Dir ();
+use Path::Class::File ();
 use Time::HiRes qw/gettimeofday tv_interval/;
-use URI;
+use URI ();
 use Scalar::Util qw/weaken blessed/;
 use Tree::Simple qw/use_weak_refs/;
 use Tree::Simple::Visitor::FindByUID;
@@ -61,7 +61,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.70_03';
+our $VERSION = '5.7000';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -87,6 +87,7 @@ Catalyst - The Elegant MVC Web Application Framework
 
 =head1 SYNOPSIS
 
+    # Install Catalyst::Devel for helpers and other development tools
     # use the helper to create a new application
     catalyst.pl MyApp
 
@@ -171,7 +172,10 @@ See L<Catalyst::Manual::Intro> for additional information.
 
 =head1 DESCRIPTION
 
-Catalyst is a modern framework for making web applications without the pain usually associated with this process. This document is a reference to the main Catalyst application. If you are a new user, we suggest you start with L<Catalyst::Manual::Tutorial> or  L<Catalyst::Manual::Intro>
+Catalyst is a modern framework for making web applications without the
+pain usually associated with this process. This document is a reference
+to the main Catalyst application. If you are a new user, we suggest you
+start with L<Catalyst::Manual::Tutorial> or L<Catalyst::Manual::Intro>.
 
 See L<Catalyst::Manual> for more documentation.
 
@@ -196,15 +200,16 @@ arguments when Catalyst is loaded:
     use Catalyst qw/-Debug My::Module/;
 
 The position of plugins and flags in the chain is important, because
-they are loaded in exactly the order in which they appear.
+they are loaded in the order in which they appear.
 
 The following flags are supported:
 
 =head2 -Debug
 
 Enables debug output. You can also force this setting from the system
-environment with CATALYST_DEBUG or <MYAPP>_DEBUG. The environment settings
-override the app, with <MYAPP>_DEBUG having highest priority.
+environment with CATALYST_DEBUG or <MYAPP>_DEBUG. The environment
+settings override the application, with <MYAPP>_DEBUG having the highest
+priority.
 
 =head2 -Engine
 
@@ -217,7 +222,7 @@ C<Catalyst::Engine::> prefix of the engine name, i.e.:
 
 Forces Catalyst to use a specific home directory, e.g.:
 
-    use Catalyst qw[-Home=/usr/sri];
+    use Catalyst qw[-Home=/usr/mst];
 
 =head2 -Log
 
@@ -234,7 +239,7 @@ stringifies to the action name. See L<Catalyst::Action>.
 
 =head2 $c->namespace
 
-Returns the namespace of the current action, i.e., the uri prefix
+Returns the namespace of the current action, i.e., the URI prefix
 corresponding to the controller of the current action. For example:
 
     # in Controller::Foo::Bar
@@ -244,8 +249,9 @@ corresponding to the controller of the current action. For example:
 
 =head2 $c->req
 
-Returns the current L<Catalyst::Request> object. See
-L<Catalyst::Request>.
+Returns the current L<Catalyst::Request> object, giving access to
+information about the current client request (including parameters,
+cookies, HTTP headers, etc.). See L<Catalyst::Request>.
 
 =head2 REQUEST FLOW HANDLING
 
@@ -253,7 +259,7 @@ L<Catalyst::Request>.
 
 =head2 $c->forward( $class, $method, [, \@arguments ] )
 
-Forwards processing to another action, by it's private name. If you give a
+Forwards processing to another action, by its private name. If you give a
 class name but no method, C<process()> is called. You may also optionally
 pass arguments in an arrayref. The action will receive the arguments in
 C<@_> and C<$c-E<gt>req-E<gt>args>. Upon returning from the function,
@@ -267,15 +273,15 @@ call to forward.
     $c->forward(qw/MyApp::Model::DBIC::Foo do_stuff/);
     $c->forward('MyApp::View::TT');
 
-Note that forward implies an C<<eval { }>> around the call (well, actually
-C<execute> does), thus de-fatalizing all 'dies' within the called action. If
-you want C<die> to propagate you need to do something like:
+Note that forward implies an C<<eval { }>> around the call (actually
+C<execute> does), thus de-fatalizing all 'dies' within the called
+action. If you want C<die> to propagate you need to do something like:
 
     $c->forward('foo');
     die $c->error if $c->error;
 
-Or make sure to always return true values from your actions and write your code
-like this:
+Or make sure to always return true values from your actions and write
+your code like this:
 
     $c->forward('foo') || return;
 
@@ -298,7 +304,7 @@ sub detach { my $c = shift; $c->dispatcher->detach( $c, @_ ) }
 
 =head2 $c->res
 
-Returns the current L<Catalyst::Response> object.
+Returns the current L<Catalyst::Response> object, q.v.
 
 =head2 $c->stash
 
@@ -306,7 +312,9 @@ Returns a hashref to the stash, which may be used to store data and pass
 it between components during a request. You can also set hash keys by
 passing arguments. The stash is automatically sent to the view. The
 stash is cleared at the end of a request; it cannot be used for
-persistent storage.
+persistent storage (for this you must use a session; see
+L<Catalyst::Plugin::Session> for a complete system integrated with
+Catalyst).
 
     $c->stash->{foo} = $bar;
     $c->stash( { moose => 'majestic', qux => 0 } );
@@ -378,8 +386,6 @@ sub clear_errors {
     my $c = shift;
     $c->error(0);
 }
-
-
 
 
 # search via regex
@@ -472,7 +478,8 @@ Gets a L<Catalyst::Controller> instance by name.
 
     $c->controller('Foo')->do_stuff;
 
-If name is omitted, will return the controller for the dispatched action.
+If the name is omitted, will return the controller for the dispatched
+action.
 
 =cut
 
@@ -524,8 +531,9 @@ Gets a L<Catalyst::View> instance by name.
 
     $c->view('Foo')->do_stuff;
 
-If the name is omitted, it will look for a config setting 'default_view',
-or check if there is only one view, and forward to it if that's the case.
+If the name is omitted, it will look for a config setting
+'default_view', or check if there is only one view, and forward to it if
+that's the case.
 
 =cut
 
@@ -628,9 +636,9 @@ sub config {
 
 =head2 $c->log
 
-Returns the logging object instance. Unless it is already set, Catalyst sets
-this up with a L<Catalyst::Log> object. To use your own log class, set the
-logger with the C<< __PACKAGE__->log >> method prior to calling
+Returns the logging object instance. Unless it is already set, Catalyst
+sets this up with a L<Catalyst::Log> object. To use your own log class,
+set the logger with the C<< __PACKAGE__->log >> method prior to calling
 C<< __PACKAGE__->setup >>.
 
  __PACKAGE__->log( MyLogger->new );
@@ -640,8 +648,8 @@ And later:
 
     $c->log->info( 'Now logging with my own logger!' );
 
-Your log class should implement the methods described in the
-L<Catalyst::Log> man page.
+Your log class should implement the methods described in
+L<Catalyst::Log>.
 
 
 =head2 $c->debug
@@ -852,17 +860,18 @@ EOF
 
 =head2 $c->uri_for( $path, @args?, \%query_values? )
 
-Merges path with C<$c-E<gt>request-E<gt>base> for absolute uri's and
-with C<$c-E<gt>namespace> for relative uri's, then returns a
-normalized L<URI> object. If any args are passed, they are added at the
-end of the path.  If the last argument to uri_for is a hash reference,
-it is assumed to contain GET parameter key/value pairs, which will be
-appended to the URI in standard fashion.
+Merges path with C<< $c->request->base >> for absolute URIs and with
+C<< $c->namespace >> for relative URIs, then returns a normalized L<URI>
+object. If any args are passed, they are added at the end of the path.
+If the last argument to C<uri_for> is a hash reference, it is assumed to
+contain GET parameter key/value pairs, which will be appended to the URI
+in standard fashion.
 
-Instead of $path, you can also optionally pass a $action object which will
-be resolved to a path using $c->dispatcher->uri_for_action; if the first
-element of @args is an arrayref it is treated as a list of captures to be
-passed to uri_for_action.
+Instead of C<$path>, you can also optionally pass a C<$action> object
+which will be resolved to a path using
+C<< $c->dispatcher->uri_for_action >>; if the first element of
+C<@args> is an arrayref it is treated as a list of captures to be passed
+to C<uri_for_action>.
 
 =cut
 
@@ -1120,7 +1129,7 @@ sub execute {
 
     if ( $c->depth >= $RECURSION ) {
         my $action = "$code";
-        $action = "/$action" unless $action =~ /\-\>/;
+        $action = "/$action" unless $action =~ /->/;
         my $error = qq/Deep recursion detected calling "$action"/;
         $c->log->error($error);
         $c->error($error);
@@ -1128,21 +1137,21 @@ sub execute {
         return $c->state;
     }
 
-    my $stats_info = $c->_stats_start_execute( $code );
+    my $stats_info = $c->_stats_start_execute( $code ) if $c->debug;
 
     push( @{ $c->stack }, $code );
     
     eval { $c->state( &$code( $class, $c, @{ $c->req->args } ) || 0 ) };
 
-    $c->_stats_finish_execute( $stats_info );
+    $c->_stats_finish_execute( $stats_info ) if $c->debug and $stats_info;
     
-    my $last = ${ $c->stack }[-1];
-    pop( @{ $c->stack } );
+    my $last = pop( @{ $c->stack } );
 
     if ( my $error = $@ ) {
         if ( $error eq $DETACH ) { die $DETACH if $c->depth > 1 }
         else {
             unless ( ref $error ) {
+                no warnings 'uninitialized';
                 chomp $error;
                 my $class = $last->class;
                 my $name  = $last->name;
@@ -1158,12 +1167,13 @@ sub execute {
 sub _stats_start_execute {
     my ( $c, $code ) = @_;
 
-    return unless $c->debug;
+    return if ( ( $code->name =~ /^_.*/ )
+        && ( !$c->config->{show_internal_actions} ) );
+
+    $c->counter->{"$code"}++;
 
     my $action = "$code";
-
-    $action = "/$action" unless $action =~ /\-\>/;
-    $c->counter->{"$code"}++;
+    $action = "/$action" unless $action =~ /->/;
 
     # determine if the call was the result of a forward
     # this is done by walking up the call stack and looking for a calling
@@ -1190,73 +1200,42 @@ sub _stats_start_execute {
     );
     $node->setUID( "$code" . $c->counter->{"$code"} );
 
-    unless ( ( $code->name =~ /^_.*/ )
-        && ( !$c->config->{show_internal_actions} ) )
-    {
-        # is this a root-level call or a forwarded call?
-        if ( $callsub =~ /forward$/ ) {
+    # is this a root-level call or a forwarded call?
+    if ( $callsub =~ /forward$/ ) {
 
-            # forward, locate the caller
-            if ( my $parent = $c->stack->[-1] ) {
-                my $visitor = Tree::Simple::Visitor::FindByUID->new;
-                $visitor->searchForUID(
-                    "$parent" . $c->counter->{"$parent"} );
-                $c->stats->accept($visitor);
-                if ( my $result = $visitor->getResult ) {
-                    $result->addChild($node);
-                }
-            }
-            else {
-
-                # forward with no caller may come from a plugin
-                $c->stats->addChild($node);
+        # forward, locate the caller
+        if ( my $parent = $c->stack->[-1] ) {
+            my $visitor = Tree::Simple::Visitor::FindByUID->new;
+            $visitor->searchForUID(
+                "$parent" . $c->counter->{"$parent"} );
+            $c->stats->accept($visitor);
+            if ( my $result = $visitor->getResult ) {
+                $result->addChild($node);
             }
         }
         else {
 
-            # root-level call
+            # forward with no caller may come from a plugin
             $c->stats->addChild($node);
         }
     }
+    else {
 
-    my $start = [gettimeofday];
-    my $elapsed = tv_interval($start);
+        # root-level call
+        $c->stats->addChild($node);
+    }
 
     return {
-        code    => $code,
-        elapsed => $elapsed,
-        start   => $start,
+        start   => [gettimeofday],
         node    => $node,
-      }
+    };
 }
 
 sub _stats_finish_execute {
     my ( $c, $info ) = @_;
-
-    return unless $c->debug;
-
-    my ( $code, $start, $elapsed ) = @{ $info }{qw/code start elapsed/};
-
-    unless ( ( $code->name =~ /^_.*/ )
-        && ( !$c->config->{show_internal_actions} ) )
-    {
-
-        # FindByUID uses an internal die, so we save the existing error
-        my $error = $@;
-
-        # locate the node in the tree and update the elapsed time
-        my $visitor = Tree::Simple::Visitor::FindByUID->new;
-        $visitor->searchForUID( "$code" . $c->counter->{"$code"} );
-        $c->stats->accept($visitor);
-        if ( my $result = $visitor->getResult ) {
-            my $value = $result->getNodeValue;
-            $value->{elapsed} = sprintf( '%fs', $elapsed );
-            $result->setNodeValue($value);
-        }
-
-        # restore error
-        $@ = $error || undef;
-    }
+    my $elapsed = tv_interval $info->{start};
+    my $value = $info->{node}->getNodeValue;
+    $value->{elapsed} = sprintf( '%fs', $elapsed );
 }
 
 =head2 $c->_localize_fields( sub { }, \%keys );
@@ -1438,25 +1417,20 @@ sub handle_request {
     # Always expect worst case!
     my $status = -1;
     eval {
-        my $stats = ( $class->debug ) ? Tree::Simple->new: q{};
-
-        my $handler = sub {
-            my $c = $class->prepare(@arguments);
-            $c->stats($stats);
-            $c->dispatch;
-            return $c->finalize;
-        };
-
-        if ( $class->debug ) {
+        if ($class->debug) {
             my $start = [gettimeofday];
-            $status = &$handler;
+            my $c = $class->prepare(@arguments);
+            $c->stats(Tree::Simple->new);          
+            $c->dispatch;
+            $status = $c->finalize;            
+
             my $elapsed = tv_interval $start;
             $elapsed = sprintf '%f', $elapsed;
             my $av = sprintf '%.3f',
               ( $elapsed == 0 ? '??' : ( 1 / $elapsed ) );
             my $t = Text::SimpleTable->new( [ 62, 'Action' ], [ 9, 'Time' ] );
 
-            $stats->traverse(
+            $c->stats->traverse(
                 sub {
                     my $action = shift;
                     my $stat   = $action->getNodeValue;
@@ -1468,8 +1442,11 @@ sub handle_request {
             $class->log->info(
                 "Request took ${elapsed}s ($av/s)\n" . $t->draw );
         }
-        else { $status = &$handler }
-
+        else {
+            my $c = $class->prepare(@arguments);
+            $c->dispatch;
+            $status = $c->finalize;            
+        }
     };
 
     if ( my $error = $@ ) {
@@ -1795,9 +1772,10 @@ sub setup_actions { my $c = shift; $c->dispatcher->setup_actions( $c, @_ ) }
 
 =head2 $c->setup_components
 
-Sets up components. Specify a C<setup_components> config option to pass additional options
-directly to L<Module::Pluggable>. To add additional search paths, specify a key named
-C<search_extra> as an array reference. Items in the array beginning with C<::> will have the
+Sets up components. Specify a C<setup_components> config option to pass
+additional options directly to L<Module::Pluggable>. To add additional
+search paths, specify a key named C<search_extra> as an array
+reference. Items in the array beginning with C<::> will have the
 application class name prepended to them.
 
 =cut
@@ -2141,8 +2119,8 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
 
 =head2 $c->stack
 
-Returns an arrayref of the internal execution stack (actions that are currently
-executing).
+Returns an arrayref of the internal execution stack (actions that are
+currently executing).
 
 =head2 $c->write( $data )
 
@@ -2230,9 +2208,9 @@ If you do not wish to use the proxy support at all, you may set:
 
 =head1 THREAD SAFETY
 
-Catalyst has been tested under Apache 2's threading mpm_worker, mpm_winnt,
-and the standalone forking HTTP server on Windows. We believe the Catalyst
-core to be thread-safe.
+Catalyst has been tested under Apache 2's threading C<mpm_worker>,
+C<mpm_winnt>, and the standalone forking HTTP server on Windows. We
+believe the Catalyst core to be thread-safe.
 
 If you plan to operate in a threaded environment, remember that all other
 modules you are using must also be thread-safe. Some modules, most notably

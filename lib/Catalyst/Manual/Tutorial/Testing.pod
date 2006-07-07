@@ -61,8 +61,7 @@ B<TIP>: Note that all of the code for this part of the tutorial can be
 pulled from the Catalyst Subversion repository in one step with the
 following command:
 
-    svn checkout http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/Tutorial@###
-    IMPORTANT: Does not work yet.  Will be completed for final version.
+    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/Testing MyApp
 
 
 =head1 RUNNING THE "CANNED" CATALYST TESTS
@@ -155,13 +154,13 @@ editor and enter the following:
     # all tests. Better to replace "'no_plan'" with "tests => 30" so it
     # knows exactly how many tests need to be run (and will tell you if
     # not), but 'no_plan' is nice for quick & dirty tests
-
+    
     use Test::More 'no_plan';
     
     # Need to specify the name of your app as arg on next line
     # Can also do:
     #   use Test::WWW::Mechanize::Catalyst "MyApp";
-
+    
     use ok "Test::WWW::Mechanize::Catalyst" => "MyApp";
         
     # Create two 'user agents' to simulate two different users ('test01' & 'test02')
@@ -218,8 +217,11 @@ editor and enter the following:
     $ua1->get_ok("http://localhost/books/url_create/TestTitle/2/4",
         "'test01' formless create");
     $ua1->title_is("Book Created", "Book created title");
-    $ua1->content_contains("Added book 'TestTitle' by 'Stevens'", "Check added OK");
-    $ua1->content_contains("a rating of 2.", "Check rating added");
+    $ua1->content_contains("Added book 'TestTitle'", "Check title added OK");
+    $ua1->content_contains("by 'Stevens'", "Check author added OK");
+    $ua1->content_contains("with a rating of 2.", "Check rating added");
+    # Try a regular expression to combine the previous 3 checks & account for whitespace
+    $ua1->content_like(qr/Added book 'TestTitle'\s+by 'Stevens'\s+with a rating of 2./, "Regex check");
     
     # Make sure the new book shows in the list
     $ua1->get_ok("http://localhost/books/list", "'test01' book list");
@@ -317,7 +319,9 @@ before.
 
 Kennedy Clark, C<hkclark@gmail.com>
 
-Please report any errors, issues or suggestions to the author.
+Please report any errors, issues or suggestions to the author.  The
+most recent version of the Catalyst Tutorial can be found at
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Runtime/lib/Catalyst/Manual/Tutorial/>.
 
 Copyright 2006, Kennedy Clark, under Creative Commons License
 (L<http://creativecommons.org/licenses/by-nc-sa/2.5/>).

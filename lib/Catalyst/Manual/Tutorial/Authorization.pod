@@ -63,8 +63,7 @@ B<TIP>: Note that all of the code for this part of the tutorial can be
 pulled from the Catalyst Subversion repository in one step with the
 following command:
 
-    svn checkout http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/Tutorial@###
-    IMPORTANT: Does not work yet.  Will be completed for final version.
+    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/Authorization MyApp
 
 
 =head1 BASIC AUTHORIZATION
@@ -81,7 +80,6 @@ Edit C<lib/MyApp.pm> and add C<Authorization::Roles> to the list:
             Static::Simple
             
             StackTrace
-            DefaultEnd
             
             Authentication
             Authentication::Store::DBIC
@@ -130,8 +128,8 @@ Edit C<myapp.yml> and update it to match (everything from the
             role_class: MyAppDB::Role
             # The name of the field in the 'roles' table that contains the role name
             role_field: role
-            # The name of the accessor used to map a user to a role
-            # See the has_many() in MyAppDB/User.pm
+            # The name of the accessor used to map a role to the users who have this role
+            # See the has_many() in MyAppDB/Role.pm
             role_rel: map_user_role
             # The name of the field in the user_role table that references the user
             user_role_user_field: user_id
@@ -407,7 +405,9 @@ L<http://localhost:3000/logout> URL directly) when you are done.
 
 Kennedy Clark, C<hkclark@gmail.com>
 
-Please report any errors, issues or suggestions to the author.
+Please report any errors, issues or suggestions to the author.  The
+most recent version of the Catalyst Tutorial can be found at
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Runtime/lib/Catalyst/Manual/Tutorial/>.
 
 Copyright 2006, Kennedy Clark, under Creative Commons License
 (L<http://creativecommons.org/licenses/by-nc-sa/2.5/>).

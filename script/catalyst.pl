@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Long;
 use Pod::Usage;
-eval 'use Catalyst::Helper "1.0";';
+eval " use Catalyst::Devel 1.0; ";
 
 if ($@) {
   die <<END;
@@ -17,6 +17,8 @@ vendor package or by running one of -
 END
 
 }
+
+use Catalyst::Helper;
 
 my $force    = 0;
 my $help     = 0;

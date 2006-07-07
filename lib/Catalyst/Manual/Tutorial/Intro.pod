@@ -88,9 +88,9 @@ Role-based authorization ("authz").
 
 =item * 
 
-Attempts to provide an example showing current (5.70) Catalyst
+Attempts to provide an example showing current (5.7XXX) Catalyst
 practices. For example, the use of 
-L<Catalyst::Plugin::DefaultEnd|Catalyst::Plugin::DefaultEnd>,
+L<Catalyst::Action::RenderView|Catalyst::Action::RenderView>,
 DBIC, L<Catalyst::Plugin::ConfigLoader|Catalyst::Plugin::ConfigLoader> 
 with C<myapp.yml>, the use of C<lib/MyApp/Controller/Root.pm> 
 vs. C<lib/MyApp.pm>, etc.
@@ -194,10 +194,6 @@ Catalyst::Plugin::Authorization::Roles -- 0.04
 =item *
 
 Catalyst::Plugin::ConfigLoader -- 0.07
-
-=item *
-
-Catalyst::Plugin::DefaultEnd -- 0.06
 
 =item *
 
@@ -320,14 +316,16 @@ Each part of the tutorial has complete code available in the main
 Catalyst Subversion repository (see the note at the beginning of each
 part for the appropriate svn command to use).  Additionally, the final
 code is available as a ready-to-run tarball at
-I<TO_BE_ADDED_TO_FINAL_VERSION>.
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/Tutorial/Final_Tarball/MyApp.tgz>.
 
 
 =head1 AUTHOR
 
 Kennedy Clark, C<hkclark@gmail.com>
 
-Please report any errors, issues or suggestions to the author.
+Please report any errors, issues or suggestions to the author.  The
+most recent version of the Catalyst Tutorial can be found at
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Runtime/lib/Catalyst/Manual/Tutorial/>.
 
 Copyright 2006, Kennedy Clark, under Creative Commons License
 (L<http://creativecommons.org/licenses/by-nc-sa/2.5/>).
