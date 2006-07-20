@@ -61,7 +61,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7000';
+our $VERSION = '5.7001';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -902,11 +902,10 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     for my $value ( values %$params ) {
-        my $isa_ref = ref $value;
-        if( $isa_ref and $isa_ref ne 'ARRAY' ) {
-            croak( "Non-array reference ($isa_ref) passed to uri_for()" );
+        for ( ref $value eq 'ARRAY' ? @$value : $value ) {
+            $_ = "$_";
+            utf8::encode( $_ );
         }
-        utf8::encode( $_ ) for grep { defined } $isa_ref ? @$value : $value;
     };
     
     # join args with '/', or a blank string
@@ -1795,7 +1794,7 @@ sub setup_components {
     );
     
     for my $component ( sort { length $a <=> length $b } $locator->plugins ) {
-        Catalyst::Utils::ensure_class_loaded( $component );
+        Catalyst::Utils::ensure_class_loaded( $component, { ignore_loaded => 1 } );
 
         my $module  = $class->setup_component( $component );
         my %modules = (
