@@ -63,12 +63,9 @@ focus on the Create and Delete aspects of CRUD.  More advanced
 capabilities, including full Update functionality, will be addressed in
 Part 8.
 
-B<TIP>: Note that all of the code for this part of the tutorial can be
-pulled from the Catalyst Subversion repository in one step with the
-following command:
-
-    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/5.7X/BasicCRUD MyApp
-
+You can checkout the source code for this example from the catalyst
+subversion repository as per the instructions in
+L<Catalyst::Manual::Tutorial::Intro>
 
 =head1 FORMLESS SUBMISSION
 
@@ -318,7 +315,7 @@ Part 8.
 
 =head1 A SIMPLE DELETE FEATURE
 
-Turning out attention to the delete portion of CRUD, this section
+Turning our attention to the delete portion of CRUD, this section
 illustrates some basic techniques that can be used to remove information
 from the database.
 

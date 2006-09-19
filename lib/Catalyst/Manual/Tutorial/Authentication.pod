@@ -21,7 +21,7 @@ L<Catalyst Basics|Catalyst::Manual::Tutorial::CatalystBasics>
 
 =item 3
 
-L<Basic CRUD|Catalyst::Manual::Tutorial_BasicCRUD>
+L<Basic CRUD|Catalyst::Manual::Tutorial::BasicCRUD>
 
 =item 4
 
@@ -59,12 +59,9 @@ Part 5).
 This part of the tutorial is divided into two main sections: 1) basic,
 cleartext authentication and 2) hash-based authentication.
 
-B<TIP>: Note that all of the code for this part of the tutorial can be
-pulled from the Catalyst Subversion repository in one step with the
-following command:
-
-    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/Authentication MyApp
-
+You can checkout the source code for this example from the catalyst
+subversion repository as per the instructions in
+L<Catalyst::Manual::Tutorial::Intro>
 
 =head1 BASIC AUTHENTICATION
 
@@ -463,7 +460,7 @@ however, the use of C<default> actions is discouraged because it does
 not receive path args as with other actions.  The recommended practice 
 is to only use C<default> in C<MyApp::Controller::Root>.
 
-Another options would be to use something like 
+Another option would be to use something like 
 C<sub base :Path :Args(0) {...}> (where the C<...> refers to the login 
 code shown in C<sub index : Private> above). We are using C<sub base 
 :Path :Args(0) {...}> here to specifically match the URL C</login>. 
@@ -544,11 +541,17 @@ the following method:
     
     # Note that 'auto' runs after 'begin' but before your actions and that
     # 'auto' "chain" (all from application path to most specific class are run)
+    # See the 'Actions' section of 'Catalyst::Manual::Intro' for more info.
     sub auto : Private {
         my ($self, $c) = @_;
     
-        # Allow unauthenticated users to reach the login page
-        if ($c->request->path =~ /login/) {
+        # Allow unauthenticated users to reach the login page.  This
+        # allows anauthenticated users to reach any action in the Login
+        # controller.  To lock it down to a single action, we could use:
+        #   if ($c->action eq $c->controller('Login')->action_for('index'))
+        # to only allow unauthenticated access to the C<index> action we
+        # added above.
+        if ($c->controller eq $c->controller('Login')) {
             return 1;
         }
     
@@ -586,9 +589,18 @@ C<default>, C<index>, and C<auto>.
 
 =item *
 
+With C<begin>, C<end>, C<default>, C<index> private actions, only the
+most specific action of each type will be called.  For example, if you
+define a C<begin> action in your controller it will I<override> a 
+C<begin> action in your application/root controller -- I<only> the
+action in your controller will be called.
+
+=item *
+
 Unlike the other actions where only a single method is called for each 
 request, I<every> auto action along the chain of namespaces will be 
-called.
+called.  Each C<auto> action will be called I<from the application/root
+controller down through the most specific class>.
 
 =back
 
@@ -609,7 +621,7 @@ lines to the bottom of the file:
        # This code illustrates how certain parts of the TT 
        # template will only be shown to users who have logged in
     %]
-    [% IF Catalyst.user %]
+    [% IF Catalyst.user_exists %]
         Please Note: You are already logged in as '[% Catalyst.user.username %]'.
         You can <a href="[% Catalyst.uri_for('/logout') %]">logout</a> here.
     [% ELSE %]
@@ -689,8 +701,7 @@ still transmits the passwords in cleartext to your application.  We are
 just avoiding the I<storage> of cleartext passwords in the database by
 using a SHA-1 hash. If you are concerned about cleartext passwords
 between the browser and your application, consider using SSL/TLS, made
-easy with the Catalyst plugin 
-L<Catalyst::Plugin:RequireSSL|Catalyst::Plugin:RequireSSL>.
+easy with the Catalyst plugin Catalyst::Plugin:RequireSSL.
 
 
 =head2 Get a SHA-1 Hash for the Password
@@ -751,7 +762,8 @@ C<password_hash_type> are new, everything else is the same):
             # This is the model object created by Catalyst::Model::DBIC from your
             # schema (you created 'MyAppDB::User' but as the Catalyst startup
             # debug messages show, it was loaded as 'MyApp::Model::MyAppDB::User').
-            # NOTE: Omit 'MyApp::Model' to avoid a component lookup issue in Catalyst 5.66
+            # NOTE: Omit 'MyApp::Model' here just as you would when using 
+            # '$c->model("MyAppDB::User)'
             user_class: MyAppDB::User
             # This is the name of the field in your 'users' table that contains the user's name
             user_field: username

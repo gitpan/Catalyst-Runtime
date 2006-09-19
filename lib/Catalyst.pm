@@ -61,7 +61,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7001';
+our $VERSION = '5.7002';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -293,8 +293,12 @@ sub forward { my $c = shift; $c->dispatcher->forward( $c, @_ ) }
 
 =head2 $c->detach( $class, $method, [, \@arguments ] )
 
+=head2 $c->detach()
+
 The same as C<forward>, but doesn't return to the previous action when 
 processing is finished. 
+
+When called with no arguments it escapes the processing chain entirely.
 
 =cut
 
@@ -889,6 +893,7 @@ sub uri_for {
                          : [] );
         $path = $c->dispatcher->uri_for_action($path, $captures);
         return undef unless defined($path);
+        $path = '/' if $path eq '';
     }
 
     # massage namespace, empty if absolute path
@@ -1147,7 +1152,7 @@ sub execute {
     my $last = pop( @{ $c->stack } );
 
     if ( my $error = $@ ) {
-        if ( $error eq $DETACH ) { die $DETACH if $c->depth > 1 }
+        if ( !ref($error) and $error eq $DETACH ) { die $DETACH if $c->depth > 1 }
         else {
             unless ( ref $error ) {
                 no warnings 'uninitialized';

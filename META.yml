@@ -1,7 +1,7 @@
 abstract: Catalyst  Runtime version
 author: The Catalyst Core Team - see http://catalyst.perl.org/
 distribution_type: module
-generated_by: Module::Install version 0.63
+generated_by: Module::Install version 0.64
 license: perl
 name: Catalyst-Runtime
 no_index: 
@@ -34,4 +34,4 @@ requires:
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
   perl: 5.8.1
-version: 5.7001
+version: 5.7002

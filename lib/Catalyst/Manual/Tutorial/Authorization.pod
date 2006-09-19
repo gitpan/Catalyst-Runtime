@@ -59,12 +59,9 @@ how to use roles in both TT templates and controller actions.  The first
 half looks at manually configured authorization.  The second half looks
 at how the ACL authorization plugin can simplify your code.
 
-B<TIP>: Note that all of the code for this part of the tutorial can be
-pulled from the Catalyst Subversion repository in one step with the
-following command:
-
-    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/Authorization MyApp
-
+You can checkout the source code for this example from the catalyst
+subversion repository as per the instructions in
+L<Catalyst::Manual::Tutorial::Intro>
 
 =head1 BASIC AUTHORIZATION
 
@@ -108,7 +105,8 @@ Edit C<myapp.yml> and update it to match (everything from the
             # This is the model object created by Catalyst::Model::DBIC from your
             # schema (you created 'MyAppDB::User' but as the Catalyst startup
             # debug messages show, it was loaded as 'MyApp::Model::MyAppDB::User').
-            # NOTE: Omit 'MyApp::Model' to avoid a component lookup issue in Catalyst 5.66
+            # NOTE: Omit 'MyApp::Model' here just as you would when using 
+            # '$c->model("MyAppDB::User)'
             user_class: MyAppDB::User
             # This is the name of the field in your 'users' table that contains the user's name
             user_field: username
@@ -124,7 +122,8 @@ Edit C<myapp.yml> and update it to match (everything from the
             # This is the model object created by Catalyst::Model::DBIC from your
             # schema (you created 'MyAppDB::Role' but as the Catalyst startup
             # debug messages show, it was loaded as 'MyApp::Model::MyAppDB::Role').
-            # NOTE: Omit 'MyApp::Model' to avoid a component lookup issue in Catalyst 5.66
+            # NOTE: Omit 'MyApp::Model' here just as you would when using 
+            # '$c->model("MyAppDB::User)'
             role_class: MyAppDB::Role
             # The name of the field in the 'roles' table that contains the role name
             role_field: role

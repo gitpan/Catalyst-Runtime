@@ -70,7 +70,7 @@ L<HTML::FillInForm|HTML::FillInForm>.
 
 Here, we will make use of the L<HTML::Widget|HTML::Widget> to not only 
 ease form creation, but to also provide validation of the submitted 
-data.  The approached used by the part of the tutorial is to slowly 
+data.  The approached used by this part of the tutorial is to slowly 
 incorporate additional L<HTML::Widget|HTML::Widget> functionality in a 
 step-wise fashion (we start with fairly simple form creation and then 
 move on to more complex and "magical" features such as validation and 
@@ -79,11 +79,7 @@ auto-population/auto-saving).
 B<Note:> Part 8 of the tutorial is optional.  Users who do not wish to
 use L<HTML::Widget|HTML::Widget> may skip this part.
 
-B<TIP>: Note that all of the code for this part of the tutorial can be
-pulled from the Catalyst Subversion repository in one step with the
-following command:
-
-    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/AdvancedCRUD MyApp
+You can checkout the source code for this example from the catalyst subversion repository as per the instructions in L<Catalyst::Manual::Tutorial::Intro>
 
 =head1 C<HTML::WIDGET> FORM CREATION
 
@@ -191,7 +187,8 @@ following methods:
         # Set a status message for the user
         $c->stash->{status_msg} = 'Book created';
     
-        # Use 'hw_create' to redisplay the form
+        # Use 'hw_create' to redisplay the form.  As discussed in 
+        # Part 3, 'detach' is like 'forward', but it does not return
         $c->detach('hw_create');
     }
 
@@ -604,7 +601,6 @@ Open C<lib/FormElementContainer.pm> in your editor and enter:
             return map { $self->_build_element($_) } @{$element};
         }
         my $e = $element->clone;
-        my $class = $e->attr('class') || '';
         $e = new HTML::Element('span', class => 'fields_with_errors')->push_content($e)
             if $self->error && $e->tag eq 'input';
     

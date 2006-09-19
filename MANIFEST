@@ -97,6 +97,7 @@ t/lib/TestApp/Controller/Action/Chained/Bar.pm
 t/lib/TestApp/Controller/Action/Chained/Foo.pm
 t/lib/TestApp/Controller/Action/Chained/ParentChain.pm
 t/lib/TestApp/Controller/Action/Chained/PassedArgs.pm
+t/lib/TestApp/Controller/Action/Chained/Root.pm
 t/lib/TestApp/Controller/Action/Default.pm
 t/lib/TestApp/Controller/Action/Detach.pm
 t/lib/TestApp/Controller/Action/End.pm

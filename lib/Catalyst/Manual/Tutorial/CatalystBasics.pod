@@ -103,18 +103,18 @@ to persist and restore objects to/from a relational database.
 
 =back
 
-B<TIP>: Note that all of the code for this part of the tutorial can be
-pulled from the Catalyst Subversion repository in one step with the
-following command:
-
-    svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/CatalystBasics MyApp
-
+You can checkout the source code for this example from the catalyst
+subversion repository as per the instructions in
+L<Catalyst::Manual::Tutorial::Intro>
 
 =head1 CREATE A CATALYST PROJECT
 
 Catalyst provides a number of helper scripts that can be used to quickly
 flesh out the basic structure of your application. All Catalyst projects
-begin with the C<catalyst.pl> helper.
+begin with the C<catalyst.pl> helper (see L<Catalyst::Helper|Catalyst::Helper>
+for more information on helpers).  Also note that as of Catalyst 5.7000,
+you will not have the helper scripts unless you install both 
+L<Catalyst::Runtime|Catalyst::Runtime> and L<Catalyst::Devel|Catalyst::Devel>.
 
 In the case of this tutorial, use the Catalyst C<catalyst.pl> script to
 initialize the framework for an application called C<MyApp>:
@@ -163,6 +163,11 @@ application with the built-in development web server:
     
     [info] MyApp powered by Catalyst 5.7000
     You can connect to your server at http://localhost.localdomain:3000
+
+B<NOTE>: Be sure you run the C<script/myapp_server.pl> command from the
+'base' directory of your application, not inside the C<script> directory 
+itself.  It doesn't make a difference at this point, but it will as soon
+as we get the database going in the next section.
 
 Point your web browser to L<http://localhost:3000> (substituting a 
 different hostname or IP address as appropriate) and you should be 
@@ -394,7 +399,7 @@ Perl ORM engine, Matt Trout's L<DBIx::Class|DBIx::Class> (abbreviated
 as "DBIC") has rapidly emerged as the Perl-based ORM technology of choice.  
 Most new Catalyst applications rely on DBIC, as will this tutorial.
 
-Note: See L<Catalyst:: Model::CDBI> for more information on using
+Note: See L<Catalyst::Model::CDBI> for more information on using
 Catalyst with L<Class::DBI|Class::DBI>.
 
 =head2 Create a DBIC Schema File
@@ -693,7 +698,8 @@ to the controller:
         $c->stash->{books} = [$c->model('MyAppDB::Book')->all];
         
         # Set the TT template to use.  You will almost always want to do this
-        # in your action methods.
+        # in your action methods (actions methods respond to user input in
+        # your controllers).
         $c->stash->{template} = 'books/list.tt2';
     }
 
@@ -728,7 +734,7 @@ include Mason (L<http://www.masonhq.com> and
 L<http://www.masonbook.com>) and L<HTML::Template|HTML::Template>
 (L<http://html-template.sourceforge.net>).
 
-=head2 Create a Catalyst View Using C<TTSITE>
+=head2 Create a Catalyst View Using C<TTSite>
 
 When using TT for the Catalyst view, there are two main helper scripts:
 
@@ -788,7 +794,7 @@ Catalyst C<c> variable.)
 B<TIP>: When troubleshooting TT it can be helpful to enable variable
 C<DEBUG> options.  You can do this in a Catalyst environment by adding
 a C<DEBUG> line to the C<__PACKAGE__->config> declaration in 
-C<MyApp/View/TT.pm>:
+C<lib/MyApp/View/TT.pm>:
 
     __PACKAGE__->config({
         CATALYST_VAR => 'Catalyst',
@@ -802,6 +808,12 @@ There are a variety of options you can use, such as 'undef', 'all',
 L<Template::Constants> for more information (remove the C<DEBUG_>
 portion of the name shown in the TT docs and convert to lower case
 for use inside Catalyst).
+
+B<NOTE:> Please be sure to disable TT debug options before 
+continuing the tutorial (especially the 'undef' option -- leaving
+this enabled will conflict with several of the conventions used
+by this tutorial and TTSite to leave some variables undefined
+on purpose).
 
 
 =head2 Using C<RenderView> for the Default View
@@ -872,9 +884,10 @@ Older Catalyst-related documents often suggest that you add a "private
 end action" to your application class (C<MyApp.pm>) or Root.pm 
 (C<MyApp/Controller/Root.pm>).  These examples should be easily 
 converted to L<RenderView|Catalyst::Action::RenderView> by simply adding 
-C<ActionClass('RenderView')> to the C<sub end> definition. If end sub is 
-defined in your application class (C<MyApp.pm>), you should also migrate 
-it to C<MyApp/Controller/Root.pm>.
+the attribute C<:ActionClass('RenderView')> to the C<sub end> 
+definition. If end sub is defined in your application class 
+(C<MyApp.pm>), you should also migrate it to 
+C<MyApp/Controller/Root.pm>.
 
 =item *
 
@@ -1020,7 +1033,11 @@ First, let's enable an environment variable option that causes
 DBIx::Class to dump the SQL statements it's using to access the database
 (this option can provide extremely helpful troubleshooting information):
 
-    $ export DBIX_CLASS_STORAGE_DBI_DEBUG=1
+    $ export DBIC_TRACE=1
+
+B<NOTE>: You can also use the older 
+C<export DBIX_CLASS_STORAGE_DBI_DEBUG=1>, that that's a lot more to
+type.
 
 This assumes you are using BASH as your shell -- adjust accordingly if
 you are using a different shell (for example, under tcsh, use
@@ -1126,6 +1143,66 @@ legibility):
 
 You should see 5 such lines of debug output as DBIC fetches the author 
 information for each book.
+
+
+=head1 USING THE DEFAULT TEMPLATE NAME
+
+By default, C<Catalyst::View::TT> will look for a template that uses the 
+same name as your controller action, allowing you to save the step of 
+manually specifying the template name in each action.  For example, this 
+would allow us to remove (or comment out) the 
+C<$c-E<gt>stash-E<gt>{template} = 'books/list.tt2';> line of our 
+C<list> action in the Books controller.  Open 
+C<lib/MyApp/Controller/Books.pm> in your editor and update it to 
+match the following:
+
+    =head2 list
+    
+    Fetch all book objects and pass to books/list.tt2 in stash to be displayed
+    
+    =cut
+    
+    sub list : Local {
+        # Retrieve the usual perl OO '$self' for this object. $c is the Catalyst
+        # 'Context' that's used to 'glue together' the various components
+        # that make up the application
+        my ($self, $c) = @_;
+    
+        # Retrieve all of the book records as book model objects and store in the
+        # stash where they can be accessed by the TT template
+        $c->stash->{books} = [$c->model('MyAppDB::Book')->all];
+    
+        # Automatically look for a template of 'books/list.tt2' template
+        # (if TEMPLATE_EXTENSION is set to '.tt2')
+    }
+
+C<Catalyst::View::TT> defaults to looking for a template with no 
+extension.  In our case, we need to override this to look for an 
+extension of C<.tt2>.  Open C<lib/MyApp/View/TT.pm> and add the 
+C<TEMPLATE_EXTENSION> definition as follows:
+
+    __PACKAGE__->config({
+        CATALYST_VAR => 'Catalyst',
+        INCLUDE_PATH => [
+            MyApp->path_to( 'root', 'src' ),
+            MyApp->path_to( 'root', 'lib' )
+        ],
+        PRE_PROCESS  => 'config/main',
+        WRAPPER      => 'site/wrapper',
+        ERROR        => 'error.tt2',
+        TIMER        => 0,
+        TEMPLATE_EXTENSION => '.tt2',
+    });
+
+You should now be able to restart the development server as per the 
+previous section and access the L<http://localhost:3000/books/list>
+as before.
+
+Although this can be a valuable technique to establish a default 
+template for each of your actions, the remainder of the tutorial
+will manually assign the template name to 
+C<$c-E<gt>stash-E<gt>{template}> in each action in order to make 
+the logic as conspicuous as possible.
 
 
 =head1 AUTHOR

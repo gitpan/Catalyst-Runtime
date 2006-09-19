@@ -61,6 +61,15 @@ framework, experienced users may wish to review specific sections (for
 example, how to use DBIC for their model classes or how to add
 authentication and authorization to an existing application).
 
+You can obtain the code for all the tutorial examples from the
+catalyst subversion repository by issuing the command:
+
+ svn co http://dev.catalyst.perl.org/repos/Catalyst/tags/examples/Tutorial/MyApp/5.7/ CatalystTutorial
+
+This will download the current code for each tutorial chapter in the
+CatalystTutorial directory.  Each example application directory has
+the same name as the tutorial chapter.
+
 Subjects covered include:
 
 =over 4
@@ -119,7 +128,7 @@ and validation.
 =back
 
 This tutorial makes the learning process its main priority.  For
-example, the level of comments in the code found here would like be
+example, the level of comments in the code found here would likely be
 considered excessive in a "normal project".  Because of their contextual
 value, this tutorial will generally favor inline comments over a
 separate discussion in the text.  It also deliberately tries to
