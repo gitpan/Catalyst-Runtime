@@ -61,7 +61,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7003';
+our $VERSION = '5.7004';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -501,8 +501,11 @@ Gets a L<Catalyst::Model> instance by name.
 
     $c->model('Foo')->do_stuff;
 
-If the name is omitted, it will look for a config setting 'default_model',
-or check if there is only one view, and return it if that's the case.
+If the name is omitted, it will look for 
+ - a model object in $c->stash{current_model_instance}, then
+ - a model name in $c->stash->{current_model}, then
+ - a config setting 'default_model', or
+ - check if there is only one model, and return it if that's the case.
 
 =cut
 
@@ -511,8 +514,14 @@ sub model {
     return $c->_filter_component( $c->_comp_prefixes( $name, qw/Model M/ ),
         @args )
       if $name;
-    return $c->component( $c->config->{default_model} )
-      if $c->config->{default_model};
+    if (ref $c) {
+        return $c->stash->{current_model_instance} 
+          if $c->stash->{current_model_instance};
+        return $c->model( $c->stash->{current_model} )
+          if $c->stash->{current_model};
+        return $c->model( $c->config->{default_model} )
+          if $c->config->{default_model};
+    }
     return $c->_filter_component( $c->_comp_singular(qw/Model M/), @args );
 
 }
@@ -535,9 +544,11 @@ Gets a L<Catalyst::View> instance by name.
 
     $c->view('Foo')->do_stuff;
 
-If the name is omitted, it will look for a config setting
-'default_view', or check if there is only one view, and forward to it if
-that's the case.
+If the name is omitted, it will look for 
+ - a view object in $c->stash{current_view_instance}, then
+ - a view name in $c->stash->{current_view}, then
+ - a config setting 'default_view', or
+ - check if there is only one view, and return it if that's the case.
 
 =cut
 
@@ -546,8 +557,14 @@ sub view {
     return $c->_filter_component( $c->_comp_prefixes( $name, qw/View V/ ),
         @args )
       if $name;
-    return $c->component( $c->config->{default_view} )
-      if $c->config->{default_view};
+    if (ref $c) {
+        return $c->stash->{current_view_instance} 
+          if $c->stash->{current_view_instance};
+        return $c->view( $c->stash->{current_view} )
+          if $c->stash->{current_view};
+        return $c->view( $c->config->{default_view} )
+          if $c->config->{default_view};
+    }
     return $c->_filter_component( $c->_comp_singular(qw/View V/) );
 }
 
@@ -800,6 +817,7 @@ You are running an old script!
 
   or (this will not overwrite existing files):
     catalyst.pl -scripts $class
+
 EOF
     }
     
@@ -809,7 +827,7 @@ EOF
         if (@plugins) {
             my $t = Text::SimpleTable->new(74);
             $t->row($_) for @plugins;
-            $class->log->debug( "Loaded plugins:\n" . $t->draw );
+            $class->log->debug( "Loaded plugins:\n" . $t->draw . "\n" );
         }
 
         my $dispatcher = $class->dispatcher;
@@ -844,7 +862,7 @@ EOF
             my $type = ref $class->components->{$comp} ? 'instance' : 'class';
             $t->row( $comp, $type );
         }
-        $class->log->debug( "Loaded components:\n" . $t->draw )
+        $class->log->debug( "Loaded components:\n" . $t->draw . "\n" )
           if ( keys %{ $class->components } );
     }
 
@@ -1294,6 +1312,24 @@ sub finalize {
 
         $c->finalize_body;
     }
+    
+    if ($c->debug) {
+        my $elapsed = sprintf '%f', tv_interval($c->stats->getNodeValue);
+        my $av = sprintf '%.3f', ( $elapsed == 0 ? '??' : ( 1 / $elapsed ) );
+        
+        my $t = Text::SimpleTable->new( [ 62, 'Action' ], [ 9, 'Time' ] );
+        $c->stats->traverse(
+            sub {
+                my $action = shift;
+                my $stat   = $action->getNodeValue;
+                $t->row( ( q{ } x $action->getDepth ) . $stat->{action} . $stat->{comment},
+                    $stat->{elapsed} || '??' );
+            }
+        );
+
+        $c->log->info(
+            "Request took ${elapsed}s ($av/s)\n" . $t->draw . "\n" );        
+    }
 
     return $c->response->status;
 }
@@ -1422,35 +1458,15 @@ sub handle_request {
     my $status = -1;
     eval {
         if ($class->debug) {
-            my $start = [gettimeofday];
-            my $c = $class->prepare(@arguments);
-            $c->stats(Tree::Simple->new);          
-            $c->dispatch;
-            $status = $c->finalize;            
-
-            my $elapsed = tv_interval $start;
-            $elapsed = sprintf '%f', $elapsed;
-            my $av = sprintf '%.3f',
-              ( $elapsed == 0 ? '??' : ( 1 / $elapsed ) );
-            my $t = Text::SimpleTable->new( [ 62, 'Action' ], [ 9, 'Time' ] );
-
-            $c->stats->traverse(
-                sub {
-                    my $action = shift;
-                    my $stat   = $action->getNodeValue;
-                    $t->row( ( q{ } x $action->getDepth ) . $stat->{action} . $stat->{comment},
-                        $stat->{elapsed} || '??' );
-                }
-            );
-
-            $class->log->info(
-                "Request took ${elapsed}s ($av/s)\n" . $t->draw );
+            my $secs = time - $START || 1;
+            my $av = sprintf '%.3f', $COUNT / $secs;
+            my $time = localtime time;
+            $class->log->info("*** Request $COUNT ($av/s) [$$] [$time] ***");
         }
-        else {
-            my $c = $class->prepare(@arguments);
-            $c->dispatch;
-            $status = $c->finalize;            
-        }
+
+        my $c = $class->prepare(@arguments);
+        $c->dispatch;
+        $status = $c->finalize;   
     };
 
     if ( my $error = $@ ) {
@@ -1504,19 +1520,16 @@ sub prepare {
         }
     );
 
+    if ( $c->debug ) {
+        $c->stats(Tree::Simple->new([gettimeofday]));
+        $c->res->headers->header( 'X-Catalyst' => $Catalyst::VERSION );            
+    }
+
     # For on-demand data
     $c->request->{_context}  = $c;
     $c->response->{_context} = $c;
     weaken( $c->request->{_context} );
     weaken( $c->response->{_context} );
-
-    if ( $c->debug ) {
-        my $secs = time - $START || 1;
-        my $av = sprintf '%.3f', $COUNT / $secs;
-        my $time = localtime time;
-        $c->log->info("*** Request $COUNT ($av/s) [$$] [$time] ***");
-        $c->res->headers->header( 'X-Catalyst' => $Catalyst::VERSION );
-    }
 
     # Allow engine to direct the prepare flow (for POE)
     if ( $c->engine->can('prepare') ) {

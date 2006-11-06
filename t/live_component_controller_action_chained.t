@@ -10,7 +10,7 @@ our $iters;
 
 BEGIN { $iters = $ENV{CAT_BENCH_ITERS} || 2; }
 
-use Test::More tests => 106*$iters;
+use Test::More tests => 109*$iters;
 use Catalyst::Test 'TestApp';
 
 if ( $ENV{CAT_BENCHMARK} ) {
@@ -57,7 +57,7 @@ sub run_tests {
             'chained + local endpoint; missing last argument' );
         is( $response->header('X-Catalyst-Executed'),
             $expected, 'Executed actions' );
-        is( $response->header('Status'), 500, 'Status OK' );
+        is( $response->code, 500, 'Status OK' );
     }
 
     #
@@ -235,7 +235,7 @@ sub run_tests {
             'multi-action (three args, should lead to error)' );
         is( $response->header('X-Catalyst-Executed'),
             $expected, 'Executed actions' );
-        is( $response->header('Status'), 500, 'Status OK' );
+        is( $response->code, 500, 'Status OK' );
     }
 
     #
@@ -646,7 +646,7 @@ sub run_tests {
             "Loose end is not callable" );
         is( $response->header('X-Catalyst-Executed'),
             $expected, 'Executed actions' );
-        is( $response->header('Status'), 500, 'Status OK' );
+        is( $response->code, 500, 'Status OK' );
     }
 
     #
@@ -698,8 +698,8 @@ sub run_tests {
         ok( my $response = request(
             'http://localhost/action/chained/to_root' ),
             'uri_for with chained root action as arg' );
-        is( $response->content,
-            'URI:http://localhost/',
+        like( $response->content,
+            qr(URI:http://[^/]+/),
             'Correct URI generated' );
     }
 
@@ -726,6 +726,24 @@ sub run_tests {
                 "Usage of absolute path part argument emits error" );
         }
         else { pass( "Error on absolute path part arguments already tested" ) }
+    }
+
+    #
+    #   Test chained actions in the root controller
+    #
+    {
+        my @expected = qw[
+          TestApp::Controller::Action::Chained::Root->rootsub
+          TestApp::Controller::Action::Chained::Root->endpointsub
+          TestApp->end
+        ];
+
+        my $expected = join( ", ", @expected );
+
+        ok( my $response = request('http://localhost/rootsub/1/endpointsub/2'), 'chained in root namespace' );
+        is( $response->header('X-Catalyst-Executed'),
+            $expected, 'Executed actions' );
+        is( $response->content, '', 'Content OK' );
     }
 
     #

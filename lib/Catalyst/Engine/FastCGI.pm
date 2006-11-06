@@ -22,23 +22,53 @@ This class overloads some methods from C<Catalyst::Engine::CGI>.
 Starts the FastCGI server.  If C<$listen> is set, then it specifies a
 location to listen for FastCGI requests;
 
-  Form            Meaning
-  /path           listen via Unix sockets on /path
-  :port           listen via TCP on port on all interfaces
-  hostname:port   listen via TCP on port bound to hostname
+=over 4
+
+=item /path
+
+listen via Unix sockets on /path
+
+=item :port
+
+listen via TCP on port on all interfaces
+
+=item hostname:port
+
+listen via TCP on port bound to hostname
+
+=back
 
 Options may also be specified;
 
-  Option          Meaning
-  leave_umask     Set to 1 to disable setting umask to 0
-                  for socket open
-  nointr          Do not allow the listener to be
-                  interrupted by Ctrl+C
-  nproc           Specify a number of processes for
-                  FCGI::ProcManager
-  pidfile         Specify a filename for the pid file
-  manager         Specify a FCGI::ProcManager sub-class
-  detach          Detach from console
+=over 4
+
+=item leave_umask
+
+Set to 1 to disable setting umask to 0 for socket open =item nointr
+
+Do not allow the listener to be interrupted by Ctrl+C
+
+=item nproc
+
+Specify a number of processes for FCGI::ProcManager
+
+=item pidfile
+
+Specify a filename for the pid file
+
+=item manager
+
+Specify a FCGI::ProcManager sub-class
+
+=item detach          
+
+Detach from console
+
+=item keep_stderr
+
+Send STDERR to STDOUT instead of the webserver
+
+=back
 
 =cut
 
@@ -65,9 +95,12 @@ sub run {
     $options ||= {};
 
     my %env;
-
+    my $error = \*STDERR; # send STDERR to the web server
+       $error = \*STDOUT  # send STDERR to stdout (a logfile)
+	 if $options->{keep_stderr}; # (if asked to)
+    
     my $request =
-      FCGI::Request( \*STDIN, \*STDOUT, \*STDERR, \%env, $sock,
+      FCGI::Request( \*STDIN, \*STDOUT, $error, \%env, $sock,
         ( $options->{nointr} ? 0 : &FCGI::FAIL_ACCEPT_ON_INTR ),
       );
 
@@ -101,7 +134,16 @@ sub run {
 
     while ( $request->Accept >= 0 ) {
         $proc_manager && $proc_manager->pm_pre_dispatch();
+        
+        # If we're running under Lighttpd, swap PATH_INFO and SCRIPT_NAME
+        # http://lists.rawmode.org/pipermail/catalyst/2006-June/008361.html
+        # Thanks to Mark Blythe for this fix
+        if ( $env{SERVER_SOFTWARE} && $env{SERVER_SOFTWARE} =~ /lighttpd/ ) {
+            $env{PATH_INFO} ||= delete $env{SCRIPT_NAME};
+        }
+        
         $class->handle_request( env => \%env );
+        
         $proc_manager && $proc_manager->pm_post_dispatch();
     }
 }

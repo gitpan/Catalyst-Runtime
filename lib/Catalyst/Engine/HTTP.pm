@@ -116,6 +116,12 @@ sub run {
 
     $options ||= {};
 
+    if ($options->{background}) {
+        my $child = fork;
+        die "Can't fork: $!" unless defined($child);
+        exit if $child;
+    }
+
     my $restart = 0;
     local $SIG{CHLD} = 'IGNORE';
 
@@ -147,9 +153,27 @@ sub run {
 
     print "You can connect to your server at $url\n";
 
+    if ($options->{background}) {
+        open STDIN,  "+</dev/null" or die $!;
+        open STDOUT, ">&STDIN"     or die $!;
+        open STDERR, ">&STDIN"     or die $!;
+        if ( $^O !~ /MSWin32/ ) {
+             require POSIX;
+             POSIX::setsid()
+                 or die "Can't start a new session: $!";
+        }
+    }
+
+    if (my $pidfile = $options->{pidfile}) {
+        if (! open PIDFILE, "> $pidfile") {
+            warn("Cannot open: $pidfile: $!");
+        }
+        print PIDFILE "$$\n";
+        close PIDFILE;
+    }
+
     $self->_keep_alive( $options->{keepalive} || 0 );
 
-    my $parent = $$;
     my $pid    = undef;
     while ( accept( Remote, $daemon ) )
     {    # TODO: get while ( my $remote = $daemon->accept ) to work
@@ -311,16 +335,24 @@ sub _parse_request_line {
 sub _socket_data {
     my ( $self, $handle ) = @_;
 
-    my $remote_sockaddr = getpeername($handle);
-    my ( undef, $iaddr ) = sockaddr_in($remote_sockaddr);
-    my $local_sockaddr = getsockname($handle);
+    my $remote_sockaddr       = getpeername($handle);
+    my ( undef, $iaddr )      = $remote_sockaddr 
+        ? sockaddr_in($remote_sockaddr) 
+        : (undef, undef);
+        
+    my $local_sockaddr        = getsockname($handle);
     my ( undef, $localiaddr ) = sockaddr_in($local_sockaddr);
 
+    # This mess is necessary to keep IE from crashing the server
     my $data = {
-        peername => gethostbyaddr( $iaddr, AF_INET ) || "localhost",
-        peeraddr => inet_ntoa($iaddr) || "127.0.0.1",
-        localname => gethostbyaddr( $localiaddr, AF_INET ) || "localhost",
-        localaddr => inet_ntoa($localiaddr) || "127.0.0.1",
+        peername  => $iaddr 
+            ? ( gethostbyaddr( $iaddr, AF_INET ) || 'localhost' )
+            : 'localhost',
+        peeraddr  => $iaddr 
+            ? ( inet_ntoa($iaddr) || '127.0.0.1' )
+            : '127.0.0.1',
+        localname => gethostbyaddr( $localiaddr, AF_INET ) || 'localhost',
+        localaddr => inet_ntoa($localiaddr) || '127.0.0.1',
     };
 
     return $data;
