@@ -61,7 +61,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7005';
+our $VERSION = '5.7006';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -925,6 +925,7 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     for my $value ( values %$params ) {
+        next unless defined $value;
         for ( ref $value eq 'ARRAY' ? @$value : $value ) {
             $_ = "$_";
             utf8::encode( $_ );

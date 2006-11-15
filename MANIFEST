@@ -36,6 +36,8 @@ lib/Catalyst/Engine/HTTP/Restarter/Watcher.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Log.pm
 lib/Catalyst/Manual.pod
+lib/Catalyst/Manual/Installation.pod
+lib/Catalyst/Manual/Installation/CentOS4.pod
 lib/Catalyst/Model.pm
 lib/Catalyst/Request.pm
 lib/Catalyst/Request/Upload.pm

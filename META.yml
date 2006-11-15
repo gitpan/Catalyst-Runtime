@@ -17,7 +17,7 @@ requires:
   Data::Dump: 0
   File::Modified: 0
   HTML::Entities: 0
-  HTTP::Body: 0.5
+  HTTP::Body: 0.6
   HTTP::Headers: 1.64
   HTTP::Request: 0
   HTTP::Request::AsCGI: 0.5
@@ -34,4 +34,4 @@ requires:
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
   perl: 5.8.1
-version: 5.7005
+version: 5.7006
