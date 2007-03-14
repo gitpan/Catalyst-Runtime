@@ -55,6 +55,17 @@ Returns the content.
 
     my $content = get('foo/bar?test=1');
 
+Note that this method doesn't follow redirects, so to test for a
+correctly redirecting page you'll need to use a combination of this
+method and the L<request> method below:
+
+    my $res = request('/'); # redirects to /y
+    warn $res->header('location');
+    use URI;
+    my $uri = URI->new($res->header('location'));
+    is ( $uri->path , '/y');
+    my $content = get($uri->path);
+
 =head2 request
 
 Returns a C<HTTP::Response> object.
@@ -125,6 +136,21 @@ sub remote_request {
 
     if ( $server->path =~ m|^(.+)?/$| ) {
         $server->path("$1");    # need to be quoted
+        }
+
+    # the request path needs to be sanitised if $server is using a
+    # non-root path due to potential overlap between request path and
+    # response path.
+    if ($server->path) {
+        my @sp = split '/', $server->path;
+        my @rp = split '/', $request->uri->path;
+        shift @sp;shift @rp; # leading /
+        if (@rp) {
+            foreach my $sp (@sp) {
+                $sp eq $rp[0] ? shift @rp : last
+            }
+        }
+        $request->uri->path(join '/', @rp);
     }
 
     $request->uri->scheme( $server->scheme );

@@ -144,8 +144,11 @@ C<application/x-www-form-urlencoded> or C<multipart/form-data>.
 =cut
 
 sub body {
-    my ( $self, $body ) = @_;
+    my $self = shift;
     $self->{_context}->prepare_body;
+    
+    return unless $self->{_body};
+    
     return $self->{_body}->body;
 }
 
@@ -484,7 +487,8 @@ sub upload {
 =head2 $req->uploads
 
 Returns a reference to a hash containing uploads. Values can be either a
-hashref or a arrayref containing L<Catalyst::Request::Upload> objects.
+L<Catalyst::Request::Upload> object, or an arrayref of 
+L<Catalyst::Request::Upload> objects.
 
     my $upload = $c->request->uploads->{field};
     my $upload = $c->request->uploads->{field}->[0];

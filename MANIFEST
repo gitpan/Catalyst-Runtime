@@ -65,6 +65,7 @@ t/lib/Catalyst/Plugin/Test/Plugin.pm
 t/lib/PluginTestApp.pm
 t/lib/TestApp.pm
 t/lib/TestApp/Action/TestBefore.pm
+t/lib/TestApp/Action/TestMyAction.pm
 t/lib/TestApp/Controller/Action.pm
 t/lib/TestApp/Controller/Action/Action.pm
 t/lib/TestApp/Controller/Action/Auto.pm
@@ -107,6 +108,7 @@ t/lib/TestApp/Controller/Engine/Response/Headers.pm
 t/lib/TestApp/Controller/Engine/Response/Large.pm
 t/lib/TestApp/Controller/Engine/Response/Redirect.pm
 t/lib/TestApp/Controller/Engine/Response/Status.pm
+t/lib/TestApp/Controller/Fork.pm
 t/lib/TestApp/Controller/Index.pm
 t/lib/TestApp/Controller/Priorities.pm
 t/lib/TestApp/Controller/Priorities/loc_vs_index.pm
@@ -159,6 +161,7 @@ t/live_engine_response_redirect.t
 t/live_engine_response_status.t
 t/live_engine_setup_basics.t
 t/live_engine_setup_plugins.t
+t/live_fork.t
 t/live_loop.t
 t/live_plugin_loaded.t
 t/live_priorities.t
