@@ -9,7 +9,7 @@ use utf8;
 use URI::QueryParam;
 
 __PACKAGE__->mk_accessors(
-    qw/action address arguments cookies headers match method
+    qw/action address arguments cookies headers query_keywords match method
       protocol query_parameters secure captures uri user/
 );
 
@@ -51,6 +51,7 @@ Catalyst::Request - provides information about the current client request
     $req->headers;
     $req->hostname;
     $req->input;
+    $req->query_keywords;
     $req->match;
     $req->method;
     $req->param;
@@ -99,11 +100,11 @@ Returns a reference to an array containing the arguments.
 
 For example, if your action was
 
-	package MyApp::C::Foo;
-	
-	sub moose : Local {
-		...
-	}
+    package MyApp::C::Foo;
+
+    sub moose : Local {
+        ...
+    }
 
 and the URI for the request was C<http://.../foo/moose/bah>, the string C<bah>
 would be the first and only argument.
@@ -259,6 +260,15 @@ sub hostname {
 
 Alias for $req->body.
 
+=head2 $req->query_keywords
+
+Contains the keywords portion of a query string, when no '=' signs are
+present.
+
+    http://localhost/path?some+keywords
+    
+    $c->request->query_keywords will contain 'some keywords'
+
 =head2 $req->match
 
 This contains the matching part of a Regex action. Otherwise
@@ -281,7 +291,7 @@ is an alternative method for accessing parameters in $c->req->parameters.
 Like L<CGI>, and B<unlike> earlier versions of Catalyst, passing multiple
 arguments to this method, like this:
 
-	$c->request->param( 'foo', 'bar', 'gorch', 'quxx' );
+    $c->request->param( 'foo', 'bar', 'gorch', 'quxx' );
 
 will set the parameter C<foo> to the multiple values C<bar>, C<gorch> and
 C<quxx>. Previously this would have added C<bar> as another value to C<foo>
@@ -365,22 +375,24 @@ Alias for path, added for compability with L<CGI>.
 =cut
 
 sub path {
-    my ( $self, $params ) = @_;
+    my ( $self, @params ) = @_;
 
-    if ($params) {
-        $self->uri->path($params);
+    if (@params) {
+        $self->uri->path(@params);
+        undef $self->{path};
+    }
+    elsif ( defined( my $path = $self->{path} ) ) {
+        return $path;
     }
     else {
-        return $self->{path} if $self->{path};
+        my $path     = $self->uri->path;
+        my $location = $self->base->path;
+        $path =~ s/^(\Q$location\E)?//;
+        $path =~ s/^\///;
+        $self->{path} = $path;
+
+        return $path;
     }
-
-    my $path     = $self->uri->path;
-    my $location = $self->base->path;
-    $path =~ s/^(\Q$location\E)?//;
-    $path =~ s/^\///;
-    $self->{path} = $path;
-
-    return $path;
 }
 
 =head2 $req->protocol

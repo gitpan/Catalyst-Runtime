@@ -7,6 +7,7 @@ use HTTP::Request;
 use Path::Class;
 use URI;
 use Class::Inspector;
+use Carp qw/croak/;
 
 =head1 NAME
 
@@ -22,7 +23,7 @@ See L<Catalyst>.
 
 =head2 appprefix($class)
 
-	MyApp::Foo becomes myapp_foo
+    MyApp::Foo becomes myapp_foo
 
 =cut
 
@@ -220,10 +221,10 @@ sub request {
     my $request = shift;
     unless ( ref $request ) {
         if ( $request =~ m/^http/i ) {
-            $request = URI->new($request)->canonical;
+            $request = URI->new($request);
         }
         else {
-            $request = URI->new( 'http://localhost' . $request )->canonical;
+            $request = URI->new( 'http://localhost' . $request );
         }
     }
     unless ( ref $request eq 'HTTP::Request' ) {
@@ -241,6 +242,9 @@ Loads the class unless it already has been loaded.
 sub ensure_class_loaded {
     my $class = shift;
     my $opts  = shift;
+
+    croak "Malformed class Name $class"
+        if $class =~ m/(?:\b\:\b|\:{3,})/;
 
     return if !$opts->{ ignore_loaded }
         && Class::Inspector->loaded( $class ); # if a symbol entry exists we don't load again
@@ -288,6 +292,28 @@ sub merge_hashes {
     return \%merged;
 }
 
+=head2 env_value($class, $key)
+
+Checks for and returns an environment value. For instance, if $key is
+'home', then this method will check for and return the first value it finds,
+looking at $ENV{MYAPP_HOME} and $ENV{CATALYST_HOME}.
+
+=cut
+
+sub env_value {
+    my ( $class, $key ) = @_;
+
+    $key = uc($key);
+    my @prefixes = ( class2env($class), 'CATALYST' );
+
+    for my $prefix (@prefixes) {
+        if ( defined( my $value = $ENV{"${prefix}_${key}"} ) ) {
+            return $value;
+        }
+    }
+
+    return;
+}
 
 =head1 AUTHOR
 

@@ -142,29 +142,26 @@ sub read_chunk {
 
 =head2 $self->write($c, $buffer)
 
-Writes the buffer to the client. Can only be called once for a request.
+Writes the buffer to the client.
 
 =cut
 
 sub write {
     my ( $self, $c, $buffer ) = @_;
     
-	# Avoid 'print() on closed filehandle Remote' warnings when using IE
-	return unless *STDOUT->opened();
-	
-	my $ret;
-	
-	# Prepend the headers if they have not yet been sent
-	if ( my $headers = delete $self->{_header_buf} ) {
-	    DEBUG && warn "write: Wrote headers and first chunk (" . length($headers . $buffer) . " bytes)\n";
-	    $ret = $self->NEXT::write( $c, $headers . $buffer );
-    }
-    else {
-        DEBUG && warn "write: Wrote chunk (" . length($buffer) . " bytes)\n";
-        $ret = $self->NEXT::write( $c, $buffer );
+    # Avoid 'print() on closed filehandle Remote' warnings when using IE
+    return unless *STDOUT->opened();
+
+    # Prepend the headers if they have not yet been sent
+    if ( my $headers = delete $self->{_header_buf} ) {
+        $buffer = $headers . $buffer;
     }
     
-    if ( !$ret ) {
+    my $ret = $self->NEXT::write( $c, $buffer );
+    
+    DEBUG && warn "write: Wrote response ($ret bytes)\n";
+    
+    if ( !defined $ret ) {
         $self->{_write_error} = $!;
     }
     
@@ -244,6 +241,12 @@ sub run {
     # Ignore broken pipes as an HTTP server should
     local $SIG{PIPE} = 'IGNORE';
     
+    # Restart on HUP
+    local $SIG{HUP} = sub { 
+        $restart = 1;
+        warn "Restarting server on SIGHUP...\n";
+    };
+    
     LISTEN:
     while ( !$restart ) {
         while ( accept( Remote, $daemon ) ) {        
@@ -270,17 +273,30 @@ sub run {
             unless ( uc($method) eq 'RESTART' ) {
 
                 # Fork
-                if ( $options->{fork} ) { next if $pid = fork }
+                if ( $options->{fork} ) { 
+                    if ( $pid = fork ) {
+                        DEBUG && warn "Forked child $pid\n";
+                        next;
+                    }
+                }
 
                 $self->_handler( $class, $port, $method, $uri, $protocol );
             
                 if ( my $error = delete $self->{_write_error} ) {
                     DEBUG && warn "Write error: $error\n";
                     close Remote;
-                    next LISTEN;
+                    
+                    if ( !defined $pid ) {
+                        next LISTEN;
+                    }
                 }
 
-                $daemon->close if defined $pid;
+                if ( defined $pid ) {
+                    # Child process, close connection and exit
+                    DEBUG && warn "Child process exiting\n";
+                    $daemon->close;
+                    exit;
+                }
             }
             else {
                 my $sockdata = $self->_socket_data( \*Remote );
@@ -296,8 +312,6 @@ sub run {
                     last;
                 }
             }
-
-            exit if defined $pid;
         }
         continue {
             close Remote;
@@ -342,7 +356,7 @@ sub _handler {
     REQUEST:
     while (1) {
         my ( $path, $query_string ) = split /\?/, $uri, 2;
-
+        
         # Initialize CGI environment
         local %ENV = (
             PATH_INFO       => $path         || '',

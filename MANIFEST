@@ -129,6 +129,8 @@ t/lib/TestAppChainedAbsolutePathPart/Controller/Foo.pm
 t/lib/TestAppChainedRecursive.pm
 t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppDoubleAutoBug.pm
+t/lib/TestAppOnDemand.pm
+t/lib/TestAppOnDemand/Controller/Body.pm
 t/live_component_controller_action_action.t
 t/live_component_controller_action_auto.t
 t/live_component_controller_action_begin.t
@@ -148,6 +150,7 @@ t/live_component_controller_action_regexp.t
 t/live_component_controller_action_streaming.t
 t/live_component_controller_args.t
 t/live_engine_request_body.t
+t/live_engine_request_body_demand.t
 t/live_engine_request_cookies.t
 t/live_engine_request_headers.t
 t/live_engine_request_parameters.t
@@ -191,6 +194,7 @@ t/unit_core_plugin.t
 t/unit_core_uri_for.t
 t/unit_core_uri_for_action.t
 t/unit_load_catalyst_test.t
+t/unit_utils_env_value.t
 t/unit_utils_load_class.t
 t/unit_utils_prefix.t
 t/unit_utils_request.t

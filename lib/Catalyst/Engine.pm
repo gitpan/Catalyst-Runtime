@@ -4,6 +4,7 @@ use strict;
 use base 'Class::Accessor::Fast';
 use CGI::Simple::Cookie;
 use Data::Dump qw/dump/;
+use Errno 'EWOULDBLOCK';
 use HTML::Entities;
 use HTTP::Body;
 use HTTP::Headers;
@@ -279,11 +280,7 @@ sub finalize_headers { }
 
 =cut
 
-sub finalize_read {
-    my ( $self, $c ) = @_;
-
-    undef $self->{_prepared_read};
-}
+sub finalize_read { }
 
 =head2 $self->finalize_uploads($c)
 
@@ -312,12 +309,8 @@ sets up the L<Catalyst::Request> object body using L<HTTP::Body>
 
 sub prepare_body {
     my ( $self, $c ) = @_;
-    
-    my $length = $c->request->header('Content-Length') || 0;
 
-    $self->read_length( $length );
-
-    if ( $length > 0 ) {
+    if ( my $length = $self->read_length ) {
         unless ( $c->request->{_body} ) {
             my $type = $c->request->header('Content-Type');
             $c->request->{_body} = HTTP::Body->new( $type, $length );
@@ -446,16 +439,43 @@ process the query string and extract query parameters.
 
 sub prepare_query_parameters {
     my ( $self, $c, $query_string ) = @_;
+    
+    # Check for keywords (no = signs)
+    # (yes, index() is faster than a regex :))
+    if ( index( $query_string, '=' ) < 0 ) {
+        $c->request->query_keywords( $self->unescape_uri($query_string) );
+        return;
+    }
+
+    my %query;
 
     # replace semi-colons
     $query_string =~ s/;/&/g;
+    
+    my @params = split /&/, $query_string;
 
-    my $u = URI->new( '', 'http' );
-    $u->query($query_string);
-    for my $key ( $u->query_param ) {
-        my @vals = $u->query_param($key);
-        $c->request->query_parameters->{$key} = @vals > 1 ? [@vals] : $vals[0];
+    for my $item ( @params ) {
+        
+        my ($param, $value) 
+            = map { $self->unescape_uri($_) }
+              split( /=/, $item );
+          
+        $param = $self->unescape_uri($item) unless defined $param;
+        
+        if ( exists $query{$param} ) {
+            if ( ref $query{$param} ) {
+                push @{ $query{$param} }, $value;
+            }
+            else {
+                $query{$param} = [ $query{$param}, $value ];
+            }
+        }
+        else {
+            $query{$param} = $value;
+        }
     }
+
+    $c->request->query_parameters( \%query );
 }
 
 =head2 $self->prepare_read($c)
@@ -467,8 +487,11 @@ prepare to read from the engine.
 sub prepare_read {
     my ( $self, $c ) = @_;
 
-    # Reset the read position
+    # Initialize the read position
     $self->read_position(0);
+    
+    # Initialize the amount of data we think we need to read
+    $self->read_length( $c->request->header('Content-Length') || 0 );
 }
 
 =head2 $self->prepare_request(@arguments)
@@ -538,11 +561,6 @@ sub prepare_write { }
 sub read {
     my ( $self, $c, $maxlength ) = @_;
 
-    unless ( $self->{_prepared_read} ) {
-        $self->prepare_read($c);
-        $self->{_prepared_read} = 1;
-    }
-
     my $remaining = $self->read_length - $self->read_position;
     $maxlength ||= $CHUNKSIZE;
 
@@ -592,7 +610,7 @@ sub run { }
 
 =head2 $self->write($c, $buffer)
 
-Writes the buffer to the client. Can only be called once for a request.
+Writes the buffer to the client.
 
 =cut
 
@@ -603,10 +621,44 @@ sub write {
         $self->prepare_write($c);
         $self->{_prepared_write} = 1;
     }
-
-    print STDOUT $buffer;
+    
+    my $len   = length($buffer);
+    my $wrote = syswrite STDOUT, $buffer;
+    
+    if ( defined $wrote && $wrote < $len ) {
+        # We didn't write the whole buffer
+        while (1) {
+            my $ret = syswrite STDOUT, $buffer, $CHUNKSIZE, $wrote;
+            if ( defined $ret ) {
+                $wrote += $ret;
+            }
+            else {
+                next if $! == EWOULDBLOCK;
+                return;
+            }
+            
+            last if $wrote >= $len;
+        }
+    }
+    
+    return $wrote;
 }
 
+=head2 $self->unescape_uri($uri)
+
+Unescapes a given URI using the most efficient method available.  Engines such
+as Apache may implement this using Apache's C-based modules, for example.
+
+=cut
+
+sub unescape_uri {
+    my ( $self, $str ) = @_;
+    
+    $str =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+    $str =~ s/\+/ /g;
+    
+    return $str;
+}
 
 =head2 $self->finalize_output
 

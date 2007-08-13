@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/lib";
 
 our $iters;
 
-BEGIN { $iters = $ENV{CAT_BENCH_ITERS} || 2; }
+BEGIN { $iters = $ENV{CAT_BENCH_ITERS} || 1; }
 
 use Test::More tests => 3*$iters;
 use Catalyst::Test 'TestAppDoubleAutoBug';
@@ -24,18 +24,25 @@ else {
 }
     
 sub run_tests {
+    SKIP:
     {
-        my @expected = qw[
-            TestAppDoubleAutoBug->auto
-            TestAppDoubleAutoBug->default
-            TestAppDoubleAutoBug->end
-        ];
+        if ( $ENV{CATALYST_SERVER} ) {
+            skip 'Using remote server', 3;
+        }
+        
+        {
+            my @expected = qw[
+                TestAppDoubleAutoBug->auto
+                TestAppDoubleAutoBug->default
+                TestAppDoubleAutoBug->end
+            ];
     
-        my $expected = join( ", ", @expected );
+            my $expected = join( ", ", @expected );
     
-        ok( my $response = request('http://localhost/action/auto/one'), 'auto + local' );
-        is( $response->header('X-Catalyst-Executed'),
-            $expected, 'Executed actions' );
-        is( $response->content, 'default, auto=1', 'Content OK' );
+            ok( my $response = request('http://localhost/action/auto/one'), 'auto + local' );
+            is( $response->header('X-Catalyst-Executed'),
+                $expected, 'Executed actions' );
+            is( $response->content, 'default, auto=1', 'Content OK' );
+        }
     }
 }

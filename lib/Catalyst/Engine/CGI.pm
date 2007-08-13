@@ -3,9 +3,7 @@ package Catalyst::Engine::CGI;
 use strict;
 use base 'Catalyst::Engine';
 use NEXT;
-use URI;
 
-my $uri_proto=URI->new();
 __PACKAGE__->mk_accessors('env');
 
 =head1 NAME
@@ -44,7 +42,8 @@ sub finalize_headers {
 
     $c->response->header( Status => $c->response->status );
 
-    print $c->response->headers->as_string("\015\012") . "\015\012";
+    $self->{_header_buf} 
+        = $c->response->headers->as_string("\015\012") . "\015\012";
 }
 
 =head2 $self->prepare_connection($c)
@@ -137,26 +136,36 @@ sub prepare_path {
         $port = $c->request->secure ? 443 : 80;
     }
 
-    # set the base URI
-    # base must end in a slash
-    $base_path .= '/' unless ( $base_path =~ /\/$/ );
-
+    # set the request URI
     my $path = $base_path . ( $ENV{PATH_INFO} || '' );
     $path =~ s{^/+}{};
+    
+    # Using URI directly is way too slow, so we construct the URLs manually
+    my $uri_class = "URI::$scheme";
+    
+    # HTTP_HOST will include the port even if it's 80
+    $host =~ s/:80$//;
+    
+    if ( $port != 80 && $host !~ /:/ ) {
+        $host .= ":$port";
+    }
+    
+    # Escape the path
+    $path =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+    $path =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
+    
+    my $query = $ENV{QUERY_STRING} ? '?' . $ENV{QUERY_STRING} : '';
+    my $uri   = $scheme . '://' . $host . '/' . $path . $query;
 
-    my $uri = $uri_proto->clone;
-    $uri->scheme($scheme);
-    $uri->host($host);
-    $uri->port($port);
-    $uri->path($path);
-    $uri->query( $ENV{QUERY_STRING} ) if $ENV{QUERY_STRING};
+    $c->request->uri( bless \$uri, $uri_class );
 
-    # sanitize the URI
-    $uri = $uri->canonical;
-    $c->request->uri($uri);
-    my $base = $uri->clone;
-    $base->path_query($base_path);
-    $c->request->base($base);
+    # set the base URI
+    # base must end in a slash
+    $base_path .= '/' unless $base_path =~ m{/$};
+    
+    my $base_uri = $scheme . '://' . $host . $base_path;
+
+    $c->request->base( bless \$base_uri, $uri_class );
 }
 
 =head2 $self->prepare_query_parameters($c)
@@ -197,6 +206,23 @@ sub prepare_write {
     *STDOUT->autoflush(1);
 
     $self->NEXT::prepare_write($c);
+}
+
+=head2 $self->write($c, $buffer)
+
+Writes the buffer to the client.
+
+=cut
+
+sub write {
+    my ( $self, $c, $buffer ) = @_;
+
+    # Prepend the headers if they have not yet been sent
+    if ( my $headers = delete $self->{_header_buf} ) {
+        $buffer = $headers . $buffer;
+    }
+    
+    return $self->NEXT::write( $c, $buffer );
 }
 
 =head2 $self->read_chunk($c, $buffer, $length)

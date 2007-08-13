@@ -19,12 +19,14 @@ use Path::Class::Dir ();
 use Path::Class::File ();
 use Time::HiRes qw/gettimeofday tv_interval/;
 use URI ();
+use URI::http;
+use URI::https;
 use Scalar::Util qw/weaken blessed/;
 use Tree::Simple qw/use_weak_refs/;
 use Tree::Simple::Visitor::FindByUID;
 use attributes;
 use utf8;
-use Carp qw/croak/;
+use Carp qw/croak carp/;
 
 BEGIN { require 5.008001; }
 
@@ -61,7 +63,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7007';
+our $VERSION = '5.7008';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -109,7 +111,7 @@ documentation and tutorials.
     ### in lib/MyApp.pm
     use Catalyst qw/-Debug/; # include plugins here as well
     
-	### In lib/MyApp/Controller/Root.pm (autocreated)
+    ### In lib/MyApp/Controller/Root.pm (autocreated)
     sub foo : Global { # called for /foo, /foo/1, /foo/1/2, etc.
         my ( $self, $c, @args ) = @_; # args are qw/1 2/ for /foo/1/2
         $c->stash->{template} = 'foo.tt'; # set the template
@@ -343,7 +345,7 @@ sub stash {
     my $c = shift;
     if (@_) {
         my $stash = @_ > 1 ? {@_} : $_[0];
-	croak('stash takes a hash or hashref') unless ref $stash;
+        croak('stash takes a hash or hashref') unless ref $stash;
         foreach my $key ( keys %$stash ) {
             $c->{stash}->{$key} = $stash->{$key};
         }
@@ -914,11 +916,6 @@ to C<uri_for_action>.
 
 sub uri_for {
     my ( $c, $path, @args ) = @_;
-    my $base     = $c->request->base->clone;
-    my $basepath = $base->path;
-    $basepath =~ s/\/$//;
-    $basepath .= '/';
-    my $namespace = $c->namespace || '';
 
     if ( Scalar::Util::blessed($path) ) { # action object
         my $captures = ( scalar @args && ref $args[0] eq 'ARRAY'
@@ -929,32 +926,53 @@ sub uri_for {
         $path = '/' if $path eq '';
     }
 
-    # massage namespace, empty if absolute path
-    $namespace =~ s/^\/// if $namespace;
-    $namespace .= '/' if $namespace;
-    $path ||= '';
-    $namespace = '' if $path =~ /^\//;
-    $path =~ s/^\///;
-    $path =~ s/\?/%3F/g;
+    undef($path) if (defined $path && $path eq '');
 
     my $params =
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
-    for my $value ( values %$params ) {
-        next unless defined $value;
-        for ( ref $value eq 'ARRAY' ? @$value : $value ) {
-            $_ = "$_";
-            utf8::encode( $_ );
+    carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
+    s/([^$URI::uric])/$URI::Escape::escapes{$1}/go for @args;
+
+    unshift(@args, $path);
+
+    unless (defined $path && $path =~ s!^/!!) { # in-place strip
+        my $namespace = $c->namespace;
+        if (defined $path) { # cheesy hack to handle path '../foo'
+           $namespace =~ s{(?:^|/)[^/]+$}{} while $args[0] =~ s{^\.\./}{};
         }
-    };
+        unshift(@args, $namespace || '');
+    }
     
     # join args with '/', or a blank string
-    my $args = ( scalar @args ? '/' . join( '/', map {s/\?/%3F/g; $_} @args ) : '' );
-    $args =~ s/^\/// unless $path;
-    my $res =
-      URI->new_abs( URI->new_abs( "$path$args", "$basepath$namespace" ), $base )
-      ->canonical;
-    $res->query_form(%$params);
+    my $args = join('/', grep { defined($_) } @args);
+    $args =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
+    $args =~ s!^/!!;
+    my $base = $c->req->base;
+    my $class = ref($base);
+    $base =~ s{(?<!/)$}{/};
+
+    my $query = '';
+
+    if (my @keys = keys %$params) {
+      # somewhat lifted from URI::_query's query_form
+      $query = '?'.join('&', map {
+          s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go;
+          s/ /+/g;
+          my $key = $_;
+          my $val = $params->{$_};
+          $val = '' unless defined $val;
+          (map {
+              $_ = "$_";
+              utf8::encode( $_ );
+              # using the URI::Escape pattern here so utf8 chars survive
+              s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
+              s/ /+/g;
+              "${key}=$_"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
+      } @keys);
+    }
+
+    my $res = bless(\"${base}${args}${query}", $class);
     $res;
 }
 
@@ -975,8 +993,8 @@ sub welcome_message {
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
     <head>
-	<meta http-equiv="Content-Language" content="en" />
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="en" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <title>$name on Catalyst $VERSION</title>
         <style type="text/css">
             body {
@@ -1336,7 +1354,7 @@ sub finalize {
     
     if ($c->debug) {
         my $elapsed = sprintf '%f', tv_interval($c->stats->getNodeValue);
-        my $av = sprintf '%.3f', ( $elapsed == 0 ? '??' : ( 1 / $elapsed ) );
+        my $av = $elapsed == 0 ? '??' : sprintf '%.3f', 1 / $elapsed;
         
         my $t = Text::SimpleTable->new( [ 62, 'Action' ], [ 9, 'Time' ] );
         $c->stats->traverse(
@@ -1410,7 +1428,8 @@ sub finalize_headers {
         # get the length from a filehandle
         if ( blessed( $c->response->body ) && $c->response->body->can('read') )
         {
-            if ( my $stat = stat $c->response->body ) {
+            my $stat = stat $c->response->body;
+            if ( $stat && $stat->size > 0 ) {
                 $c->response->content_length( $stat->size );
             }
             else {
@@ -1571,8 +1590,14 @@ sub prepare {
         $c->prepare_cookies;
         $c->prepare_path;
 
-        # On-demand parsing
-        $c->prepare_body unless $c->config->{parse_on_demand};
+        # Prepare the body for reading, either by prepare_body
+        # or the user, if they are using $c->read
+        $c->prepare_read;
+        
+        # Parse the body unless the user wants it on-demand
+        unless ( $c->config->{parse_on_demand} ) {
+            $c->prepare_body;
+        }
     }
 
     my $method  = $c->req->method  || '';
@@ -1787,6 +1812,10 @@ C<$maxlength> defaults to the size of the request if not specified.
 You have to set C<< MyApp->config->{parse_on_demand} >> to use this
 directly.
 
+Warning: If you use read(), Catalyst will not process the body,
+so you will not be able to access POST parameters or file uploads via
+$c->request.  You must handle all body parsing yourself.
+
 =cut
 
 sub read { my $c = shift; return $c->engine->read( $c, @_ ) }
@@ -1838,8 +1867,11 @@ sub setup_components {
         search_path => [ map { s/^(?=::)/$class/; $_; } @paths ],
         %$config
     );
+
+    my @comps = sort { length $a <=> length $b } $locator->plugins;
+    my %comps = map { $_ => 1 } @comps;
     
-    for my $component ( sort { length $a <=> length $b } $locator->plugins ) {
+    for my $component ( @comps ) {
         Catalyst::Utils::ensure_class_loaded( $component, { ignore_loaded => 1 } );
 
         my $module  = $class->setup_component( $component );
@@ -1847,6 +1879,8 @@ sub setup_components {
             $component => $module,
             map {
                 $_ => $class->setup_component( $_ )
+            } grep { 
+              not exists $comps{$_}
             } Devel::InnerPackage::list_packages( $component )
         );
         
@@ -1900,13 +1934,8 @@ sub setup_dispatcher {
         $dispatcher = 'Catalyst::Dispatcher::' . $dispatcher;
     }
 
-    if ( $ENV{CATALYST_DISPATCHER} ) {
-        $dispatcher = 'Catalyst::Dispatcher::' . $ENV{CATALYST_DISPATCHER};
-    }
-
-    if ( $ENV{ uc($class) . '_DISPATCHER' } ) {
-        $dispatcher =
-          'Catalyst::Dispatcher::' . $ENV{ uc($class) . '_DISPATCHER' };
+    if ( my $env = Catalyst::Utils::env_value( $class, 'DISPATCHER' ) ) {
+        $dispatcher = 'Catalyst::Dispatcher::' . $env;
     }
 
     unless ($dispatcher) {
@@ -1934,12 +1963,8 @@ sub setup_engine {
         $engine = 'Catalyst::Engine::' . $engine;
     }
 
-    if ( $ENV{CATALYST_ENGINE} ) {
-        $engine = 'Catalyst::Engine::' . $ENV{CATALYST_ENGINE};
-    }
-
-    if ( $ENV{ uc($class) . '_ENGINE' } ) {
-        $engine = 'Catalyst::Engine::' . $ENV{ uc($class) . '_ENGINE' };
+    if ( my $env = Catalyst::Utils::env_value( $class, 'ENGINE' ) ) {
+        $engine = 'Catalyst::Engine::' . $env;
     }
 
     if ( $ENV{MOD_PERL} ) {
@@ -2054,13 +2079,8 @@ Sets up the home directory.
 sub setup_home {
     my ( $class, $home ) = @_;
 
-    if ( $ENV{CATALYST_HOME} ) {
-        $home = $ENV{CATALYST_HOME};
-    }
-
-    if ( $ENV{ uc($class) . '_HOME' } ) {
-        $class =~ s/::/_/g;
-        $home = $ENV{ uc($class) . '_HOME' };
+    if ( my $env = Catalyst::Utils::env_value( $class, 'HOME' ) ) {
+        $home = $env;
     }
 
     unless ($home) {
@@ -2086,14 +2106,8 @@ sub setup_log {
         $class->log( Catalyst::Log->new );
     }
 
-    my $app_flag = Catalyst::Utils::class2env($class) . '_DEBUG';
-
-    if (
-          ( defined( $ENV{CATALYST_DEBUG} ) || defined( $ENV{$app_flag} ) )
-        ? ( $ENV{CATALYST_DEBUG} || $ENV{$app_flag} )
-        : $debug
-      )
-    {
+    my $env_debug = Catalyst::Utils::env_value( $class, 'DEBUG' );
+    if ( defined($env_debug) ? $env_debug : $debug ) {
         no strict 'refs';
         *{"$class\::debug"} = sub { 1 };
         $class->log->debug('Debug messages enabled');
@@ -2135,9 +2149,7 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
         my ( $proto, $plugin, $instant ) = @_;
         my $class = ref $proto || $proto;
 
-        unless (Class::Inspector->loaded($plugin)) {
-            require Class::Inspector->filename($plugin);
-        }
+        Catalyst::Utils::ensure_class_loaded( $plugin, { ignore_loaded => 1 } );
 
         $proto->_plugins->{$plugin} = 1;
         unless ($instant) {
@@ -2215,8 +2227,8 @@ This causes C<MyApp::C::Foo::Bar> to map to C</Foo/Bar>.
 =head1 ON-DEMAND PARSER
 
 The request body is usually parsed at the beginning of a request,
-but if you want to handle input yourself or speed things up a bit,
-you can enable on-demand parsing with a config parameter.
+but if you want to handle input yourself, you can enable on-demand
+parsing with a config parameter.
 
     MyApp->config->{parse_on_demand} = 1;
     

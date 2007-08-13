@@ -10,6 +10,9 @@ use Test::More;
 
 plan skip_all => 'set TEST_LIGHTTPD to enable this test' 
     unless $ENV{TEST_LIGHTTPD};
+    
+eval "use FCGI";
+plan skip_all => 'FCGI required' if $@;
 
 eval "use Catalyst::Devel 1.0";
 plan skip_all => 'Catalyst::Devel required' if $@;
@@ -53,6 +56,7 @@ my $conf = <<"END";
 server.modules = (
     "mod_access",
     "mod_fastcgi",
+    "mod_rewrite",
     "mod_accesslog"
 )
 
@@ -63,6 +67,10 @@ accesslog.filename = "$docroot/access.log"
 
 server.bind = "127.0.0.1"
 server.port = $port
+
+# Work around inability to hit http://localhost/deep/path
+# without a trailing slash 
+url.rewrite = ( "deep/path\$" => "deep/path/" )
 
 # catalyst app specific fcgi setup
 fastcgi.server = (
@@ -96,7 +104,7 @@ while ( check_port( 'localhost', $port ) != 1 ) {
 # run the testsuite against the server
 $ENV{CATALYST_SERVER} = "http://localhost:$port/deep/path";
 
-my @tests = glob('t/live_*');
+my @tests = (shift) || glob('t/live_*');
 eval {
     runtests(@tests);
 };

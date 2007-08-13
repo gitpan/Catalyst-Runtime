@@ -10,6 +10,9 @@ use Test::More;
 
 plan skip_all => 'set TEST_LIGHTTPD to enable this test' 
     unless $ENV{TEST_LIGHTTPD};
+    
+eval "use FCGI";
+plan skip_all => 'FCGI required' if $@;
 
 eval "use Catalyst::Devel 1.0";
 plan skip_all => 'Catalyst::Devel required' if $@;
@@ -96,7 +99,7 @@ while ( check_port( 'localhost', $port ) != 1 ) {
 # run the testsuite against the server
 $ENV{CATALYST_SERVER} = "http://localhost:$port";
 
-my @tests = glob('t/live_*');
+my @tests = (shift) || glob('t/live_*');
 eval {
     runtests(@tests);
 };

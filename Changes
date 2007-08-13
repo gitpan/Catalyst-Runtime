@@ -1,9 +1,38 @@
 This file documents the revision history for Perl extension Catalyst.
 
+5.7008  2008-08-10 08:09:00
+        - Added $c->request->query_keywords for getting the keywords
+          (a query string with no parameters).
+        - Add undef warning for uri_for.
+        - Fix bug where a nested component would be setup twice.
+        - Make ensure_class_loaded behave better with malformed class name.
+        - Make _register_plugin use ensure_class_loaded.
+        - Remove 'Argument "??" isn't numeric in sprintf' warning.
+          (Emanuele Zeppieri)
+        - Fixed a bug where Content-Length could be set to 0 if a filehandle
+          object in $c->response->body did not report a size.
+        - Fixed issue where development server running in fork mode did not
+          properly exit after a write error.
+          (http://rt.cpan.org/Ticket/Display.html?id=27135)
+        - Remove warning for captures that are undef.
+        - Fixed $c->read and parse_on_demand mode.
+        - Fixed a bug with the HTTP engine where very large response bodies
+          would not be sent properly.
+
 5.7007  2007-03-13 14:18:00
+        - Many performance improvements by not using URI.pm:
+          * $c->uri_for (approx. 8x faster)
+          * $c->engine->prepare_path (approx. 27x faster)
+          * $c->engine->prepare_query_parameters (approx. 5x faster)
+        - Updated HTTP::Body dependency to 0.9 which fixes the following issues:
+          * Handle when IE sometimes sends an extra CRLF after the POST body.
+          * Empty fields in multipart/form-data POSTs are no longer ignored.
+          * Uploaded files with the name "0" are no longer ignored.
+        - Sending SIGHUP to the dev server will now cause it to restart.
+        - Allow "0" for a path in uri_for.
         - Performance and stability improvements to the built-in HTTP server.
-        - Don't ignore file uploads if form contains a text field with the
-          same name.  (Carl Franks)
+        - Don't ignore file uploads if form contains a text field with the same name.
+          (Carl Franks)
         - Support restart_delay of 0 (for use in the POE engine).
         - Skip body processing if we don't have a Content-Length header.
           Results in about a 9% performance increase when handling GET/HEAD
@@ -12,7 +41,7 @@ This file documents the revision history for Perl extension Catalyst.
         - MyApp->model/view now looks at MyApp->config->{default_view/model}
           (Bogdan Lucaciu)
 
-5.7006   2006-11-03 14.18
+5.7006   2006-11-15 14.18
         - Updated manifest
         - Fix Slurp dependency
         - Updated HTTP::Body dependency to 0.6, 0.5 can break on large POST 
