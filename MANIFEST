@@ -35,7 +35,7 @@ lib/Catalyst/Engine/HTTP/Restarter.pm
 lib/Catalyst/Engine/HTTP/Restarter/Watcher.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Log.pm
-lib/Catalyst/Manual.pod
+lib/Catalyst/Manual.pm
 lib/Catalyst/Manual/Installation.pod
 lib/Catalyst/Manual/Installation/CentOS4.pod
 lib/Catalyst/Model.pm
@@ -53,6 +53,8 @@ script/catalyst.pl
 t/01use.t
 t/02pod.t
 t/03podcoverage.t
+t/04critic.rc
+t/04critic.t
 t/c3_mro.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
@@ -171,6 +173,7 @@ t/live_priorities.t
 t/live_recursion.t
 t/optional_apache-cgi-rewrite.pl
 t/optional_apache-cgi.pl
+t/optional_apache-fastcgi-non-root.pl
 t/optional_apache-fastcgi.pl
 t/optional_http-server-restart.t
 t/optional_http-server.t

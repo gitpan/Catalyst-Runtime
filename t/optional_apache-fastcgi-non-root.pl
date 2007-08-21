@@ -1,11 +1,11 @@
 #!perl
 
-# Run all tests against CGI mode under Apache
+# Run all tests against FastCGI mode under Apache
 #
 # Note, to get this to run properly, you may need to give it the path to your
 # httpd.conf:
 #
-# perl t/optional_apache-cgi.pl -httpd_conf /etc/apache/httpd.conf
+# perl t/optional_apache-fastcgi-non-root.pl -httpd_conf /etc/apache/httpd.conf
 
 use strict;
 use warnings;
@@ -31,9 +31,9 @@ File::Copy::Recursive::dircopy( 't/lib', 't/tmp/TestApp/lib' );
 # remove TestApp's tests so Apache::Test doesn't try to run them
 rmtree 't/tmp/TestApp/t';
 
-$ENV{CATALYST_SERVER} = 'http://localhost:8529/cgi';
+$ENV{CATALYST_SERVER} = 'http://localhost:8529/fastcgi/deep/path';
 
-if ( !-e 't/optional_apache-cgi.pl' ) {
+if ( !-e 't/optional_apache-fastcgi.pl' ) {
     die "ERROR: Please run test from the Catalyst-Runtime directory\n";
 }
 

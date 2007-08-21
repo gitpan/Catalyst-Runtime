@@ -7,6 +7,17 @@ Catalyst::Manual - User guide and reference for Catalyst
 This is the (table of contents page of the) comprehensive user guide and
 reference for Catalyst.
 
+=head1 IMPORTANT NOTE
+
+If you need to read the Catalyst Manual make sure that you have
+Catalyst::Manual installed from cpan.  To check that it is installed run the following command from a unix (bash) prompt:
+
+ $ perldoc -t Catalyst::Manual::Tutorial::CatalystBasics 2>&1 >/dev/null && echo OK || echo MISSING
+
+If you see "OK" as the output, it's there, if you see "MISSING" you
+need to install the
+L<Catalyst::Manual|http://search.cpan.org/search?query=Catalyst%3A%3AManual&mode=dist> distribution.
+
 =over 4
 
 =item *

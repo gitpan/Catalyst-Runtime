@@ -1,6 +1,14 @@
-This file documents the revision history for Perl extension Catalyst.
+e This file documents the revision history for Perl extension Catalyst.
 
-5.7008  2008-08-10 08:09:00
+5.7009  2007-08-22 00:14:00
+        - Moved Manual.pod to Manual.pm and clarified status of 
+          Catalyst-Manual dist
+        - Doc patches to Catalyst::Controller
+        - remove ignore_loaded from plugin load, commenting why
+        - document the ignore_loaded feature in Catalyst::Utils
+        - Add testing of inline plugins.
+
+5.7008  2007-08-13 08:40:00
         - Added $c->request->query_keywords for getting the keywords
           (a query string with no parameters).
         - Add undef warning for uri_for.
