@@ -1,5 +1,6 @@
 use inc::Module::Install 0.64;
 
+use 5.008001; 
 perl_version '5.8.1';
 
 name 'Catalyst-Runtime';
@@ -31,23 +32,20 @@ requires 'Tree::Simple::Visitor::FindByPath';
 requires 'URI' => '1.35';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
 
+
 if (-e 'inc/.author') {
   build_requires 'Test::Perl::Critic';
+
+  if ($^O eq 'darwin') { 
+      makemaker_args(dist => { PREOP => 'if [ "$$COPY_EXTENDED_ATTRIBUTES_DISABLE" != "true" ]; then'.
+                                        ' echo "you must set the ENV variable COPY_EXTENDED_ATTRIBUTES_DISABLE to true,"; '.
+                                        ' echo "to avoid getting resource forks in your dist."; exit 255; fi' }); 
+  }
 }
 
 install_script glob('script/*.pl');
 auto_install;
 WriteAll;
-
-print( '*' x 74, "\n" );
-my $banner =
-  (qw/andyg chansen draven fordmason mst naughton sri jester
-      jrockway ningu nothingmuch LTjake/)[ int( rand(12) ) ]
-  . " is the greatest and gabb is "
-  . ( (localtime)[2] > 12 ? "drunk" : "hung over" )
-  . " again!";
-print " $banner \n";
-print( '*' x 74, "\n" );
 
 print <<"EOF";
 

@@ -63,7 +63,7 @@ __PACKAGE__->response_class('Catalyst::Response');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7010';
+our $VERSION = '5.7011';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1353,7 +1353,7 @@ sub finalize {
     }
     
     if ($c->debug) {
-        my $elapsed = sprintf '%f', tv_interval($c->stats->getNodeValue);
+        my $elapsed = tv_interval($c->stats->getNodeValue);
         my $av = $elapsed == 0 ? '??' : sprintf '%.3f', 1 / $elapsed;
         
         my $t = Text::SimpleTable->new( [ 62, 'Action' ], [ 9, 'Time' ] );
@@ -2380,6 +2380,8 @@ Robert Sedlacek
 Sam Vilain
 
 Sascha Kiefer
+
+Sebastian Willert
 
 Tatsuhiko Miyagawa
 

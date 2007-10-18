@@ -76,6 +76,7 @@ t/lib/TestApp/Controller/Action/Auto/Deep.pm
 t/lib/TestApp/Controller/Action/Auto/Default.pm
 t/lib/TestApp/Controller/Action/Begin.pm
 t/lib/TestApp/Controller/Action/Chained.pm
+t/lib/TestApp/Controller/Action/Chained/ArgsOrder.pm
 t/lib/TestApp/Controller/Action/Chained/Auto.pm
 t/lib/TestApp/Controller/Action/Chained/Auto/Bar.pm
 t/lib/TestApp/Controller/Action/Chained/Auto/Detach.pm

@@ -1,4 +1,22 @@
-e This file documents the revision history for Perl extension Catalyst.
+# This file documents the revision history for Perl extension Catalyst.
+
+5.7011  2007-10-18 20:06:00
+        - Allow multiple restart directories and added option to follow
+          symlinks in the HTTP::Restarter engine (Sebastian Willert)
+        - Fixed t/optional_http-server-restart.t so it actually tests
+          if the server restarted or notified of an error (Sebastian Willert)
+        - Return child PID from the HTTP engine when run with the 'background' option.
+          (Emanuele Zeppieri)
+        - Fixed bug in HTTP engine where writes could fail with
+          'Resource temporarily unavailable'.
+        - Fixed bug where %2b in query parameter is doubly decoded to ' ', instead of '+'
+          (Gavin Henry, Tatsuhiko Miyagawa, Oleg Pronin)
+        - Fixed bug where req->base and req->uri would include a port number when running
+          in SSL mode.
+        - Removed unnecessary sprintf in debug mode that caused warnings on locales where
+          commas are used for decimal markers.
+        - Improved error message for case when server picks up editor save
+          files as module names. (James Mastros)
 
 5.7010  2007-08-22 07:41:00
         - Resource forks in 5.7009
