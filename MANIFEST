@@ -43,6 +43,7 @@ lib/Catalyst/Request.pm
 lib/Catalyst/Request/Upload.pm
 lib/Catalyst/Response.pm
 lib/Catalyst/Runtime.pm
+lib/Catalyst/Stats.pm
 lib/Catalyst/Test.pm
 lib/Catalyst/Utils.pm
 lib/Catalyst/View.pm
@@ -134,6 +135,7 @@ t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppDoubleAutoBug.pm
 t/lib/TestAppOnDemand.pm
 t/lib/TestAppOnDemand/Controller/Body.pm
+t/lib/TestAppStats.pm
 t/live_component_controller_action_action.t
 t/live_component_controller_action_auto.t
 t/live_component_controller_action_begin.t
@@ -172,6 +174,7 @@ t/live_loop.t
 t/live_plugin_loaded.t
 t/live_priorities.t
 t/live_recursion.t
+t/live_stats.t
 t/optional_apache-cgi-rewrite.pl
 t/optional_apache-cgi.pl
 t/optional_apache-fastcgi-non-root.pl
@@ -198,6 +201,7 @@ t/unit_core_plugin.t
 t/unit_core_uri_for.t
 t/unit_core_uri_for_action.t
 t/unit_load_catalyst_test.t
+t/unit_stats.t
 t/unit_utils_env_value.t
 t/unit_utils_load_class.t
 t/unit_utils_prefix.t
