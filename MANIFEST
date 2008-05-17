@@ -8,7 +8,6 @@ inc/Module/Install/Fetch.pm
 inc/Module/Install/Include.pm
 inc/Module/Install/Makefile.pm
 inc/Module/Install/Metadata.pm
-inc/Module/Install/Scripts.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Catalyst.pm
@@ -60,6 +59,7 @@ t/c3_mro.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
 t/custom_live_component_controller_action_auto_doublebug.t
+t/dead_load_multiple_chained_attributes.t
 t/lib/Catalyst/Action/TestAfter.pm
 t/lib/Catalyst/Action/TestBefore.pm
 t/lib/Catalyst/Plugin/Test/Errors.pm
@@ -154,6 +154,7 @@ t/live_component_controller_action_private.t
 t/live_component_controller_action_regexp.t
 t/live_component_controller_action_streaming.t
 t/live_component_controller_args.t
+t/live_engine_request_auth.t
 t/live_engine_request_body.t
 t/live_engine_request_body_demand.t
 t/live_engine_request_cookies.t
@@ -187,6 +188,8 @@ t/optional_memleak.t
 t/optional_stress.t
 t/optional_stress.yml
 t/optional_threads.t
+t/something/Makefile.PL
+t/something/script/foo/bar/for_dist
 t/unit_controller_config.t
 t/unit_controller_namespace.t
 t/unit_core_action_for.t
@@ -200,9 +203,11 @@ t/unit_core_path_to.t
 t/unit_core_plugin.t
 t/unit_core_uri_for.t
 t/unit_core_uri_for_action.t
+t/unit_core_uri_for_multibytechar.t
 t/unit_load_catalyst_test.t
 t/unit_stats.t
 t/unit_utils_env_value.t
 t/unit_utils_load_class.t
 t/unit_utils_prefix.t
 t/unit_utils_request.t
+t/unit_utils_subdir.t

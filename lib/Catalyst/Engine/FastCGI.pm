@@ -324,6 +324,16 @@ application.
 For more information on using FastCGI under Apache, visit
 L<http://www.fastcgi.com/mod_fastcgi/docs/mod_fastcgi.html>
 
+=head3 Authorization header with mod_fastcgi or mod_cgi
+
+By default, mod_fastcgi/mod_cgi do not pass along the Authorization header,
+so modules like C<Catalyst::Plugin::Authentication::Credential::HTTP> will
+not work.  To enable pass-through of this header, add the following
+mod_rewrite directives:
+
+    RewriteCond %{HTTP:Authorization} ^(.+)
+    RewriteRule ^(.*)$ $1 [E=HTTP_AUTHORIZATION:%1,PT]
+
 =head2 Lighttpd
 
 These configurations were tested with Lighttpd 1.4.7.
@@ -364,8 +374,9 @@ values are disabled.  The above example would start 5 processes.
 =head3 Non-root configuration
     
 You can also run your application at any non-root location with either of the
-above modes.
+above modes.  Note the required mod_rewrite rule.
 
+    url.rewrite = ( "myapp\$" => "myapp/" )
     fastcgi.server = (
         "/myapp" => (
             "MyApp" => (
