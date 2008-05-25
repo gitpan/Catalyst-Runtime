@@ -59,6 +59,7 @@ t/c3_mro.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
 t/custom_live_component_controller_action_auto_doublebug.t
+t/custom_live_path_bug.t
 t/dead_load_multiple_chained_attributes.t
 t/lib/Catalyst/Action/TestAfter.pm
 t/lib/Catalyst/Action/TestBefore.pm
@@ -92,6 +93,7 @@ t/lib/TestApp/Controller/Action/Default.pm
 t/lib/TestApp/Controller/Action/Detach.pm
 t/lib/TestApp/Controller/Action/End.pm
 t/lib/TestApp/Controller/Action/Forward.pm
+t/lib/TestApp/Controller/Action/ForwardTo.pm
 t/lib/TestApp/Controller/Action/Global.pm
 t/lib/TestApp/Controller/Action/Index.pm
 t/lib/TestApp/Controller/Action/Inheritance.pm
@@ -135,6 +137,7 @@ t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppDoubleAutoBug.pm
 t/lib/TestAppOnDemand.pm
 t/lib/TestAppOnDemand/Controller/Body.pm
+t/lib/TestAppPathBug.pm
 t/lib/TestAppStats.pm
 t/live_component_controller_action_action.t
 t/live_component_controller_action_auto.t
