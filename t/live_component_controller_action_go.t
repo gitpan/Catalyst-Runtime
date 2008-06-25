@@ -10,7 +10,7 @@ our $iters;
 
 BEGIN { $iters = $ENV{CAT_BENCH_ITERS} || 1; }
 
-use Test::More tests => 50 * $iters;
+use Test::More tests => 47 * $iters;
 use Catalyst::Test 'TestApp';
 
 if ( $ENV{CAT_BENCHMARK} ) {
@@ -26,36 +26,36 @@ else {
 sub run_tests {
     {
         my @expected = qw[
-          TestApp::Controller::Action::Forward->begin
-          TestApp::Controller::Action::Forward->one
-          TestApp::Controller::Action::Forward->two
-          TestApp::Controller::Action::Forward->three
-          TestApp::Controller::Action::Forward->four
-          TestApp::Controller::Action::Forward->five
+          TestApp::Controller::Action::Go->one
+          TestApp::Controller::Action::Go->two
+          TestApp::Controller::Action::Go->three
+          TestApp::Controller::Action::Go->four
+          TestApp::Controller::Action::Go->five
           TestApp::View::Dump::Request->process
           TestApp->end
         ];
 
+        @expected = map { /Action/ ? (_begin($_), $_) : ($_) } @expected;
         my $expected = join( ", ", @expected );
 
-        # Test forward to global private action
-        ok( my $response = request('http://localhost/action/forward/global'),
+        # Test go to global private action
+        ok( my $response = request('http://localhost/action/go/global'),
             'Request' );
         ok( $response->is_success, 'Response Successful 2xx' );
         is( $response->content_type, 'text/plain', 'Response Content-Type' );
         is( $response->header('X-Catalyst-Action'),
-            'action/forward/global', 'Main Class Action' );
+            'action/go/global', 'Main Class Action' );
 
-        # Test forward to chain of actions.
-        ok( $response = request('http://localhost/action/forward/one'),
+        # Test go to chain of actions.
+        ok( $response = request('http://localhost/action/go/one'),
             'Request' );
         ok( $response->is_success, 'Response Successful 2xx' );
         is( $response->content_type, 'text/plain', 'Response Content-Type' );
         is( $response->header('X-Catalyst-Action'),
-            'action/forward/one', 'Test Action' );
+            'action/go/one', 'Test Action' );
         is(
             $response->header('X-Test-Class'),
-            'TestApp::Controller::Action::Forward',
+            'TestApp::Controller::Action::Go',
             'Test Class'
         );
         is( $response->header('X-Catalyst-Executed'),
@@ -69,47 +69,35 @@ sub run_tests {
 
     {
         my @expected = qw[
-          TestApp::Controller::Action::Forward->begin
-          TestApp::Controller::Action::Forward->jojo
-          TestApp::Controller::Action::Forward->one
-          TestApp::Controller::Action::Forward->two
-          TestApp::Controller::Action::Forward->three
-          TestApp::Controller::Action::Forward->four
-          TestApp::Controller::Action::Forward->five
-          TestApp::View::Dump::Request->process
-          TestApp::Controller::Action::Forward->three
-          TestApp::Controller::Action::Forward->four
-          TestApp::Controller::Action::Forward->five
-          TestApp::View::Dump::Request->process
+          TestApp::Controller::Action::Go->go_die
+          TestApp::Controller::Action::Go->args
           TestApp->end
         ];
 
+        @expected = map { /Action/ ? (_begin($_), $_) : ($_) } @expected;
         my $expected = join( ", ", @expected );
 
-        ok( my $response = request('http://localhost/action/forward/jojo'),
+        ok( my $response = request('http://localhost/action/go/go_die'),
             'Request' );
         ok( $response->is_success, 'Response Successful 2xx' );
         is( $response->content_type, 'text/plain', 'Response Content-Type' );
         is( $response->header('X-Catalyst-Action'),
-            'action/forward/jojo', 'Test Action' );
+            'action/go/go_die', 'Test Action'
+        );
         is(
             $response->header('X-Test-Class'),
-            'TestApp::Controller::Action::Forward',
+            'TestApp::Controller::Action::Go',
             'Test Class'
         );
         is( $response->header('X-Catalyst-Executed'),
             $expected, 'Executed actions' );
-        like(
-            $response->content,
-            qr/^bless\( .* 'Catalyst::Request' \)$/s,
-            'Content is a serialized Catalyst::Request'
-        );
+        is( $response->content, $Catalyst::GO, "Go died as expected" );
     }
 
     {
         ok(
             my $response =
-              request('http://localhost/action/forward/with_args/old'),
+              request('http://localhost/action/go/with_args/old'),
             'Request with args'
         );
         ok( $response->is_success, 'Response Successful 2xx' );
@@ -119,18 +107,18 @@ sub run_tests {
     {
         ok(
             my $response = request(
-                'http://localhost/action/forward/with_method_and_args/old'),
+                'http://localhost/action/go/with_method_and_args/new'),
             'Request with args and method'
         );
         ok( $response->is_success, 'Response Successful 2xx' );
-        is( $response->content, 'old' );
+        is( $response->content, 'new' );
     }
 
-    # test forward with embedded args
+    # test go with embedded args
     {
         ok(
             my $response =
-              request('http://localhost/action/forward/args_embed_relative'),
+              request('http://localhost/action/go/args_embed_relative'),
             'Request'
         );
         ok( $response->is_success, 'Response Successful 2xx' );
@@ -140,7 +128,7 @@ sub run_tests {
     {
         ok(
             my $response =
-              request('http://localhost/action/forward/args_embed_absolute'),
+              request('http://localhost/action/go/args_embed_absolute'),
             'Request'
         );
         ok( $response->is_success, 'Response Successful 2xx' );
@@ -148,29 +136,29 @@ sub run_tests {
     }
     {
         my @expected = qw[
-          TestApp::Controller::Action::TestRelative->begin
-          TestApp::Controller::Action::TestRelative->relative
-          TestApp::Controller::Action::Forward->one
-          TestApp::Controller::Action::Forward->two
-          TestApp::Controller::Action::Forward->three
-          TestApp::Controller::Action::Forward->four
-          TestApp::Controller::Action::Forward->five
+          TestApp::Controller::Action::TestRelative->relative_go
+          TestApp::Controller::Action::Go->one
+          TestApp::Controller::Action::Go->two
+          TestApp::Controller::Action::Go->three
+          TestApp::Controller::Action::Go->four
+          TestApp::Controller::Action::Go->five
           TestApp::View::Dump::Request->process
           TestApp->end
         ];
 
+        @expected = map { /Action/ ? (_begin($_), $_) : ($_) } @expected;
         my $expected = join( ", ", @expected );
 
-        # Test forward to chain of actions.
-        ok( my $response = request('http://localhost/action/relative/relative'),
+        # Test go to chain of actions.
+        ok( my $response = request('http://localhost/action/relative/relative_go'),
             'Request' );
         ok( $response->is_success, 'Response Successful 2xx' );
         is( $response->content_type, 'text/plain', 'Response Content-Type' );
         is( $response->header('X-Catalyst-Action'),
-            'action/relative/relative', 'Test Action' );
+            'action/relative/relative_go', 'Test Action' );
         is(
             $response->header('X-Test-Class'),
-            'TestApp::Controller::Action::TestRelative',
+            'TestApp::Controller::Action::Go',
             'Test Class'
         );
         is( $response->header('X-Catalyst-Executed'),
@@ -183,35 +171,35 @@ sub run_tests {
     }
     {
         my @expected = qw[
-          TestApp::Controller::Action::TestRelative->begin
-          TestApp::Controller::Action::TestRelative->relative_two
-          TestApp::Controller::Action::Forward->one
-          TestApp::Controller::Action::Forward->two
-          TestApp::Controller::Action::Forward->three
-          TestApp::Controller::Action::Forward->four
-          TestApp::Controller::Action::Forward->five
+          TestApp::Controller::Action::TestRelative->relative_go_two
+          TestApp::Controller::Action::Go->one
+          TestApp::Controller::Action::Go->two
+          TestApp::Controller::Action::Go->three
+          TestApp::Controller::Action::Go->four
+          TestApp::Controller::Action::Go->five
           TestApp::View::Dump::Request->process
           TestApp->end
         ];
 
+        @expected = map { /Action/ ? (_begin($_), $_) : ($_) } @expected;
         my $expected = join( ", ", @expected );
 
-        # Test forward to chain of actions.
+        # Test go to chain of actions.
         ok(
             my $response =
-              request('http://localhost/action/relative/relative_two'),
+              request('http://localhost/action/relative/relative_go_two'),
             'Request'
         );
         ok( $response->is_success, 'Response Successful 2xx' );
         is( $response->content_type, 'text/plain', 'Response Content-Type' );
         is(
             $response->header('X-Catalyst-Action'),
-            'action/relative/relative_two',
+            'action/relative/relative_go_two',
             'Test Action'
         );
         is(
             $response->header('X-Test-Class'),
-            'TestApp::Controller::Action::TestRelative',
+            'TestApp::Controller::Action::Go',
             'Test Class'
         );
         is( $response->header('X-Catalyst-Executed'),
@@ -223,26 +211,23 @@ sub run_tests {
         );
     }
 
-    # test class forwards
+    # test class go 
     {
         ok(
             my $response = request(
-                'http://localhost/action/forward/class_forward_test_action'),
+                'http://localhost/action/go/class_go_test_action'),
             'Request'
         );
         ok( $response->is_success, 'Response Successful 2xx' );
-        is( $response->header('X-Class-Forward-Test-Method'), 1,
+        is( $response->header('X-Class-Go-Test-Method'), 1,
             'Test Method' );
     }
 
-    # test uri_for re r7385
-    {
-        ok( my $response = request(
-            'http://localhost/action/forward/forward_to_uri_check'),
-            'forward_to_uri_check request');
-
-        ok( $response->is_success, 'forward_to_uri_check successful');
-        is( $response->content, '/action/forward/foo/bar',
-             'forward_to_uri_check correct namespace');
-    }
 }
+
+sub _begin {
+    local $_ = shift;
+    s/->(.*)$/->begin/;
+    return $_;
+}
+

@@ -8,6 +8,7 @@ inc/Module/Install/Fetch.pm
 inc/Module/Install/Include.pm
 inc/Module/Install/Makefile.pm
 inc/Module/Install/Metadata.pm
+inc/Module/Install/Scripts.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Catalyst.pm
@@ -95,6 +96,7 @@ t/lib/TestApp/Controller/Action/End.pm
 t/lib/TestApp/Controller/Action/Forward.pm
 t/lib/TestApp/Controller/Action/ForwardTo.pm
 t/lib/TestApp/Controller/Action/Global.pm
+t/lib/TestApp/Controller/Action/Go.pm
 t/lib/TestApp/Controller/Action/Index.pm
 t/lib/TestApp/Controller/Action/Inheritance.pm
 t/lib/TestApp/Controller/Action/Local.pm
@@ -148,6 +150,7 @@ t/live_component_controller_action_detach.t
 t/live_component_controller_action_end.t
 t/live_component_controller_action_forward.t
 t/live_component_controller_action_global.t
+t/live_component_controller_action_go.t
 t/live_component_controller_action_index.t
 t/live_component_controller_action_inheritance.t
 t/live_component_controller_action_local.t

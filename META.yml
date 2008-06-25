@@ -6,7 +6,7 @@ build_requires:
   Test::Pod: 1.14
   Test::Pod::Coverage: 1.04
 distribution_type: module
-generated_by: Module::Install version 0.67
+generated_by: Module::Install version 0.670
 license: perl
 meta-spec: 
   url: http://module-build.sourceforge.net/META-spec-v1.3.html
@@ -25,7 +25,7 @@ requires:
   Data::Dump: 0
   File::Modified: 0
   HTML::Entities: 0
-  HTTP::Body: 0.9
+  HTTP::Body: 1.04
   HTTP::Headers: 1.64
   HTTP::Request: 0
   HTTP::Request::AsCGI: 0.5
@@ -42,4 +42,4 @@ requires:
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
   perl: 5.8.1
-version: 5.7013
+version: 5.7099_01
