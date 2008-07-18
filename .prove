@@ -1,0 +1,16 @@
+---
+generation: 6
+tests:
+  t/unit_core_action_for.t:
+    elapsed: 1.71543312072754
+    gen: 6
+    last_fail_time: 1214495360.51105
+    last_pass_time: 1214495384.26777
+    last_result: 0
+    last_run_time: 1214495384.26777
+    last_todo: 0
+    mtime: 1214495373
+    seq: 5
+    total_failures: 3
+    total_passes: 2
+...

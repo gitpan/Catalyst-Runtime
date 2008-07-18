@@ -1,6 +1,6 @@
 --- 
 abstract: Catalyst  Runtime version
-author: The Catalyst Core Team - see http://catalyst.perl.org/
+author: Catalyst Contributors, see Catalyst.pm
 build_requires: 
   Test::Perl::Critic: 0
   Test::Pod: 1.14
@@ -42,4 +42,4 @@ requires:
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
   perl: 5.8.1
-version: 5.7099_01
+version: 5.7099_02

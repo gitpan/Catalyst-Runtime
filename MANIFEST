@@ -1,3 +1,4 @@
+.prove
 Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
@@ -17,7 +18,6 @@ lib/Catalyst/ActionChain.pm
 lib/Catalyst/ActionContainer.pm
 lib/Catalyst/AttrContainer.pm
 lib/Catalyst/Base.pm
-lib/Catalyst/Build.pm
 lib/Catalyst/Component.pm
 lib/Catalyst/Controller.pm
 lib/Catalyst/Dispatcher.pm
@@ -89,6 +89,7 @@ t/lib/TestApp/Controller/Action/Chained/Bar.pm
 t/lib/TestApp/Controller/Action/Chained/Foo.pm
 t/lib/TestApp/Controller/Action/Chained/ParentChain.pm
 t/lib/TestApp/Controller/Action/Chained/PassedArgs.pm
+t/lib/TestApp/Controller/Action/Chained/PathPrefix.pm
 t/lib/TestApp/Controller/Action/Chained/Root.pm
 t/lib/TestApp/Controller/Action/Default.pm
 t/lib/TestApp/Controller/Action/Detach.pm

@@ -7,7 +7,9 @@ BEGIN { require 5.008001; }
 
 # Remember to update this in Catalyst as well!
 
-our $VERSION='5.7099_01';
+our $VERSION='5.7099_02';
+
+$VERSION= eval $VERSION; 
 
 =head1 NAME
 
@@ -21,9 +23,9 @@ See L<Catalyst>.
 
 This is the primary class for the Catalyst-Runtime distribution, version 5.70.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-The Catalyst Core Team - see http://catalyst.perl.org/
+Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 

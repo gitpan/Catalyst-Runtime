@@ -64,7 +64,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7099_01';
+our $VERSION = '5.7099_02';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1906,6 +1906,11 @@ search paths, specify a key named C<search_extra> as an array
 reference. Items in the array beginning with C<::> will have the
 application class name prepended to them.
 
+All components found will also have any 
+L<Devel::InnerPackage|inner packages> loaded and set up as components.
+Note, that modules which are B<not> an I<inner package> of the main
+file namespace loaded will not be instantiated as components.
+
 =cut
 
 sub setup_components {
@@ -2411,13 +2416,15 @@ Wiki:
 
 =head2 L<Catalyst::Test> - The test suite.
 
-=head1 CREDITS
+=head1 PROJECT FOUNDER
 
-Andy Grundman
+sri: Sebastian Riedel <sri@cpan.org>
 
-Andy Wardley
+=head1 CONTRIBUTORS
 
-Andreas Marienborg
+abw: Andy Wardley
+
+acme: Leon Brocard <leon@astray.com>
 
 Andrew Bramble
 
@@ -2425,65 +2432,67 @@ Andrew Ford
 
 Andrew Ruthven
 
-Arthur Bergman
+andyg: Andy Grundman <andy@hybridized.org>
 
-Autrijus Tang
+audreyt: Audrey Tang
 
-Brian Cassidy
+bricas: Brian Cassidy <bricas@cpan.org>
 
-Carl Franks
+chansen: Christian Hansen
 
-Christian Hansen
+chicks: Christopher Hicks
 
-Christopher Hicks
-
-Dan Sully
-
-Danijel Milicevic
-
-David Kamholz
-
-David Naughton
+dkubb: Dan Kubb <dan.kubb-cpan@onautopilot.com>
 
 Drew Taylor
+
+esskar: Sascha Kiefer
+
+fireartist: Carl Franks <cfranks@cpan.org>
+
+gabb: Danijel Milicevic
 
 Gary Ashton Jones
 
 Geoff Richards
 
-Jesse Sheidlower
-
-Jesse Vincent
+jcamacho: Juan Camacho
 
 Jody Belka
 
 Johan Lindstrom
 
-Juan Camacho
+jon: Jon Schutz <jjschutz@cpan.org>
 
-Leon Brocard
+marcus: Marcus Ramberg <mramberg@cpan.org>
 
-Marcus Ramberg
+miyagawa: Tatsuhiko Miyagawa <miyagawa@bulknews.net>
 
-Matt S Trout
+mst: Matt S. Trout <mst@shadowcatsystems.co.uk>
 
-Robert Sedlacek
+mugwump: Sam Vilain
 
-Sam Vilain
+naughton: David Naughton
 
-Sascha Kiefer
+ningu: David Kamholz <dkamholz@cpan.org>
 
-Sebastian Willert
+nothingmuch: Yuval Kogman <nothingmuch@woobling.org>
 
-Tatsuhiko Miyagawa
+numa: Dan Sully <daniel@cpan.org>
+
+obra: Jesse Vincent
+
+omega: Andreas Marienborg
+
+phaylon: Robert Sedlacek <phaylon@dunkelheit.at>
+
+sky: Arthur Bergman
+
+the_jester: Jesse Sheidlower
 
 Ulf Edvinsson
 
-Yuval Kogman
-
-=head1 AUTHOR
-
-Sebastian Riedel, C<sri@oook.de>
+willert: Sebastian Willert <willert@cpan.org>
 
 =head1 LICENSE
 
