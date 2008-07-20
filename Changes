@@ -1,5 +1,11 @@
 # This file documents the revision history for Perl extension Catalyst.
 
+5.7099_03 2008-07-20 10:10:00
+        - Fix regressions for regexp fallback in model(), view() and controller()
+        - Added the supplied argument to the regexp fallback warning for easier
+          debugging
+        - Ensure ACCEPT_CONTEXT is called for results from component()
+
 5.7099_02 2008-07-16 19:10:00
         - Added PathPrefix attribute
         - Removed Catalyst::Build; we've long since moved to Module::Install

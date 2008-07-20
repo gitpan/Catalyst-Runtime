@@ -64,7 +64,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7099_02';
+our $VERSION = '5.7099_03';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -452,10 +452,16 @@ sub _comp_search_prefixes {
 
     # regexp fallback
     $query  = qr/$name/i;
-    @result = grep { $eligible{ $_ } =~ m{$query} } keys %eligible;
+    @result = map { $c->components->{ $_ } } grep { $eligible{ $_ } =~ m{$query} } keys %eligible;
+
+    # no results? try against full names
+    if( !@result ) {
+        @result = map { $c->components->{ $_ } } grep { m{$query} } keys %eligible;
+    }
 
     # don't warn if we didn't find any results, it just might not exist
     if( @result ) {
+        $c->log->warn( qq(Found results for "${name}" using regexp fallback.) );
         $c->log->warn( 'Relying on the regexp fallback behavior for component resolution is unreliable and unsafe.' );
         $c->log->warn( 'If you really want to search, pass in a regexp as the argument.' );
     }
@@ -525,7 +531,7 @@ Gets a L<Catalyst::Model> instance by name.
 Any extra arguments are directly passed to ACCEPT_CONTEXT.
 
 If the name is omitted, it will look for 
- - a model object in $c->stash{current_model_instance}, then
+ - a model object in $c->stash->{current_model_instance}, then
  - a model name in $c->stash->{current_model}, then
  - a config setting 'default_model', or
  - check if there is only one model, and return it if that's the case.
@@ -578,7 +584,7 @@ Gets a L<Catalyst::View> instance by name.
 Any extra arguments are directly passed to ACCEPT_CONTEXT.
 
 If the name is omitted, it will look for 
- - a view object in $c->stash{current_view_instance}, then
+ - a view object in $c->stash->{current_view_instance}, then
  - a view name in $c->stash->{current_view}, then
  - a config setting 'default_view', or
  - check if there is only one view, and return it if that's the case.
@@ -677,11 +683,13 @@ sub component {
 
         if( !ref $name ) {
             # is it the exact name?
-            return $comps->{ $name } if exists $comps->{ $name };
+            return $c->_filter_component( $comps->{ $name }, @args )
+                       if exists $comps->{ $name };
 
             # perhaps we just omitted "MyApp"?
             my $composed = ( ref $c || $c ) . "::${name}";
-            return $comps->{ $composed } if exists $comps->{ $composed };
+            return $c->_filter_component( $comps->{ $composed }, @args )
+                       if exists $comps->{ $composed };
 
             # search all of the models, views and controllers
             my( $comp ) = $c->_comp_search_prefixes( $name, qw/Model M Controller C View V/ );
@@ -692,12 +700,13 @@ sub component {
         my $query = ref $name ? $name : qr{$name}i;
 
         my @result = grep { m{$query} } keys %{ $c->components };
-        return @result if ref $name;
+        return map { $c->_filter_component( $_, @args ) } @result if ref $name;
 
         if( $result[ 0 ] ) {
+            $c->log->warn( qq(Found results for "${name}" using regexp fallback.) );
             $c->log->warn( 'Relying on the regexp fallback behavior for component resolution' );
             $c->log->warn( 'is unreliable and unsafe. You have been warned' );
-            return $result[ 0 ];
+            return $c->_filter_component( $result[ 0 ], @args );
         }
 
         # I would expect to return an empty list here, but that breaks back-compat
