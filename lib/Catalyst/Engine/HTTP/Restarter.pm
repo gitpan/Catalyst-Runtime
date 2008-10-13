@@ -1,12 +1,12 @@
 package Catalyst::Engine::HTTP::Restarter;
 
-use strict;
-use warnings;
-use base 'Catalyst::Engine::HTTP';
-use Catalyst::Engine::HTTP::Restarter::Watcher;
-use NEXT;
+use Moose;
+extends 'Catalyst::Engine::HTTP';
 
-sub run {
+use Catalyst::Engine::HTTP::Restarter::Watcher;
+
+around run => sub {
+    my $orig = shift;
     my ( $self, $class, $port, $host, $options ) = @_;
 
     $options ||= {};
@@ -67,8 +67,9 @@ sub run {
         }
     }
 
-    return $self->NEXT::run( $class, $port, $host, $options );
-}
+    return $self->$orig( $class, $port, $host, $options );
+    no Moose;
+};
 
 1;
 __END__

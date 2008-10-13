@@ -29,7 +29,7 @@ sub global_action : Private {
 sub execute {
     my $c      = shift;
     my $class  = ref( $c->component( $_[0] ) ) || $_[0];
-    my $action = "$_[1]";
+    my $action = $_[1]->reverse;
 
     my $method;
 
@@ -75,6 +75,11 @@ sub class_forward_test_method :Private {
 sub class_go_test_method :Private {
     my ( $self, $c ) = @_;
     $c->response->headers->header( 'X-Class-Go-Test-Method' => 1 );
+}
+
+sub class_visit_test_method :Private {
+    my ( $self, $c ) = @_;
+    $c->response->headers->header( 'X-Class-Visit-Test-Method' => 1 );
 }
 
 sub loop_test : Local {

@@ -7,13 +7,13 @@ BEGIN { require 5.008001; }
 
 # Remember to update this in Catalyst as well!
 
-our $VERSION='5.7099_03';
+our $VERSION='5.8000_01';
 
 $VERSION= eval $VERSION; 
 
 =head1 NAME
 
-Catalyst::Runtime - Catalyst  Runtime version
+Catalyst::Runtime - The Catalyst Framework Runtime
 
 =head1 SYNOPSIS
 

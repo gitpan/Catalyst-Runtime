@@ -25,7 +25,7 @@ sub four : Private {
 
 sub five : Local {
     my ( $self, $c ) = @_;
-    $c->go('View::Dump::Request');
+    $c->forward('View::Dump::Request');
 }
 
 sub inheritance : Local {
@@ -59,6 +59,23 @@ sub go_die : Local {
     eval { $c->go( 'args', [qq/new/] ) };
     $c->res->body( $@ ? $@ : "go() did not die" );
     die $Catalyst::GO;
+}
+
+sub go_chained : Local {
+    my ( $self, $c, $val ) = @_;
+    $c->go('/action/chained/foo/spoon',[1]);
+}
+
+sub view : Local {
+    my ( $self, $c, $val ) = @_;
+    eval { $c->go('View::Dump') };
+    $c->res->body( $@ ? $@ : "go() did not die" );
+}
+
+sub model : Local {
+    my ( $self, $c, $val ) = @_;
+    eval { $c->go('Model::Foo') };
+    $c->res->body( $@ ? $@ : "go() did not die" );
 }
 
 sub args_embed_relative : Local {

@@ -5,6 +5,8 @@ perl_version '5.008001';
 name 'Catalyst-Runtime';
 all_from 'lib/Catalyst/Runtime.pm';
 
+requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00300';
+requires 'Moose' => '0.57';
 requires 'Carp';
 requires 'Class::Accessor::Fast';
 requires 'Class::Data::Inheritable';
@@ -29,10 +31,17 @@ requires 'Tree::Simple' => '1.15';
 requires 'Tree::Simple::Visitor::FindByPath';
 requires 'URI' => '1.35';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
+requires 'MRO::Compat';
 
+if (   ( exists $ENV{AGGREGATE_TESTS} && !$ENV{AGGREGATE_TESTS})
+    || (!exists $ENV{AGGREGATE_TESTS} && !can_use('Test::Aggregate', '0.34_01'))) {
+    tests join q{ },
+        grep { $_ ne 't/aggregate.t' }
+        map  { glob } qw[t/*.t t/aggregate/*.t];
+}
 
 if (-e 'inc/.author') {
-  build_requires 'Test::Perl::Critic';
+  build_requires 'Test::NoTabs';
   build_requires 'Test::Pod' => 1.14;
   build_requires 'Test::Pod::Coverage' => 1.04;
 

@@ -1,7 +1,7 @@
 package Catalyst;
 
-use strict;
-use base 'Catalyst::Component';
+use Moose;
+extends 'Catalyst::Component';
 use bytes;
 use Catalyst::Exception;
 use Catalyst::Log;
@@ -13,7 +13,6 @@ use Catalyst::Controller;
 use Devel::InnerPackage ();
 use File::stat;
 use Module::Pluggable::Object ();
-use NEXT;
 use Text::SimpleTable ();
 use Path::Class::Dir ();
 use Path::Class::File ();
@@ -30,19 +29,30 @@ use Carp qw/croak carp/;
 
 BEGIN { require 5.008001; }
 
-__PACKAGE__->mk_accessors(
-    qw/counter request response state action stack namespace stats/
-);
+has stack => (is => 'rw', default => sub { [] });
+has stash => (is => 'rw', default => sub { {} });
+has state => (is => 'rw', default => 0);
+has stats => (is => 'rw');
+has action => (is => 'rw');
+has counter => (is => 'rw', default => sub { {} });
+has request => (is => 'rw', default => sub { $_[0]->request_class->new({}) }, required => 1, lazy => 1);
+has response => (is => 'rw', default => sub { $_[0]->response_class->new({}) }, required => 1, lazy => 1);
+has namespace => (is => 'rw');
 
 sub depth { scalar @{ shift->stack || [] }; }
+sub comp { shift->component(@_) }
 
-# Laziness++
-*comp = \&component;
-*req  = \&request;
-*res  = \&response;
+sub req {
+    # carp "the use of req() is deprecated in favour of request()";
+    my $self = shift; return $self->request(@_);
+}
+sub res {
+    # carp "the use of res() is deprecated in favour of response()";
+    my $self = shift; return $self->response(@_);
+}
 
 # For backwards compatibility
-*finalize_output = \&finalize_body;
+sub finalize_output { shift->finalize_body(@_) };
 
 # For statistics
 our $COUNT     = 1;
@@ -51,6 +61,8 @@ our $RECURSION = 1000;
 our $DETACH    = "catalyst_detach\n";
 our $GO        = "catalyst_go\n";
 
+#I imagine that very few of these really need to be class variables. if any.
+#maybe we should just make them attributes with a default?
 __PACKAGE__->mk_classdata($_)
   for qw/components arguments dispatcher engine log dispatcher_class
   engine_class context_class request_class response_class stats_class 
@@ -64,7 +76,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.7099_03';
+our $VERSION = '5.8000_01';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -73,11 +85,17 @@ sub import {
     # callers @ISA.
     return unless $class eq 'Catalyst';
 
-    my $caller = caller(0);
+    my $caller = caller();
+    return if $caller eq 'main';
+    my $meta = Moose::Meta::Class->initialize($caller);
+    #Moose->import({ into => $caller }); #do we want to do this?
 
     unless ( $caller->isa('Catalyst') ) {
-        no strict 'refs';
-        push @{"$caller\::ISA"}, $class, 'Catalyst::Controller';
+        my @superclasses = ($meta->superclasses, $class, 'Catalyst::Controller');
+        $meta->superclasses(@superclasses);
+    }
+    unless( $meta->has_method('meta') ){
+        $meta->add_method(meta => sub { Moose::Meta::Class->initialize("${caller}") } );
     }
 
     $caller->arguments( [@arguments] );
@@ -98,7 +116,7 @@ documentation and tutorials.
     catalyst.pl MyApp
 
     # add models, views, controllers
-    script/myapp_create.pl model MyDatabase DBIC::Schema create=dynamic dbi:SQLite:/path/to/db
+    script/myapp_create.pl model MyDatabase DBIC::Schema create=static dbi:SQLite:/path/to/db
     script/myapp_create.pl view MyTemplate TT
     script/myapp_create.pl controller Search
 
@@ -311,7 +329,7 @@ your code like this:
 
 =cut
 
-sub forward { my $c = shift; $c->dispatcher->forward( $c, @_ ) }
+sub forward { my $c = shift; no warnings 'recursion'; $c->dispatcher->forward( $c, @_ ) }
 
 =head2 $c->detach( $action [, \@arguments ] )
 
@@ -328,13 +346,33 @@ When called with no arguments it escapes the processing chain entirely.
 
 sub detach { my $c = shift; $c->dispatcher->detach( $c, @_ ) }
 
+=head2 $c->visit( $action [, \@arguments ] )
+
+=head2 $c->visit( $class, $method, [, \@arguments ] )
+
+Almost the same as C<forward>, but does a full dispatch, instead of just
+calling the new C<$action> / C<$class-E<gt>$method>. This means that C<begin>,
+C<auto> and the method you go to are called, just like a new request.
+
+C<$c-E<gt>stash> is kept unchanged.
+
+In effect, C<visit> allows you to "wrap" another action, just as it
+would have been called by dispatching from a URL, while the analogous
+C<go> allows you to transfer control to another action as if it had
+been reached directly from a URL.
+
+=cut
+
+sub visit { my $c = shift; $c->dispatcher->visit( $c, @_ ) }
+
 =head2 $c->go( $action [, \@arguments ] )
 
 =head2 $c->go( $class, $method, [, \@arguments ] )
 
-Almost the same as C<detach>, but does a full dispatch, instead of just
-calling the new C<$action> / C<$class-E<gt>$method>. This means that C<begin>,
-C<auto> and the method you go to is called, just like a new request.
+Almost the same as C<detach>, but does a full dispatch like C<visit>,
+instead of just calling the new C<$action> /
+C<$class-E<gt>$method>. This means that C<begin>, C<auto> and the
+method you visit are called, just like a new request.
 
 C<$c-E<gt>stash> is kept unchanged.
 
@@ -367,17 +405,21 @@ Catalyst).
 
 =cut
 
-sub stash {
+around stash => sub {
+    my $orig = shift;
     my $c = shift;
+    my $stash = $orig->($c);
     if (@_) {
-        my $stash = @_ > 1 ? {@_} : $_[0];
-        croak('stash takes a hash or hashref') unless ref $stash;
-        foreach my $key ( keys %$stash ) {
-            $c->{stash}->{$key} = $stash->{$key};
+        my $new_stash = @_ > 1 ? {@_} : $_[0];
+        croak('stash takes a hash or hashref') unless ref $new_stash;
+        foreach my $key ( keys %$new_stash ) {
+          $stash->{$key} = $new_stash->{$key};
         }
     }
-    return $c->{stash};
-}
+
+    return $stash;
+};
+
 
 =head2 $c->error
 
@@ -484,7 +526,7 @@ sub _comp_names {
 sub _filter_component {
     my ( $c, $comp, @args ) = @_;
 
-    if ( eval { $comp->can('ACCEPT_CONTEXT'); } ) {
+    if ( Scalar::Util::blessed($c) && eval { $comp->can('ACCEPT_CONTEXT'); } ) {
         return $comp->ACCEPT_CONTEXT( $c, @args );
     }
     
@@ -734,14 +776,15 @@ L<Catalyst::Plugin::ConfigLoader>.
 
 =cut
 
-sub config {
+around config => sub {
+    my $orig = shift;
     my $c = shift;
 
     $c->log->warn("Setting config after setup has been run is not a good idea.")
       if ( @_ and $c->setup_finished );
 
-    $c->NEXT::config(@_);
-}
+    $c->$orig(@_);
+};
 
 =head2 $c->log
 
@@ -847,7 +890,6 @@ Catalyst> line.
 
 sub setup {
     my ( $class, @arguments ) = @_;
-
     $class->log->warn("Running setup twice is not a good idea.")
       if ( $class->setup_finished );
 
@@ -956,7 +998,9 @@ EOF
     }
 
     # Add our self to components, since we are also a component
-    $class->components->{$class} = $class;
+    if( $class->isa('Catalyst::Controller') ){
+      $class->components->{$class} = $class;
+    }
 
     $class->setup_actions;
 
@@ -986,6 +1030,15 @@ which will be resolved to a path using
 C<< $c->dispatcher->uri_for_action >>; if the first element of
 C<@args> is an arrayref it is treated as a list of captures to be passed
 to C<uri_for_action>.
+
+You can maintain the arguments captured by an action (e.g.: Regex, Chained)
+using C<< $c->req->captures >>. 
+
+  # For the current action
+  $c->uri_for($c->action, $c->req->captures);
+  
+  # For the Foo action in the Bar controller
+  $c->uri_for($c->controller->('Bar')->action_for('Foo'), $c->req->captures);
 
 =cut
 
@@ -1264,9 +1317,9 @@ sub execute {
     $c->state(0);
 
     if ( $c->depth >= $RECURSION ) {
-        my $action = "$code";
+        my $action = $code->reverse();
         $action = "/$action" unless $action =~ /->/;
-        my $error = qq/Deep recursion detected calling "$action"/;
+        my $error = qq/Deep recursion detected calling "${action}"/;
         $c->log->error($error);
         $c->error($error);
         $c->state(0);
@@ -1277,7 +1330,7 @@ sub execute {
 
     push( @{ $c->stack }, $code );
     
-    eval { $c->state( &$code( $class, $c, @{ $c->req->args } ) || 0 ) };
+    eval { $c->state( $code->execute( $class, $c, @{ $c->req->args } ) || 0 ) };
 
     $c->_stats_finish_execute( $stats_info ) if $c->use_stats and $stats_info;
     
@@ -1311,9 +1364,10 @@ sub _stats_start_execute {
     return if ( ( $code->name =~ /^_.*/ )
         && ( !$c->config->{show_internal_actions} ) );
 
-    $c->counter->{"$code"}++;
+    my $action_name = $code->reverse();
+    $c->counter->{$action_name}++;
 
-    my $action = "$code";
+    my $action = $action_name;
     $action = "/$action" unless $action =~ /->/;
 
     # determine if the call was the result of a forward
@@ -1332,7 +1386,7 @@ sub _stats_start_execute {
         }
     }
 
-    my $uid = "$code" . $c->counter->{"$code"};
+    my $uid = $action_name . $c->counter->{$action_name};
 
     # is this a root-level call or a forwarded call?
     if ( $callsub =~ /forward$/ ) {
@@ -1375,6 +1429,8 @@ sub _stats_finish_execute {
 
 =cut
 
+#Why does this exist? This is no longer safe and WILL NOT WORK.
+# it doesnt seem to be used anywhere. can we remove it?
 sub _localize_fields {
     my ( $c, $localized, $code ) = ( @_ );
 
@@ -1402,8 +1458,9 @@ sub finalize {
     }
 
     # Allow engine to handle finalize flow (for POE)
-    if ( $c->engine->can('finalize') ) {
-        $c->engine->finalize($c);
+    my $engine = $c->engine;
+    if ( my $code = $engine->can('finalize') ) {
+        $engine->$code($c);
     }
     else {
 
@@ -1467,31 +1524,34 @@ Finalizes headers.
 sub finalize_headers {
     my $c = shift;
 
+    my $response = $c->response; #accessor calls can add up?
+
     # Check if we already finalized headers
-    return if $c->response->{_finalized_headers};
+    return if $response->finalized_headers;
 
     # Handle redirects
-    if ( my $location = $c->response->redirect ) {
+    if ( my $location = $response->redirect ) {
         $c->log->debug(qq/Redirecting to "$location"/) if $c->debug;
-        $c->response->header( Location => $location );
-        
-        if ( !$c->response->body ) {
+        $response->header( Location => $location );
+
+        #Moose TODO: we should probably be using a predicate method here ?
+        if ( !$response->body ) {
             # Add a default body if none is already present
-            $c->response->body(
+            $response->body(
                 qq{<html><body><p>This item has moved <a href="$location">here</a>.</p></body></html>}
             );
         }
     }
 
     # Content-Length
-    if ( $c->response->body && !$c->response->content_length ) {
+    if ( $response->body && !$response->content_length ) {
 
         # get the length from a filehandle
-        if ( blessed( $c->response->body ) && $c->response->body->can('read') )
+        if ( blessed( $response->body ) && $response->body->can('read') )
         {
-            my $stat = stat $c->response->body;
+            my $stat = stat $response->body;
             if ( $stat && $stat->size > 0 ) {
-                $c->response->content_length( $stat->size );
+                $response->content_length( $stat->size );
             }
             else {
                 $c->log->warn('Serving filehandle without a content-length');
@@ -1499,14 +1559,14 @@ sub finalize_headers {
         }
         else {
             # everything should be bytes at this point, but just in case
-            $c->response->content_length( bytes::length( $c->response->body ) );
+            $response->content_length( bytes::length( $response->body ) );
         }
     }
 
     # Errors
-    if ( $c->response->status =~ /^(1\d\d|[23]04)$/ ) {
-        $c->response->headers->remove_header("Content-Length");
-        $c->response->body('');
+    if ( $response->status =~ /^(1\d\d|[23]04)$/ ) {
+        $response->headers->remove_header("Content-Length");
+        $response->body('');
     }
 
     $c->finalize_cookies;
@@ -1514,7 +1574,7 @@ sub finalize_headers {
     $c->engine->finalize_headers( $c, @_ );
 
     # Done
-    $c->response->{_finalized_headers} = 1;
+    $response->finalized_headers(1);
 }
 
 =head2 $c->finalize_output
@@ -1584,7 +1644,10 @@ sub handle_request {
     }
 
     $COUNT++;
-    $class->log->_flush() if $class->log->can('_flush');
+    
+    if(my $coderef = $class->log->can('_flush')){
+        $class->log->$coderef();
+    }
     return $status;
 }
 
@@ -1598,48 +1661,24 @@ etc.).
 sub prepare {
     my ( $class, @arguments ) = @_;
 
+    # XXX
+    # After the app/ctxt split, this should become an attribute based on something passed
+    # into the application.
     $class->context_class( ref $class || $class ) unless $class->context_class;
-    my $c = $class->context_class->new(
-        {
-            counter => {},
-            stack   => [],
-            request => $class->request_class->new(
-                {
-                    arguments        => [],
-                    body_parameters  => {},
-                    cookies          => {},
-                    headers          => HTTP::Headers->new,
-                    parameters       => {},
-                    query_parameters => {},
-                    secure           => 0,
-                    captures         => [],
-                    uploads          => {}
-                }
-            ),
-            response => $class->response_class->new(
-                {
-                    body    => '',
-                    cookies => {},
-                    headers => HTTP::Headers->new(),
-                    status  => 200
-                }
-            ),
-            stash => {},
-            state => 0
-        }
-    );
+   
+    my $c = $class->context_class->new({});
 
+    # For on-demand data
+    $c->request->_context($c);
+    $c->response->_context($c);
+
+    #surely this is not the most efficient way to do things...
     $c->stats($class->stats_class->new)->enable($c->use_stats);
     if ( $c->debug ) {
         $c->res->headers->header( 'X-Catalyst' => $Catalyst::VERSION );            
     }
 
-    # For on-demand data
-    $c->request->{_context}  = $c;
-    $c->response->{_context} = $c;
-    weaken( $c->request->{_context} );
-    weaken( $c->response->{_context} );
-
+    #XXX reuse coderef from can
     # Allow engine to direct the prepare flow (for POE)
     if ( $c->engine->can('prepare') ) {
         $c->engine->prepare( $c, @arguments );
@@ -1692,6 +1731,7 @@ Prepares message body.
 sub prepare_body {
     my $c = shift;
 
+    #Moose TODO: what is  _body ??
     # Do we run for the first time?
     return if defined $c->request->{_body};
 
@@ -1946,6 +1986,7 @@ sub setup_components {
         # we know M::P::O found a file on disk so this is safe
 
         Catalyst::Utils::ensure_class_loaded( $component, { ignore_loaded => 1 } );
+        #Class::MOP::load_class($component);
 
         my $module  = $class->setup_component( $component );
         my %modules = (
@@ -1989,7 +2030,7 @@ sub setup_component {
     Catalyst::Exception->throw(
         message =>
         qq/Couldn't instantiate component "$component", "COMPONENT() didn't return an object-like value"/
-    ) unless eval { $instance->can( 'can' ) };
+    ) unless blessed($instance);
 
     return $instance;
 }
@@ -2015,9 +2056,7 @@ sub setup_dispatcher {
         $dispatcher = $class->dispatcher_class;
     }
 
-    unless (Class::Inspector->loaded($dispatcher)) {
-        require Class::Inspector->filename($dispatcher);
-    }
+    Class::MOP::load_class($dispatcher);
 
     # dispatcher instance
     $class->dispatcher( $dispatcher->new );
@@ -2043,10 +2082,7 @@ sub setup_engine {
     if ( $ENV{MOD_PERL} ) {
 
         # create the apache method
-        {
-            no strict 'refs';
-            *{"$class\::apache"} = sub { shift->engine->apache };
-        }
+        $class->meta->add_method('apache' => sub { shift->engine->apache });
 
         my ( $software, $version ) =
           $ENV{MOD_PERL} =~ /^(\S+)\/(\d+(?:[\.\_]\d+)+)/;
@@ -2103,9 +2139,10 @@ sub setup_engine {
         $engine = $class->engine_class;
     }
 
-    unless (Class::Inspector->loaded($engine)) {
-        require Class::Inspector->filename($engine);
-    }
+    Class::MOP::load_class($engine);
+    #unless (Class::Inspector->loaded($engine)) {
+    #    require Class::Inspector->filename($engine);
+    #}
 
     # check for old engines that are no longer compatible
     my $old_engine;
@@ -2156,11 +2193,10 @@ sub setup_home {
         $home = $env;
     }
 
-    unless ($home) {
-        $home = Catalyst::Utils::home($class);
-    }
+    $home ||= Catalyst::Utils::home($class);
 
     if ($home) {
+        #I remember recently being scolded for assigning config values like this
         $class->config->{home} ||= $home;
         $class->config->{root} ||= Path::Class::Dir->new($home)->subdir('root');
     }
@@ -2181,8 +2217,7 @@ sub setup_log {
 
     my $env_debug = Catalyst::Utils::env_value( $class, 'DEBUG' );
     if ( defined($env_debug) ? $env_debug : $debug ) {
-        no strict 'refs';
-        *{"$class\::debug"} = sub { 1 };
+        $class->meta->add_method('debug' => sub { 1 });
         $class->log->debug('Debug messages enabled');
     }
 }
@@ -2206,8 +2241,7 @@ sub setup_stats {
 
     my $env = Catalyst::Utils::env_value( $class, 'STATS' );
     if ( defined($env) ? $env : ($stats || $class->debug ) ) {
-        no strict 'refs';
-        *{"$class\::use_stats"} = sub { 1 };
+        $class->meta->add_method('use_stats' => sub { 1 });
         $class->log->debug('Statistics enabled');
     }
 }
@@ -2245,12 +2279,17 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
         # no ignore_loaded here, the plugin may already have been
         # defined in memory and we don't want to error on "no file" if so
 
-        Catalyst::Utils::ensure_class_loaded( $plugin );
+        Class::MOP::load_class( $plugin );
 
         $proto->_plugins->{$plugin} = 1;
         unless ($instant) {
             no strict 'refs';
-            unshift @{"$class\::ISA"}, $plugin;
+            if( $class->can('meta') ){
+              my @superclasses = ($plugin, $class->meta->superclasses );
+              $class->meta->superclasses(@superclasses);
+            } else {
+              unshift @{"$class\::ISA"}, $plugin;
+            }
         }
         return $class;
     }
@@ -2465,6 +2504,8 @@ Gary Ashton Jones
 
 Geoff Richards
 
+ilmari: Dagfinn Ilmari Mannsåker <ilmari@ilmari.org>
+
 jcamacho: Juan Camacho
 
 Jody Belka
@@ -2495,6 +2536,8 @@ omega: Andreas Marienborg
 
 phaylon: Robert Sedlacek <phaylon@dunkelheit.at>
 
+rafl: Florian Ragwitz <rafl@debian.org>
+
 sky: Arthur Bergman
 
 the_jester: Jesse Sheidlower
@@ -2509,5 +2552,9 @@ This library is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
+
+no Moose;
+
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -1,9 +1,19 @@
 package Catalyst::DispatchType::Path;
 
-use strict;
-use base qw/Catalyst::DispatchType/;
+use Moose;
+extends 'Catalyst::DispatchType';
+
 use Text::SimpleTable;
 use URI;
+
+has _paths => (
+               is => 'rw',
+               isa => 'HashRef',
+               required => 1,
+               default => sub { +{} },
+              );
+
+no Moose;
 
 =head1 NAME
 
@@ -26,14 +36,14 @@ Debug output for Path dispatch points
 sub list {
     my ( $self, $c ) = @_;
     my $paths = Text::SimpleTable->new( [ 35, 'Path' ], [ 36, 'Private' ] );
-    foreach my $path ( sort keys %{ $self->{paths} } ) {
+    foreach my $path ( sort keys %{ $self->_paths } ) {
         my $display_path = $path eq '/' ? $path : "/$path";
-        foreach my $action ( @{ $self->{paths}->{$path} } ) {
+        foreach my $action ( @{ $self->_paths->{$path} } ) {
             $paths->row( $display_path, "/$action" );
         }
     }
     $c->log->debug( "Loaded Path actions:\n" . $paths->draw . "\n" )
-      if ( keys %{ $self->{paths} } );
+      if ( keys %{ $self->_paths } );
 }
 
 =head2 $self->match( $c, $path )
@@ -49,7 +59,7 @@ sub match {
 
     $path = '/' if !defined $path || !length $path;
 
-    foreach my $action ( @{ $self->{paths}->{$path} || [] } ) {
+    foreach my $action ( @{ $self->_paths->{$path} || [] } ) {
         next unless $action->match($c);
         $c->req->action($path);
         $c->req->match($path);
@@ -90,7 +100,7 @@ sub register_path {
     $path = '/' unless length $path;
     $path = URI->new($path)->canonical;
 
-    unshift( @{ $self->{paths}{$path} ||= [] }, $action);
+    unshift( @{ $self->_paths->{$path} ||= [] }, $action);
 
     return 1;
 }
@@ -128,5 +138,7 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
+
+__PACKAGE__->meta->make_immutable;
 
 1;

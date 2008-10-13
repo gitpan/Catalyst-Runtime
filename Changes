@@ -1,5 +1,24 @@
 # This file documents the revision history for Perl extension Catalyst.
 
+5.8000_01 2008-10-13 22:52:00
+        - Port to Moose
+        - Added test for action stringify
+        - Added test for component instances getting $self->{value} from config.
+        - Add Catalyst::Response->print() method (ilmari)
+        - Optionally aggregate tests using Test::Aggregate (Florian Ragwitz).
+        - Additional docs for uri_for to mention how to use $c->action and 
+          $c->req->captures (jhannah)
+        - List unattached chained actions in Debug mode (Florian Ragwitz).
+        - Pod formatting fix for Engine::FastCGI (Oleg Kostyuk).
+        - Add visit, a returning ->go
+
+5.7XXXXXX XXXX
+        - Fix some Win32 test failures
+        - Add pt translation of error message (wreis)
+        - Make :Chained('../action') work (Florian Ragwitz)
+        - Add test actions
+        - Chained doc improvements (rev 8326-8328)
+
 5.7099_03 2008-07-20 10:10:00
         - Fix regressions for regexp fallback in model(), view() and controller()
         - Added the supplied argument to the regexp fallback warning for easier
