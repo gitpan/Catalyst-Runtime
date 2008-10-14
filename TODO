@@ -1,0 +1,29 @@
+
+  - Add Class::Accessor compats
+    * Catalyst::Request
+    * Catalyst::Response
+    * Catalyst::Dispatcher
+    * Catalyst::Request::Upload
+    * Catalyst::Action
+    * Catalyst::ActionChain
+    * Catalyst::ActionContainer
+
+  - Make classes immutable at setup() time
+
+
+  - GRODITI's list:
+    * Update Test suite to not assume MyApp ISA Controller
+      - After that I'll set up attr handlers that will output helpful
+        error messages when you do it as well as how to fix it.
+    * comments marked /Moose TODO/i in the code
+    * Fix the CDI compat hack so we can start moving to immutable
+    * Profile before and after immutable.
+    * Now would be a good time to lay ground for the App / Ctx split
+    * Howto mantain branch in sync with the latest checkins ?
+    * Eliminate all instances of $instance->{$key}
+    * MooseX::Emulate::CAF seems to be working like a charm :)
+    * General code cleanups can't hurt
+    * How do we move from NEXT to C3 ? I have never used either of them
+      - What does the lineraized mro look like when we are using moose 
+        method modifiers?
+        - Does they all get clumped together or what? Is it a non-issue?
