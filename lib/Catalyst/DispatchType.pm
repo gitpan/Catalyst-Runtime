@@ -1,7 +1,7 @@
 package Catalyst::DispatchType;
 
-use Moose; # using it to add Moose::Object to @ISA ...
-no Moose;
+use strict;
+use base 'Class::Accessor::Fast';
 
 =head1 NAME
 
@@ -58,18 +58,10 @@ arrayref, or undef if unable to do so.
 
 sub uri_for_action { }
 
-=head2 $self->expand_action
+=head1 AUTHOR
 
-Default fallback, returns nothing. See L<Catalyst::Dispatcher> for more info
-about expand_action.
-
-=cut
-
-sub expand_action { }
-
-=head1 AUTHORS
-
-Catalyst Contributors, see Catalyst.pm
+Matt S Trout
+Sebastian Riedel, C<sri@cpan.org>
 
 =head1 COPYRIGHT
 
@@ -77,7 +69,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

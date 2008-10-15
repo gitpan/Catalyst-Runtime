@@ -1,9 +1,7 @@
 package Catalyst::DispatchType::Default;
 
-use Moose;
-extends 'Catalyst::DispatchType';
-
-no Moose;
+use strict;
+use base qw/Catalyst::DispatchType/;
 
 =head1 NAME
 
@@ -47,9 +45,10 @@ sub match {
     return 0;
 }
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Matt S Trout
+Sebastian Riedel, C<sri@cpan.org>
 
 =head1 COPYRIGHT
 
@@ -57,7 +56,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

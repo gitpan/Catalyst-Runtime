@@ -1,19 +1,9 @@
 package Catalyst::DispatchType::Regex;
 
-use Moose;
-extends 'Catalyst::DispatchType::Path';
-
+use strict;
+use base qw/Catalyst::DispatchType::Path/;
 use Text::SimpleTable;
 use Text::Balanced ();
-
-has _compiled => (
-                  is => 'rw',
-                  isa => 'ArrayRef',
-                  required => 1,
-                  default => sub{ [] },
-                 );
-
-no Moose;
 
 =head1 NAME
 
@@ -36,12 +26,12 @@ Output a table of all regex actions, and their private equivalent.
 sub list {
     my ( $self, $c ) = @_;
     my $re = Text::SimpleTable->new( [ 35, 'Regex' ], [ 36, 'Private' ] );
-    for my $regex ( @{ $self->_compiled } ) {
+    for my $regex ( @{ $self->{compiled} } ) {
         my $action = $regex->{action};
         $re->row( $regex->{path}, "/$action" );
     }
     $c->log->debug( "Loaded Regex actions:\n" . $re->draw . "\n" )
-      if ( @{ $self->_compiled } );
+      if ( @{ $self->{compiled} } );
 }
 
 =head2 $self->match( $c, $path )
@@ -60,7 +50,7 @@ sub match {
 
     # Check path against plain text first
 
-    foreach my $compiled ( @{ $self->_compiled } ) {
+    foreach my $compiled ( @{ $self->{compiled} || [] } ) {
         if ( my @captures = ( $path =~ $compiled->{re} ) ) {
             next unless $compiled->{action}->match($c);
             $c->req->action( $compiled->{path} );
@@ -100,7 +90,7 @@ sub register {
 
 =head2 $self->register_regex($c, $re, $action)
 
-Register an individual regex on the action. Usually called from the
+Register an individual regex on the action. Usually called from the 
 register method.
 
 =cut
@@ -108,7 +98,7 @@ register method.
 sub register_regex {
     my ( $self, $c, $re, $action ) = @_;
     push(
-        @{ $self->_compiled },    # and compiled regex for us
+        @{ $self->{compiled} },    # and compiled regex for us
         {
             re     => qr#$re#,
             action => $action,
@@ -149,9 +139,10 @@ sub uri_for_action {
     return undef;
 }
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Matt S Trout
+Sebastian Riedel, C<sri@cpan.org>
 
 =head1 COPYRIGHT
 
@@ -159,7 +150,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

@@ -1,11 +1,8 @@
 package Catalyst::ActionChain;
 
-use Moose;
-extends qw(Catalyst::Action);
+use strict;
+use base qw/Catalyst::Action/;
 
-has chain => (is => 'rw');
-
-no Moose;
 
 =head1 NAME
 
@@ -22,6 +19,22 @@ the action at the *end* of the chain except on dispatch it will execute all
 the actions in the chain in order.
 
 =cut
+
+__PACKAGE__->mk_accessors(qw/chain/);
+
+use overload (
+
+    # Stringify to reverse for debug output etc.
+    q{""} => sub { shift->{reverse} },
+
+    # Codulate to execute to invoke the encapsulated action coderef
+    '&{}' => sub { my $self = shift; sub { $self->execute(@_); }; },
+
+    # Make general $stuff still work
+    fallback => 1,
+
+);
+
 
 sub dispatch {
     my ( $self, $c ) = @_;
@@ -45,7 +58,6 @@ sub from_chain {
     return $self->new({ %$final, chain => $actions });
 }
 
-__PACKAGE__->meta->make_immutable;
 1;
 
 __END__
@@ -67,13 +79,11 @@ actions in order.
 Takes a list of Catalyst::Action objects and constructs and returns a
 Catalyst::ActionChain object representing a chain of these actions
 
-=head2 meta
+=cut
 
-Provided by Moose
+=head1 AUTHOR
 
-=head1 AUTHORS
-
-Catalyst Contributors, see Catalyst.pm
+Matt S. Trout
 
 =head1 COPYRIGHT
 

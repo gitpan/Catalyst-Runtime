@@ -8,7 +8,6 @@ use Path::Class;
 use URI;
 use Class::Inspector;
 use Carp qw/croak/;
-use Cwd;
 
 =head1 NAME
 
@@ -161,7 +160,6 @@ sub home {
 
             # find the @INC entry in which $file was found
             (my $path = $inc_entry) =~ s/$file$//;
-            $path ||= cwd() if !defined $path || !length $path;
             my $home = dir($path)->absolute->cleanup;
 
             # pop off /lib and /blib if they're there
@@ -331,9 +329,10 @@ sub env_value {
     return;
 }
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, C<sri@cpan.org>
+Yuval Kogman, C<nothingmuch@woobling.org>
 
 =head1 COPYRIGHT
 

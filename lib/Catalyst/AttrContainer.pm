@@ -1,14 +1,14 @@
 package Catalyst::AttrContainer;
 
-use Moose;
+use strict;
+use base qw/Class::Accessor::Fast Class::Data::Inheritable/;
+
 use Catalyst::Exception;
-use Scalar::Util 'blessed';
-with 'Catalyst::ClassData';
+use NEXT;
 
-no Moose;
-
-__PACKAGE__->mk_classdata(_attr_cache => {} );
-__PACKAGE__->mk_classdata( _action_cache => [] );
+__PACKAGE__->mk_classdata($_) for qw/_attr_cache _action_cache/;
+__PACKAGE__->_attr_cache( {} );
+__PACKAGE__->_action_cache( [] );
 
 # note - see attributes(3pm)
 sub MODIFY_CODE_ATTRIBUTES {
@@ -23,7 +23,7 @@ sub FETCH_CODE_ATTRIBUTES { $_[0]->_attr_cache->{ $_[1] } || () }
 
 =head1 NAME
 
-Catalyst::AttrContainer - Handles code attribute storage and caching
+Catalyst::AttrContainer
 
 =head1 SYNOPSIS
 
@@ -47,9 +47,10 @@ Attribute function. See attributes(3pm)
 L<Catalyst::Dispatcher>
 L<Catalyst>.
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, C<sri@cpan.org>
+Marcus Ramberg, C<mramberg@cpan.org>
 
 =head1 COPYRIGHT
 

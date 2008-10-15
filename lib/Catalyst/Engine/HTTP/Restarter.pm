@@ -1,12 +1,12 @@
 package Catalyst::Engine::HTTP::Restarter;
 
-use Moose;
-extends 'Catalyst::Engine::HTTP';
-
+use strict;
+use warnings;
+use base 'Catalyst::Engine::HTTP';
 use Catalyst::Engine::HTTP::Restarter::Watcher;
+use NEXT;
 
-around run => sub {
-    my $orig = shift;
+sub run {
     my ( $self, $class, $port, $host, $options ) = @_;
 
     $options ||= {};
@@ -67,9 +67,8 @@ around run => sub {
         }
     }
 
-    return $self->$orig( $class, $port, $host, $options );
-    no Moose;
-};
+    return $self->NEXT::run( $class, $port, $host, $options );
+}
 
 1;
 __END__
@@ -98,7 +97,11 @@ L<Catalyst::Engine>.
 
 =head1 AUTHORS
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, <sri@cpan.org>
+
+Dan Kubb, <dan.kubb-cpan@onautopilot.com>
+
+Andy Grundman, <andy@hybridized.org>
 
 =head1 THANKS
 

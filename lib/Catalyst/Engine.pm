@@ -1,8 +1,7 @@
 package Catalyst::Engine;
 
-use Moose;
-with 'MooseX::Emulate::Class::Accessor::Fast';
-
+use strict;
+use base 'Class::Accessor::Fast';
 use CGI::Simple::Cookie;
 use Data::Dump qw/dump/;
 use Errno 'EWOULDBLOCK';
@@ -13,10 +12,10 @@ use URI::QueryParam;
 use Scalar::Util ();
 
 # input position and length
-has read_length => (is => 'rw');
-has read_position => (is => 'rw');
+__PACKAGE__->mk_accessors(qw/read_position read_length/);
 
-no Moose;
+# Stringify to class
+use overload '""' => sub { return ref shift }, fallback => 1;
 
 # Amount of data to read from input on each pass
 our $CHUNKSIZE = 64 * 1024;
@@ -67,11 +66,10 @@ sub finalize_cookies {
     my ( $self, $c ) = @_;
 
     my @cookies;
-    my $response = $c->response;
 
-    foreach my $name (keys %{ $response->cookies }) {
+    foreach my $name ( keys %{ $c->response->cookies } ) {
 
-        my $val = $response->cookies->{$name};
+        my $val = $c->response->cookies->{$name};
 
         my $cookie = (
             Scalar::Util::blessed($val)
@@ -90,7 +88,7 @@ sub finalize_cookies {
     }
 
     for my $cookie (@cookies) {
-        $response->headers->push_header( 'Set-Cookie' => $cookie );
+        $c->res->headers->push_header( 'Set-Cookie' => $cookie );
     }
 }
 
@@ -129,6 +127,9 @@ sub finalize_error {
         # Don't show body parser in the dump
         delete $c->req->{_body};
 
+        # Don't show response header state in dump
+        delete $c->res->{_finalized_headers};
+
         my @infos;
         my $i = 0;
         for my $dump ( $c->dump_these ) {
@@ -156,7 +157,6 @@ EOF
 (no) Vennligst prov igjen senere
 (dk) Venligst prov igen senere
 (pl) Prosze sprobowac pozniej
-(pt) Por favor volte mais tarde
 </pre>
 
         $name = '';
@@ -291,13 +291,14 @@ Clean up after uploads, deleting temp files.
 sub finalize_uploads {
     my ( $self, $c ) = @_;
 
-    my $request = $c->request;
-    foreach my $key (keys %{ $request->uploads }) {
-        my $upload = $request->uploads->{$key};
-        unlink grep { -e $_ } map { $_->tempname }
-          (ref $upload eq 'ARRAY' ? @{$upload} : ($upload));
+    if ( keys %{ $c->request->uploads } ) {
+        for my $key ( keys %{ $c->request->uploads } ) {
+            my $upload = $c->request->uploads->{$key};
+            unlink map { $_->tempname }
+              grep     { -e $_->tempname }
+              ref $upload eq 'ARRAY' ? @{$upload} : ($upload);
+        }
     }
-
 }
 
 =head2 $self->prepare_body($c)
@@ -310,11 +311,10 @@ sub prepare_body {
     my ( $self, $c ) = @_;
 
     if ( my $length = $self->read_length ) {
-        my $request = $c->request;
-        unless ( $request->{_body} ) {
-            my $type = $request->header('Content-Type');
-            $request->{_body} = HTTP::Body->new( $type, $length );
-            $request->{_body}->tmpdir( $c->config->{uploadtmp} )
+        unless ( $c->request->{_body} ) {
+            my $type = $c->request->header('Content-Type');
+            $c->request->{_body} = HTTP::Body->new( $type, $length );
+            $c->request->{_body}->{tmpdir} = $c->config->{uploadtmp}
               if exists $c->config->{uploadtmp};
         }
         
@@ -399,24 +399,25 @@ sets up parameters from query and post parameters.
 sub prepare_parameters {
     my ( $self, $c ) = @_;
 
-    my $request = $c->request;
-    my $parameters = $request->parameters;
-    my $body_parameters = $request->body_parameters;
-    my $query_parameters = $request->query_parameters;
     # We copy, no references
-    foreach my $name (keys %$query_parameters) {
-        my $param = $query_parameters->{$name};
-        $parameters->{$name} = ref $param eq 'ARRAY' ? [ @$param ] : $param;
+    foreach my $name ( keys %{ $c->request->query_parameters } ) {
+        my $param = $c->request->query_parameters->{$name};
+        $param = ref $param eq 'ARRAY' ? [ @{$param} ] : $param;
+        $c->request->parameters->{$name} = $param;
     }
 
     # Merge query and body parameters
-    foreach my $name (keys %$body_parameters) {
-        my $param = $body_parameters->{$name};
-        my @values = ref $param eq 'ARRAY' ? @$param : ($param);
-        if ( my $existing = $parameters->{$name} ) {
-          unshift(@values, (ref $existing eq 'ARRAY' ? @$existing : $existing));
+    foreach my $name ( keys %{ $c->request->body_parameters } ) {
+        my $param = $c->request->body_parameters->{$name};
+        $param = ref $param eq 'ARRAY' ? [ @{$param} ] : $param;
+        if ( my $old_param = $c->request->parameters->{$name} ) {
+            if ( ref $old_param eq 'ARRAY' ) {
+                push @{ $c->request->parameters->{$name} },
+                  ref $param eq 'ARRAY' ? @$param : $param;
+            }
+            else { $c->request->parameters->{$name} = [ $old_param, $param ] }
         }
-        $parameters->{$name} = @values > 1 ? \@values : $values[0];
+        else { $c->request->parameters->{$name} = $param }
     }
 }
 
@@ -451,7 +452,7 @@ sub prepare_query_parameters {
     # replace semi-colons
     $query_string =~ s/;/&/g;
     
-    my @params = grep { length $_ } split /&/, $query_string;
+    my @params = split /&/, $query_string;
 
     for my $item ( @params ) {
         
@@ -507,42 +508,40 @@ sub prepare_request { }
 
 sub prepare_uploads {
     my ( $self, $c ) = @_;
-
-    my $request = $c->request;
-    return unless $request->{_body};
-
-    my $uploads = $request->{_body}->upload;
-    my $parameters = $request->parameters;
-    foreach my $name (keys %$uploads) {
+    
+    return unless $c->request->{_body};
+    
+    my $uploads = $c->request->{_body}->upload;
+    for my $name ( keys %$uploads ) {
         my $files = $uploads->{$name};
+        $files = ref $files eq 'ARRAY' ? $files : [$files];
         my @uploads;
-        for my $upload (ref $files eq 'ARRAY' ? @$files : ($files)) {
-            my $headers = HTTP::Headers->new( %{ $upload->{headers} } );
-            my $u = Catalyst::Request::Upload->new
-              (
-               size => $upload->{size},
-               type => $headers->content_type,
-               headers => $headers,
-               tempname => $upload->{tempname},
-               filename => $upload->{filename},
-              );
+        for my $upload (@$files) {
+            my $u = Catalyst::Request::Upload->new;
+            $u->headers( HTTP::Headers->new( %{ $upload->{headers} } ) );
+            $u->type( $u->headers->content_type );
+            $u->tempname( $upload->{tempname} );
+            $u->size( $upload->{size} );
+            $u->filename( $upload->{filename} );
             push @uploads, $u;
         }
-        $request->uploads->{$name} = @uploads > 1 ? \@uploads : $uploads[0];
+        $c->request->uploads->{$name} = @uploads > 1 ? \@uploads : $uploads[0];
 
         # support access to the filename as a normal param
         my @filenames = map { $_->{filename} } @uploads;
         # append, if there's already params with this name
-        if (exists $parameters->{$name}) {
-            if (ref $parameters->{$name} eq 'ARRAY') {
-                push @{ $parameters->{$name} }, @filenames;
+        if (exists $c->request->parameters->{$name}) {
+            if (ref $c->request->parameters->{$name} eq 'ARRAY') {
+                push @{ $c->request->parameters->{$name} }, @filenames;
             }
             else {
-                $parameters->{$name} = [ $parameters->{$name}, @filenames ];
+                $c->request->parameters->{$name} = 
+                    [ $c->request->parameters->{$name}, @filenames ];
             }
         }
         else {
-            $parameters->{$name} = @filenames > 1 ? \@filenames : $filenames[0];
+            $c->request->parameters->{$name} =
+                @filenames > 1 ? \@filenames : $filenames[0];
         }
     }
 }
@@ -671,7 +670,9 @@ sub unescape_uri {
 
 =head1 AUTHORS
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, <sri@cpan.org>
+
+Andy Grundman, <andy@hybridized.org>
 
 =head1 COPYRIGHT
 

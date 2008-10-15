@@ -1,17 +1,11 @@
 package Catalyst::Test;
 
-use Test::More;
-
 use strict;
 use warnings;
 
 use Catalyst::Exception;
 use Catalyst::Utils;
 use Class::Inspector;
-
-use parent qw/Exporter/;
-our @EXPORT=qw/&content_like &action_ok &action_redirect &action_notfound &contenttype_is/;
-
 
 =head1 NAME
 
@@ -26,12 +20,6 @@ Catalyst::Test - Test Catalyst Applications
     use Catalyst::Test 'TestApp';
     request('index.html');
     get('index.html');
-
-    use HTTP::Request::Common;
-    my $response = request POST '/foo', [
-        bar => 'baz',
-        something => 'else'
-    ];
 
     # Run tests against a remote server
     CATALYST_SERVER='http://localhost:3000/' prove -r -l lib/ t/
@@ -50,21 +38,14 @@ Catalyst::Test - Test Catalyst Applications
 
     package main;
 
-    use Catalyst::Test 'TestApp';
     use Test::More tests => 1;
+    use Catalyst::Test 'TestApp';
 
     ok( get('/foo') =~ /bar/ );
 
 =head1 DESCRIPTION
 
-This module allows you to make requests to a Catalyst application either without
-a server, by simulating the environment of an HTTP request using
-L<HTTP::Request::AsCGI> or remotely if you define the CATALYST_SERVER
-environment variable. This module also adds a few catalyst
-specific testing methods as displayed in the method section.
-
-The </get> and </request> functions take either a URI or an L<HTTP::Request>
-object.
+Test Catalyst Applications.
 
 =head2 METHODS
 
@@ -119,12 +100,9 @@ sub import {
     my $caller = caller(0);
     *{"$caller\::request"} = $request;
     *{"$caller\::get"}     = $get;
-    __PACKAGE__->export_to_level(1);
 }
 
 =head2 local_request
-
-Simulate a request using L<HTTP::Request::AsCGI>.
 
 =cut
 
@@ -203,80 +181,13 @@ sub remote_request {
     return $agent->request($request);
 }
 
-=head2 action_ok
-
-Fetches the given url and check that the request was successful
-
-=head2 action_redirect
-
-Fetches the given url and check that the request was a redirect
-
-=head2 action_notfound
-
-Fetches the given url and check that the request was not found
-
-=head2 content_like
-
-Fetches the given url and matches the content against it.
-
-=head2 contenttype_is 
-    
-Check for given mime type
-
-=cut
-
-sub content_like {
-    my $caller=caller(0);
-    no strict 'refs';
-    my $get=*{"$caller\::get"};
-    my $action=shift;
-    return Test::More->builder->like(&$get($action),@_);
-}
-
-sub action_ok {
-    my $caller=caller(0);
-    no strict 'refs';
-    my $request=*{"$caller\::request"};
-    my $action=shift;
-    return Test::More->builder->ok(&$request($action)->is_success, @_);
-}
-
-sub action_redirect {
-    my $caller=caller(0);
-    no strict 'refs';
-    my $request=*{"$caller\::request"};
-    my $action=shift;
-    return Test::More->builder->ok(&$request($action)->is_redirect,@_);
-    
-}
-
-sub action_notfound {
-    my $caller=caller(0);
-    no strict 'refs';
-    my $request=*{"$caller\::request"};
-    my $action=shift;
-    return Test::More->builder->is_eq(&$request($action)->code,404,@_);
-
-}
-
-
-sub contenttype_is {
-    my $caller=caller(0);
-    no strict 'refs';
-    my $request=*{"$caller\::request"};
-    my $action=shift;
-    my $res=&$request($action);
-    return Test::More->builder->is_eq(scalar($res->content_type),@_);
-}
-
 =head1 SEE ALSO
 
-L<Catalyst>, L<Test::WWW::Mechanize::Catalyst>,
-L<Test::WWW::Selenium::Catalyst>, L<Test::More>, L<HTTP::Request::Common>
+L<Catalyst>.
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, C<sri@cpan.org>
 
 =head1 COPYRIGHT
 

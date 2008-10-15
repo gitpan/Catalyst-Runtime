@@ -1,7 +1,6 @@
 package Catalyst::Plugin::Test::Errors;
 
 use strict;
-use NEXT;
 
 sub error {
     my $c = shift;

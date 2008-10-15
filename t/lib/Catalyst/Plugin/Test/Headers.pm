@@ -1,7 +1,6 @@
 package Catalyst::Plugin::Test::Headers;
 
 use strict;
-use NEXT;
 
 sub prepare {
     my $class = shift;

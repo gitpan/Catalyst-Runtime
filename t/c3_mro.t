@@ -35,6 +35,6 @@ plan tests => scalar @cat_mods;
 foreach my $cat_mod (@cat_mods) {
   eval " require $cat_mod ";
   eval { Class::C3::calculateMRO($cat_mod) };
-  ok(!$@, "calculateMRO for $cat_mod: $@");
+  ok(!$@, "calculateMRO for $cat_mod");
 }
 

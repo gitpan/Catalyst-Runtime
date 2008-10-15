@@ -1,34 +1,10 @@
 package Catalyst::DispatchType::Chained;
 
-use Moose;
-extends 'Catalyst::DispatchType';
-
+use strict;
+use base qw/Catalyst::DispatchType/;
 use Text::SimpleTable;
 use Catalyst::ActionChain;
 use URI;
-
-has _endpoints => (
-                   is => 'rw',
-                   isa => 'ArrayRef',
-                   required => 1,
-                   default => sub{ [] },
-                  );
-
-has _actions => (
-                 is => 'rw',
-                 isa => 'HashRef',
-                 required => 1,
-                 default => sub{ {} },
-                );
-
-has _children_of => (
-                     is => 'rw',
-                     isa => 'HashRef',
-                     required => 1,
-                     default => sub{ {} },
-                    );
-
-no Moose;
 
 # please don't perltidy this. hairy code within.
 
@@ -65,20 +41,15 @@ Debug output for Path Part dispatch points
 sub list {
     my ( $self, $c ) = @_;
 
-    return unless $self->_endpoints;
+    return unless $self->{endpoints};
 
     my $paths = Text::SimpleTable->new(
                     [ 35, 'Path Spec' ], [ 36, 'Private' ]
                 );
 
-    my $has_unattached_actions;
-    my $unattached_actions = Text::SimpleTable->new(
-        [ 35, 'Private' ], [ 36, 'Missing parent' ],
-    );
-
     ENDPOINT: foreach my $endpoint (
                   sort { $a->reverse cmp $b->reverse }
-                           @{ $self->_endpoints }
+                           @{ $self->{endpoints} }
                   ) {
         my $args = $endpoint->attributes->{Args}->[0];
         my @parts = (defined($args) ? (("*") x $args) : '...');
@@ -94,14 +65,10 @@ sub list {
                     if (defined $pp->[0] && length $pp->[0]);
             }
             $parent = $curr->attributes->{Chained}->[0];
-            $curr = $self->_actions->{$parent};
+            $curr = $self->{actions}{$parent};
             unshift(@parents, $curr) if $curr;
         }
-        if ($parent ne '/') {
-            $has_unattached_actions = 1;
-            $unattached_actions->row('/'.$parents[0]->reverse, $parent);
-            next ENDPOINT;
-        }
+        next ENDPOINT unless $parent eq '/'; # skip dangling action
         my @rows;
         foreach my $p (@parents) {
             my $name = "/${p}";
@@ -119,8 +86,6 @@ sub list {
     }
 
     $c->log->debug( "Loaded Chained actions:\n" . $paths->draw . "\n" );
-    $c->log->debug( "Unattached Chained actions:\n", $unattached_actions->draw . "\n" )
-        if $has_unattached_actions;
 }
 
 =head2 $self->match( $c, $path )
@@ -132,21 +97,20 @@ Calls C<recurse_match> to see if a chain matches the C<$path>.
 sub match {
     my ( $self, $c, $path ) = @_;
 
-    my $request = $c->request;
-    return 0 if @{$request->args};
+    return 0 if @{$c->req->args};
 
     my @parts = split('/', $path);
 
     my ($chain, $captures, $parts) = $self->recurse_match($c, '/', \@parts);
-    push @{$request->args}, @$parts if $parts && @$parts;
+    push @{$c->req->args}, @$parts if $parts && @$parts;
 
     return 0 unless $chain;
 
     my $action = Catalyst::ActionChain->from_chain($chain);
 
-    $request->action("/${action}");
-    $request->match("/${action}");
-    $request->captures($captures);
+    $c->req->action("/${action}");
+    $c->req->match("/${action}");
+    $c->req->captures($captures);
     $c->action($action);
     $c->namespace( $action->namespace );
 
@@ -161,7 +125,7 @@ Recursive search for a matching chain.
 
 sub recurse_match {
     my ( $self, $c, $parent, $path_parts ) = @_;
-    my $children = $self->_children_of->{$parent};
+    my $children = $self->{children_of}{$parent};
     return () unless $children;
     my $best_action;
     my @captures;
@@ -193,14 +157,7 @@ sub recurse_match {
                 my ($actions, $captures, $action_parts) = $self->recurse_match(
                                              $c, '/'.$action->reverse, \@parts
                                            );
-                #    No best action currently
-                # OR The action has less parts
-                # OR The action has equal parts but less captured data (ergo more defined)
-                if ($actions    &&
-                    (!$best_action                                 ||
-                     $#$action_parts < $#{$best_action->{parts}}   ||
-                     ($#$action_parts == $#{$best_action->{parts}} &&
-                      $#$captures < $#{$best_action->{captures}}))){
+                if ($actions && (!$best_action || $#$action_parts < $#{$best_action->{parts}})){
                     $best_action = {
                         actions => [ $action, @$actions ],
                         captures=> [ @captures, @$captures ],
@@ -257,7 +214,25 @@ sub register {
         );
     }
 
-    my $children = ($self->_children_of->{ $chained_attr[0] } ||= {});
+    my $parent = $chained_attr[0];
+
+    if (defined($parent) && length($parent)) {
+        if ($parent eq '.') {
+            $parent = '/'.$action->namespace;
+        } elsif ($parent !~ m/^\//) {
+            if ($action->namespace) {
+                $parent = '/'.join('/', $action->namespace, $parent);
+            } else {
+                $parent = '/'.$parent; # special case namespace '' (root)
+            }
+        }
+    } else {
+        $parent = '/'
+    }
+
+    $action->attributes->{Chained} = [ $parent ];
+
+    my $children = ($self->{children_of}{$parent} ||= {});
 
     my @path_part = @{ $action->attributes->{PathPart} || [] };
 
@@ -267,13 +242,13 @@ sub register {
         $part = $path_part[0];
     } elsif (@path_part > 1) {
         Catalyst::Exception->throw(
-          "Multiple PathPart attributes not supported registering " . $action->reverse()
+          "Multiple PathPart attributes not supported registering ${action}"
         );
     }
 
     if ($part =~ m(^/)) {
         Catalyst::Exception->throw(
-          "Absolute parameters to PathPart not allowed registering " . $action->reverse()
+          "Absolute parameters to PathPart not allowed registering ${action}"
         );
     }
 
@@ -281,10 +256,10 @@ sub register {
 
     unshift(@{ $children->{$part} ||= [] }, $action);
 
-    $self->_actions->{'/'.$action->reverse} = $action;
+    ($self->{actions} ||= {})->{'/'.$action->reverse} = $action;
 
     unless ($action->attributes->{CaptureArgs}) {
-        unshift(@{ $self->_endpoints }, $action);
+        unshift(@{ $self->{endpoints} ||= [] }, $action);
     }
 
     return 1;
@@ -319,7 +294,7 @@ sub uri_for_action {
                 if (defined($pp->[0]) && length($pp->[0]));
         }
         $parent = $curr->attributes->{Chained}->[0];
-        $curr = $self->_actions->{$parent};
+        $curr = $self->{actions}{$parent};
     }
 
     return undef unless $parent eq '/'; # fail for dangling action
@@ -329,33 +304,6 @@ sub uri_for_action {
     return join('/', '', @parts);
    
 }
-
-=head2 $c->expand_action($action)
-
-Return a list of actions that represents a chained action. See 
-L<Catalyst::Dispatcher> for more info. You probably want to
-use the expand_action it provides rather than this directly.
-
-=cut
-
-sub expand_action {
-    my ($self, $action) = @_;
-
-    return unless $action->attributes && $action->attributes->{Chained};
-
-    my @chain;
-    my $curr = $action;
-
-    while ($curr) {
-        push @chain, $curr;
-        my $parent = $curr->attributes->{Chained}->[0];
-        $curr = $self->_actions->{$parent};
-    }
-
-    return Catalyst::ActionChain->from_chain([reverse @chain]);
-}
-
-__PACKAGE__->meta->make_immutable;
 
 =head1 USAGE
 
@@ -532,18 +480,13 @@ with C<sub bar :PathPart('foo/bar') :Chained('/')> would bind to
 C</foo/bar/...>. If you don't specify C<:PathPart> it has the same
 effect as using C<:PathPart>, it would default to the action name.
 
-=item PathPrefix
-
-Sets PathPart to the path_prefix of the current controller.
-
 =item Chained
 
 Has to be specified for every child in the chain. Possible values are
-absolute and relative private action paths or a single slash C</> to
-tell Catalyst that this is the root of a chain. The attribute
-C<:Chained> without arguments also defaults to the C</> behavior.
-Relative action paths may use C<../> to refer to actions in parent
-controllers.
+absolute and relative private action paths, with the relatives pointing
+to the current controller, or a single slash C</> to tell Catalyst that
+this is the root of a chain. The attribute C<:Chained> without arguments
+also defaults to the C</> behavior.
 
 Because you can specify an absolute path to the parent action, it
 doesn't matter to Catalyst where that parent is located. So, if your
@@ -565,19 +508,6 @@ as the argument to Chained here chains the C<baz> action to an action
 with the path of the current controller namespace, namely
 C</foo/bar>. That action chains directly to C</>, so the C</bar/*/baz/*>
 chain comes out as the end product.
-
-=item ChainedParent
-
-Chains an action to another action with the same name in the parent
-controller. For Example:
-
-  # in MyApp::Controller::Foo
-  sub bar : Chained CaptureArgs(1) { ... }
-
-  # in MyApp::Controller::Foo::Moo
-  sub bar : ChainedParent Args(1) { ... }
-
-This builds a chain like C</bar/*/bar/*>.
 
 =item CaptureArgs
 
@@ -625,9 +555,9 @@ The C<forward>ing to other actions does just what you would expect. But if
 you C<detach> out of a chain, the rest of the chain will not get called
 after the C<detach>.
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Matt S Trout <mst@shadowcatsystems.co.uk>
 
 =head1 COPYRIGHT
 

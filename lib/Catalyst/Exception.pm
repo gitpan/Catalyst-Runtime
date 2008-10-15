@@ -1,10 +1,15 @@
 package Catalyst::Exception;
 
-# XXX: See bottom of file for Exception implementation
+use strict;
+use vars qw[@ISA $CATALYST_EXCEPTION_CLASS];
+
+BEGIN {
+    push( @ISA, $CATALYST_EXCEPTION_CLASS || 'Catalyst::Exception::Base' );
+}
 
 package Catalyst::Exception::Base;
 
-use Moose;
+use strict;
 use Carp ();
 
 =head1 NAME
@@ -44,13 +49,10 @@ sub throw {
     Carp::croak($message);
 }
 
-=head2 meta
+=head1 AUTHOR
 
-Provided by Moose
-
-=head1 AUTHORS
-
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, C<sri@cpan.org>
+Christian Hansen, C<ch@ngmedia.com>
 
 =head1 COPYRIGHT
 
@@ -58,19 +60,5 @@ This program is free software, you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
-
-Catalyst::Exception::Base->meta->make_immutable;
-
-package Catalyst::Exception;
-
-use Moose;
-use vars qw[$CATALYST_EXCEPTION_CLASS];
-
-BEGIN {
-    extends($CATALYST_EXCEPTION_CLASS || 'Catalyst::Exception::Base');
-}
-
-no Moose;
-__PACKAGE__->meta->make_immutable;
 
 1;

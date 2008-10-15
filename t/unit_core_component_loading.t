@@ -63,7 +63,6 @@ sub make_component_file {
 
     write_component_file(\@dir_list, $name_final, <<EOF);
 package $fullname;
-use NEXT;
 use base '$compbase';
 sub COMPONENT {
     my \$self = shift->NEXT::COMPONENT(\@_);

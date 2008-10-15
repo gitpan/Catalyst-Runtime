@@ -1,9 +1,7 @@
 package Catalyst::Engine::FastCGI;
 
-use Moose;
-extends 'Catalyst::Engine::CGI';
-
-# eval { Class::MOP::load_class("FCGI") };
+use strict;
+use base 'Catalyst::Engine::CGI';
 eval "use FCGI";
 die "Unable to load the FCGI module, you may need to install it:\n$@\n" if $@;
 
@@ -46,9 +44,7 @@ Options may also be specified;
 
 =item leave_umask
 
-Set to 1 to disable setting umask to 0 for socket open
-
-=item nointr
+Set to 1 to disable setting umask to 0 for socket open =item nointr
 
 Do not allow the listener to be interrupted by Ctrl+C
 
@@ -403,7 +399,11 @@ L<Catalyst>, L<FCGI>.
 
 =head1 AUTHORS
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, <sri@cpan.org>
+
+Christian Hansen, <ch@ngmedia.com>
+
+Andy Grundman, <andy@hybridized.org>
 
 =head1 THANKS
 

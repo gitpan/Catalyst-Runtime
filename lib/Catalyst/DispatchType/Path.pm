@@ -1,19 +1,9 @@
 package Catalyst::DispatchType::Path;
 
-use Moose;
-extends 'Catalyst::DispatchType';
-
+use strict;
+use base qw/Catalyst::DispatchType/;
 use Text::SimpleTable;
 use URI;
-
-has _paths => (
-               is => 'rw',
-               isa => 'HashRef',
-               required => 1,
-               default => sub { +{} },
-              );
-
-no Moose;
 
 =head1 NAME
 
@@ -36,14 +26,14 @@ Debug output for Path dispatch points
 sub list {
     my ( $self, $c ) = @_;
     my $paths = Text::SimpleTable->new( [ 35, 'Path' ], [ 36, 'Private' ] );
-    foreach my $path ( sort keys %{ $self->_paths } ) {
+    foreach my $path ( sort keys %{ $self->{paths} } ) {
         my $display_path = $path eq '/' ? $path : "/$path";
-        foreach my $action ( @{ $self->_paths->{$path} } ) {
+        foreach my $action ( @{ $self->{paths}->{$path} } ) {
             $paths->row( $display_path, "/$action" );
         }
     }
     $c->log->debug( "Loaded Path actions:\n" . $paths->draw . "\n" )
-      if ( keys %{ $self->_paths } );
+      if ( keys %{ $self->{paths} } );
 }
 
 =head2 $self->match( $c, $path )
@@ -59,7 +49,7 @@ sub match {
 
     $path = '/' if !defined $path || !length $path;
 
-    foreach my $action ( @{ $self->_paths->{$path} || [] } ) {
+    foreach my $action ( @{ $self->{paths}->{$path} || [] } ) {
         next unless $action->match($c);
         $c->req->action($path);
         $c->req->match($path);
@@ -100,7 +90,7 @@ sub register_path {
     $path = '/' unless length $path;
     $path = URI->new($path)->canonical;
 
-    unshift( @{ $self->_paths->{$path} ||= [] }, $action);
+    unshift( @{ $self->{paths}{$path} ||= [] }, $action);
 
     return 1;
 }
@@ -128,9 +118,10 @@ sub uri_for_action {
     }
 }
 
-=head1 AUTHORS
+=head1 AUTHOR
 
-Catalyst Contributors, see Catalyst.pm
+Matt S Trout
+Sebastian Riedel, C<sri@cpan.org>
 
 =head1 COPYRIGHT
 
@@ -138,7 +129,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

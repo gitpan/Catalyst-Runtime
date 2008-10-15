@@ -1,9 +1,10 @@
 package Catalyst::Engine::CGI;
 
-use Moose;
-extends 'Catalyst::Engine';
+use strict;
+use base 'Catalyst::Engine';
+use NEXT;
 
-has env => (is => 'rw');
+__PACKAGE__->mk_accessors('env');
 
 =head1 NAME
 
@@ -53,8 +54,7 @@ sub prepare_connection {
     my ( $self, $c ) = @_;
     local (*ENV) = $self->env || \%ENV;
 
-    my $request = $c->request;
-    $request->address( $ENV{REMOTE_ADDR} );
+    $c->request->address( $ENV{REMOTE_ADDR} );
 
   PROXY_CHECK:
     {
@@ -67,20 +67,20 @@ sub prepare_connection {
         # If we are running as a backend server, the user will always appear
         # as 127.0.0.1. Select the most recent upstream IP (last in the list)
         my ($ip) = $ENV{HTTP_X_FORWARDED_FOR} =~ /([^,\s]+)$/;
-        $request->address($ip);
+        $c->request->address($ip);
     }
 
-    $request->hostname( $ENV{REMOTE_HOST} );
-    $request->protocol( $ENV{SERVER_PROTOCOL} );
-    $request->user( $ENV{REMOTE_USER} );
-    $request->method( $ENV{REQUEST_METHOD} );
+    $c->request->hostname( $ENV{REMOTE_HOST} );
+    $c->request->protocol( $ENV{SERVER_PROTOCOL} );
+    $c->request->user( $ENV{REMOTE_USER} );
+    $c->request->method( $ENV{REQUEST_METHOD} );
 
     if ( $ENV{HTTPS} && uc( $ENV{HTTPS} ) eq 'ON' ) {
-        $request->secure(1);
+        $c->request->secure(1);
     }
 
     if ( $ENV{SERVER_PORT} == 443 ) {
-        $request->secure(1);
+        $c->request->secure(1);
     }
 }
 
@@ -91,12 +91,12 @@ sub prepare_connection {
 sub prepare_headers {
     my ( $self, $c ) = @_;
     local (*ENV) = $self->env || \%ENV;
-    my $headers = $c->request->headers;
+
     # Read headers from %ENV
     foreach my $header ( keys %ENV ) {
         next unless $header =~ /^(?:HTTP|CONTENT|COOKIE)/i;
         ( my $field = $header ) =~ s/^HTTPS?_//;
-        $headers->header( $field => $ENV{$header} );
+        $c->req->headers->header( $field => $ENV{$header} );
     }
 }
 
@@ -172,15 +172,14 @@ sub prepare_path {
 
 =cut
 
-around prepare_query_parameters => sub {
-    my $orig = shift;
+sub prepare_query_parameters {
     my ( $self, $c ) = @_;
     local (*ENV) = $self->env || \%ENV;
 
     if ( $ENV{QUERY_STRING} ) {
-        $self->$orig( $c, $ENV{QUERY_STRING} );
+        $self->SUPER::prepare_query_parameters( $c, $ENV{QUERY_STRING} );
     }
-};
+}
 
 =head2 $self->prepare_request($c, (env => \%env))
 
@@ -200,10 +199,14 @@ Enable autoflush on the output handle for CGI-based engines.
 
 =cut
 
-around prepare_write => sub {
+sub prepare_write {
+    my ( $self, $c ) = @_;
+
+    # Set the output handle to autoflush
     *STDOUT->autoflush(1);
-    return shift->(@_);
-};
+
+    $self->NEXT::prepare_write($c);
+}
 
 =head2 $self->write($c, $buffer)
 
@@ -211,17 +214,16 @@ Writes the buffer to the client.
 
 =cut
 
-around write => sub {
-    my $orig = shift;
+sub write {
     my ( $self, $c, $buffer ) = @_;
 
     # Prepend the headers if they have not yet been sent
     if ( my $headers = delete $self->{_header_buf} ) {
         $buffer = $headers . $buffer;
     }
-
-    return $self->$orig( $c, $buffer );
-};
+    
+    return $self->NEXT::write( $c, $buffer );
+}
 
 =head2 $self->read_chunk($c, $buffer, $length)
 
@@ -237,11 +239,15 @@ sub run { shift; shift->handle_request(@_) }
 
 =head1 SEE ALSO
 
-L<Catalyst>, L<Catalyst::Engine>
+L<Catalyst> L<Catalyst::Engine>.
 
 =head1 AUTHORS
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, <sri@cpan.org>
+
+Christian Hansen, <ch@ngmedia.com>
+
+Andy Grundman, <andy@hybridized.org>
 
 =head1 COPYRIGHT
 
@@ -249,6 +255,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-no Moose;
 
 1;

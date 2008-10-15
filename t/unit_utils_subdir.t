@@ -1,4 +1,4 @@
-use Test::More tests => 8;
+use Test::More tests=>7;
 
 use strict;
 use warnings;
@@ -9,7 +9,6 @@ use warnings;
 
 BEGIN { use_ok 'Catalyst::Utils' }
 use FindBin;
-use Path::Class::Dir;
 
 {
     $INC{'TestApp.pm'} = "$FindBin::Bin/something/script/foo/../../lib/TestApp.pm";
@@ -30,15 +29,4 @@ use Path::Class::Dir;
     my $home = Catalyst::Utils::home('TestApp');
     like($home, qr{t[\/\\]something}, "has path TestApp/t/something"); 
     unlike($home, qr{[\/\\]script[\/\\]foo}, "doesn't have path /script/foo");
-}
-
-{
-    $INC{'TestApp.pm'} = "TestApp.pm";
-    my $dir = "$FindBin::Bin/something";
-    chdir( $dir );
-  
-    my $home = Catalyst::Utils::home('TestApp');
-
-    $dir = Path::Class::Dir->new( $dir );
-    is( $home, "$dir", 'same dir loading' );
 }

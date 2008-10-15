@@ -1,3 +1,5 @@
+#!perl
+
 # This test tests the standalone server's auto-restart feature.
 
 use strict;
@@ -7,7 +9,6 @@ use File::Path;
 use FindBin;
 use LWP::Simple;
 use IO::Socket;
-use IPC::Open3;
 use Test::More;
 use Time::HiRes qw/sleep/;
 eval "use Catalyst::Devel 1.0;";
@@ -20,17 +21,14 @@ plan skip_all => 'File::Copy::Recursive required' if $@;
 
 plan tests => 120;
 
-my $tmpdir = "$FindBin::Bin/../t/tmp";
-
 # clean up
-rmtree $tmpdir if -d $tmpdir;
+rmtree "$FindBin::Bin/../t/tmp" if -d "$FindBin::Bin/../t/tmp";
 
 # create a TestApp and copy the test libs into it
-mkdir $tmpdir;
-chdir $tmpdir;
-
-system( 'perl', "-I$FindBin::Bin/../lib", "$FindBin::Bin/../script/catalyst.pl", 'TestApp' );
-
+mkdir "$FindBin::Bin/../t/tmp";
+chdir "$FindBin::Bin/../t/tmp";
+system
+  "perl -I$FindBin::Bin/../lib $FindBin::Bin/../script/catalyst.pl TestApp";
 chdir "$FindBin::Bin/..";
 File::Copy::Recursive::dircopy( 't/lib', 't/tmp/TestApp/lib' );
 
@@ -40,12 +38,9 @@ rmtree 't/tmp/TestApp/t';
 # spawn the standalone HTTP server
 my $port = 30000 + int rand( 1 + 10000 );
 
-my( $server, $pid );
-$pid = open3( undef, $server, undef,
-  'perl', "-I$FindBin::Bin/../lib",
-  "$FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl", '-port',
-  $port, '-restart' )
-    or die "Unable to spawn standalone HTTP server: $!";
+my $pid  = open my $server,
+"perl -I$FindBin::Bin/../lib $FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl -port $port -restart 2>&1 |"
+  or die "Unable to spawn standalone HTTP server: $!";
 
 # switch to non-blocking reads so we can fail
 # gracefully instead of just hanging forever
@@ -172,11 +167,9 @@ my $restartdirs = join ' ', map{
     "-restartdirectory $app_root/lib/TestApp/Controller/$_"
 } qw/Action Engine/;
 
-$pid = open3( undef, $server, undef,
-  'perl', "-I$FindBin::Bin/../lib",
-  "$FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl", '-port',
-  $port, '-restart', $restartdirs )
-    or die "Unable to spawn standalone HTTP server: $!";
+$pid  = open $server,
+"perl -I$FindBin::Bin/../lib $FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl -port $port -restart $restartdirs 2>&1 |"
+  or die "Unable to spawn standalone HTTP server: $!";
 $server->blocking( 0 );
 
 

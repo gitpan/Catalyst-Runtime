@@ -1,7 +1,7 @@
 package TestApp::View::Dump;
 
 use strict;
-use base 'Catalyst::View';
+use base 'Catalyst::Base';
 
 use Data::Dumper ();
 use Scalar::Util qw(weaken);

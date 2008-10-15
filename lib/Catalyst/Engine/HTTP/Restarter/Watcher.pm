@@ -1,22 +1,32 @@
 package Catalyst::Engine::HTTP::Restarter::Watcher;
 
-use Moose;
+use strict;
+use warnings;
+use base 'Class::Accessor::Fast';
 use File::Find;
 use File::Modified;
 use File::Spec;
 use Time::HiRes qw/sleep/;
 
-has delay => (is => 'rw');
-has regex => (is => 'rw');
-has modified => (is => 'rw');
-has directory => (is => 'rw');
-has watch_list => (is => 'rw');
-has follow_simlinks => (is => 'rw');
+__PACKAGE__->mk_accessors(
+    qw/delay
+      directory
+      modified
+      regex
+      follow_symlinks
+      watch_list/
+);
 
-no Moose;
+sub new {
+    my ( $class, %args ) = @_;
 
-sub BUILD {
-  shift->_init;
+    my $self = {%args};
+
+    bless $self, $class;
+
+    $self->_init;
+
+    return $self;
 }
 
 sub _init {
@@ -178,7 +188,9 @@ L<Catalyst>, L<Catalyst::Engine::HTTP::Restarter>, L<File::Modified>
 
 =head1 AUTHORS
 
-Catalyst Contributors, see Catalyst.pm
+Sebastian Riedel, <sri@cpan.org>
+
+Andy Grundman, <andy@hybridized.org>
 
 =head1 THANKS
 
