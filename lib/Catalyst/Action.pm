@@ -1,9 +1,5 @@
 package Catalyst::Action;
 
-use strict;
-use base qw/Class::Accessor::Fast/;
-
-
 =head1 NAME
 
 Catalyst::Action - Catalyst Action
@@ -21,7 +17,16 @@ L<Catalyst::Controller> subclasses.
 
 =cut
 
-__PACKAGE__->mk_accessors(qw/class namespace reverse attributes name code/);
+use Moose;
+
+has class => (is => 'rw');
+has namespace => (is => 'rw');
+has 'reverse' => (is => 'rw');
+has attributes => (is => 'rw');
+has name => (is => 'rw');
+has code => (is => 'rw');
+
+no Moose;
 
 use overload (
 
@@ -36,6 +41,12 @@ use overload (
 
 );
 
+
+
+no warnings 'recursion';
+
+#__PACKAGE__->mk_accessors(qw/class namespace reverse attributes name code/);
+
 sub dispatch {    # Execute ourselves against a context
     my ( $self, $c ) = @_;
     return $c->execute( $self->class, $self );
@@ -43,16 +54,21 @@ sub dispatch {    # Execute ourselves against a context
 
 sub execute {
   my $self = shift;
-  $self->{code}->(@_);
+  $self->code->(@_);
 }
 
 sub match {
     my ( $self, $c ) = @_;
+    #would it be unreasonable to store the number of arguments
+    #the action has as it's own attribute?
+    #it would basically eliminate the code below.  ehhh. small fish
     return 1 unless exists $self->attributes->{Args};
     my $args = $self->attributes->{Args}[0];
     return 1 unless defined($args) && length($args);
     return scalar( @{ $c->req->args } ) == $args;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 
@@ -99,9 +115,13 @@ Returns the private path for this action.
 
 returns the sub name of this action.
 
-=head1 AUTHOR
+=head2 meta
 
-Matt S. Trout
+Provided by Moose
+
+=head1 AUTHORS
+
+Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 

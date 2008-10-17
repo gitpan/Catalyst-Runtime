@@ -1,7 +1,7 @@
 package Catalyst::View;
 
-use strict;
-use base qw/Catalyst::Component/;
+use Moose;
+extends qw/Catalyst::Component/;
 
 =head1 NAME
 
@@ -52,10 +52,9 @@ Merges two hashes together recursively, giving right-hand precedence.
 
 =cut
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Sebastian Riedel, C<sri@oook.de>
-Marcus Ramberg, C<mramberg@cpan.org>
+Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
@@ -63,5 +62,8 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
+
+no Moose;
+__PACKAGE__->meta->make_immutable();
 
 1;

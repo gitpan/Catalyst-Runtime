@@ -1,16 +1,38 @@
 package Catalyst::Request::Upload;
 
-use strict;
-use base 'Class::Accessor::Fast';
+use Moose;
 
 use Catalyst::Exception;
 use File::Copy ();
 use IO::File   ();
 use File::Spec::Unix;
 
-__PACKAGE__->mk_accessors(qw/filename headers size tempname type basename/);
+has filename => (is => 'rw');
+has headers => (is => 'rw');
+has size => (is => 'rw');
+has tempname => (is => 'rw');
+has type => (is => 'rw');
+has basename => (is => 'rw');
 
-sub new { shift->SUPER::new( ref( $_[0] ) ? $_[0] : {@_} ) }
+has fh => (
+  is => 'rw',
+  required => 1,
+  lazy => 1,
+  default => sub {
+    my $self = shift;
+
+    my $fh = IO::File->new($self->tempname, IO::File::O_RDONLY);
+    unless ( defined $fh ) {
+      my $filename = $self->tempname;
+      Catalyst::Exception->throw(
+          message => qq/Can't open '$filename': '$!'/ );
+    }
+
+    return $fh;
+  },
+);
+
+no Moose;
 
 =head1 NAME
 
@@ -31,11 +53,6 @@ Catalyst::Request::Upload - handles file upload requests
 
 To specify where Catalyst should put the temporary files, set the 'uploadtmp'
 option in the Catalyst config. If unset, Catalyst will use the system temp dir.
-
-    __PACKAGE__->config( uploadtmp => '/path/to/tmpdir' );
-
-It is provided a way to have configurable temporary directory.
-If there is no config uploadtmp, system temprary directory will used.
 
     __PACKAGE__->config( uploadtmp => '/path/to/tmpdir' );
 
@@ -68,24 +85,6 @@ sub copy_to {
 =head2 $upload->fh
 
 Opens a temporary file (see tempname below) and returns an L<IO::File> handle.
-
-=cut
-
-sub fh {
-    my $self = shift;
-
-    my $fh = IO::File->new( $self->tempname, IO::File::O_RDONLY );
-
-    unless ( defined $fh ) {
-
-        my $filename = $self->tempname;
-
-        Catalyst::Exception->throw(
-            message => qq/Can't open '$filename': '$!'/ );
-    }
-
-    return $fh;
-}
 
 =head2 $upload->filename
 
@@ -163,11 +162,13 @@ Returns the path to the temporary file.
 
 Returns the client-supplied Content-Type.
 
+=head2 meta
+
+Provided by Moose
+
 =head1 AUTHORS
 
-Sebastian Riedel, C<sri@cpan.org>
-
-Christian Hansen, C<ch@ngmedia.com>
+Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
@@ -175,5 +176,7 @@ This program is free software, you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
+
+__PACKAGE__->meta->make_immutable;
 
 1;

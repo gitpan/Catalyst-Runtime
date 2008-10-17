@@ -6,8 +6,8 @@ use File::Spec;
 use HTTP::Request;
 use Path::Class;
 use URI;
-use Class::Inspector;
 use Carp qw/croak/;
+use Cwd;
 
 =head1 NAME
 
@@ -160,6 +160,7 @@ sub home {
 
             # find the @INC entry in which $file was found
             (my $path = $inc_entry) =~ s/$file$//;
+            $path ||= cwd() if !defined $path || !length $path;
             my $home = dir($path)->absolute->cleanup;
 
             # pop off /lib and /blib if they're there
@@ -259,7 +260,9 @@ sub ensure_class_loaded {
         if $class =~ m/\.pm$/;
 
     return if !$opts->{ ignore_loaded }
-        && Class::Inspector->loaded( $class ); # if a symbol entry exists we don't load again
+        && Class::MOP::is_class_loaded($class); # if a symbol entry exists we don't load again
+
+    # as soon as Class::MOP 0.67 + 1 is released Class::MOP::load_class($class) can be used instead
 
     # this hack is so we don't overwrite $@ if the load did not generate an error
     my $error;
@@ -272,8 +275,9 @@ sub ensure_class_loaded {
     }
 
     die $error if $error;
+
     die "require $class was successful but the package is not defined"
-        unless Class::Inspector->loaded($class);
+        unless Class::MOP::is_class_loaded($class);
 
     return 1;
 }
@@ -329,10 +333,9 @@ sub env_value {
     return;
 }
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Sebastian Riedel, C<sri@cpan.org>
-Yuval Kogman, C<nothingmuch@woobling.org>
+Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 

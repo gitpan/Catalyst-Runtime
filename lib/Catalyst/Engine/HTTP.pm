@@ -1,13 +1,13 @@
 package Catalyst::Engine::HTTP;
 
-use strict;
-use base 'Catalyst::Engine::CGI';
+use Moose;
+extends 'Catalyst::Engine::CGI';
+
 use Data::Dump qw(dump);
 use Errno 'EWOULDBLOCK';
 use HTTP::Date ();
 use HTTP::Headers;
 use HTTP::Status;
-use NEXT;
 use Socket;
 use IO::Socket::INET ();
 use IO::Select       ();
@@ -18,6 +18,8 @@ require Catalyst::Engine::HTTP::Restarter::Watcher;
 
 use constant CHUNKSIZE => 64 * 1024;
 use constant DEBUG     => $ENV{CATALYST_HTTP_DEBUG} || 0;
+
+use namespace::clean -except => [qw/meta/];
 
 =head1 NAME
 
@@ -52,28 +54,29 @@ sub finalize_headers {
     my $protocol = $c->request->protocol;
     my $status   = $c->response->status;
     my $message  = status_message($status);
-    
+    my $res_headers = $c->response->headers;
+
     my @headers;
     push @headers, "$protocol $status $message";
-    
-    $c->response->headers->header( Date => HTTP::Date::time2str(time) );
-    $c->response->headers->header( Status => $status );
-    
+
+    $res_headers->header( Date => HTTP::Date::time2str(time) );
+    $res_headers->header( Status => $status );
+
     # Should we keep the connection open?
     my $connection = $c->request->header('Connection');
     if (   $self->{options}->{keepalive} 
         && $connection 
         && $connection =~ /^keep-alive$/i
     ) {
-        $c->response->headers->header( Connection => 'keep-alive' );
+        $res_headers->header( Connection => 'keep-alive' );
         $self->{_keepalive} = 1;
     }
     else {
-        $c->response->headers->header( Connection => 'close' );
+        $res_headers->header( Connection => 'close' );
     }
-    
-    push @headers, $c->response->headers->as_string("\x0D\x0A");
-    
+
+    push @headers, $res_headers->as_string("\x0D\x0A");
+
     # Buffer the headers so they are sent with the first write() call
     # This reduces the number of TCP packets we are sending
     $self->{_header_buf} = join("\x0D\x0A", @headers, '');
@@ -83,28 +86,20 @@ sub finalize_headers {
 
 =cut
 
-sub finalize_read {
-    my ( $self, $c ) = @_;
-
+before finalize_read => sub {
     # Never ever remove this, it would result in random length output
     # streams if STDIN eq STDOUT (like in the HTTP engine)
     *STDIN->blocking(1);
-
-    return $self->NEXT::finalize_read($c);
-}
+};
 
 =head2 $self->prepare_read($c)
 
 =cut
 
-sub prepare_read {
-    my ( $self, $c ) = @_;
-
+before prepare_read => sub {
     # Set the input handle to non-blocking
     *STDIN->blocking(0);
-
-    return $self->NEXT::prepare_read($c);
-}
+};
 
 =head2 $self->read_chunk($c, $buffer, $length)
 
@@ -146,9 +141,10 @@ Writes the buffer to the client.
 
 =cut
 
-sub write {
+around write => sub {
+    my $orig = shift;
     my ( $self, $c, $buffer ) = @_;
-    
+
     # Avoid 'print() on closed filehandle Remote' warnings when using IE
     return unless *STDOUT->opened();
 
@@ -156,9 +152,9 @@ sub write {
     if ( my $headers = delete $self->{_header_buf} ) {
         $buffer = $headers . $buffer;
     }
-    
-    my $ret = $self->NEXT::write( $c, $buffer );
-    
+
+    my $ret = $self->$orig($c, $buffer);
+
     if ( !defined $ret ) {
         $self->{_write_error} = $!;
         DEBUG && warn "write: Failed to write response ($!)\n";
@@ -166,9 +162,9 @@ sub write {
     else {
         DEBUG && warn "write: Wrote response ($ret bytes)\n";
     }
-    
+
     return $ret;
-}
+};
 
 =head2 run
 
@@ -239,28 +235,28 @@ sub run {
     }
 
     my $pid = undef;
-    
+
     # Ignore broken pipes as an HTTP server should
     local $SIG{PIPE} = 'IGNORE';
-    
+
     # Restart on HUP
-    local $SIG{HUP} = sub { 
+    local $SIG{HUP} = sub {
         $restart = 1;
         warn "Restarting server on SIGHUP...\n";
     };
-    
+
     LISTEN:
     while ( !$restart ) {
-        while ( accept( Remote, $daemon ) ) {        
+        while ( accept( Remote, $daemon ) ) {
             DEBUG && warn "New connection\n";
 
             select Remote;
 
             Remote->blocking(1);
-        
+
             # Read until we see all headers
             $self->{inputbuf} = '';
-            
+
             if ( !$self->_read_headers ) {
                 # Error reading, give up
                 close Remote;
@@ -268,15 +264,14 @@ sub run {
             }
 
             my ( $method, $uri, $protocol ) = $self->_parse_request_line;
-            
-            next unless $method;
-        
+
             DEBUG && warn "Parsed request: $method $uri $protocol\n";
+            next unless $method;
 
             unless ( uc($method) eq 'RESTART' ) {
 
                 # Fork
-                if ( $options->{fork} ) { 
+                if ( $options->{fork} ) {
                     if ( $pid = fork ) {
                         DEBUG && warn "Forked child $pid\n";
                         next;
@@ -417,51 +412,50 @@ sub _handler {
 
 sub _read_headers {
     my $self = shift;
-    
+
     while (1) {
         my $read = sysread Remote, my $buf, CHUNKSIZE;
-        
+
         if ( !defined $read ) {
             next if $! == EWOULDBLOCK;
             DEBUG && warn "Error reading headers: $!\n";
             return;
-        }
-        elsif ( $read == 0 ) {
+        } elsif ( $read == 0 ) {
             DEBUG && warn "EOF\n";
             return;
         }
-    
+
         DEBUG && warn "Read $read bytes\n";
         $self->{inputbuf} .= $buf;
         last if $self->{inputbuf} =~ /(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)/s;
     }
-    
+
     return 1;
 }
 
 sub _parse_request_line {
     my $self = shift;
 
-    # Parse request line    
+    # Parse request line
     if ( $self->{inputbuf} !~ s/^(\w+)[ \t]+(\S+)(?:[ \t]+(HTTP\/\d+\.\d+))?[^\012]*\012// ) {
         return ();
     }
-    
+
     my $method = $1;
     my $uri    = $2;
     my $proto  = $3 || 'HTTP/0.9';
-    
+
     return ( $method, $uri, $proto );
 }
 
 sub _parse_headers {
     my $self = shift;
-    
+
     # Copy the buffer for header parsing, and remove the header block
     # from the content buffer.
     my $buf = $self->{inputbuf};
     $self->{inputbuf} =~ s/.*?(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)//s;
-    
+
     # Parse headers
     my $headers = HTTP::Headers->new;
     my ($key, $val);
@@ -531,19 +525,15 @@ sub _socket_data {
 
 sub _inet_addr { unpack "N*", inet_aton( $_[0] ) }
 
+no Moose;
+
 =head1 SEE ALSO
 
-L<Catalyst>, L<Catalyst::Engine>.
+L<Catalyst>, L<Catalyst::Engine>
 
 =head1 AUTHORS
 
-Sebastian Riedel, <sri@cpan.org>
-
-Dan Kubb, <dan.kubb-cpan@onautopilot.com>
-
-Sascha Kiefer, <esskar@cpan.org>
-
-Andy Grundman, <andy@hybridized.org>
+Catalyst Contributors, see Catalyst.pm
 
 =head1 THANKS
 

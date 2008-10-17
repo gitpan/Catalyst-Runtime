@@ -1,7 +1,9 @@
 package Catalyst::Model;
 
-use strict;
-use base qw/Catalyst::Component/;
+use Moose;
+extends qw/Catalyst::Component/;
+
+no Moose;
 
 =head1 NAME
 
@@ -20,9 +22,9 @@ Catalyst Model base class.
 Implements the same methods as other Catalyst components, see
 L<Catalyst::Component>
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Sebastian Riedel, C<sri@oook.de>
+Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
@@ -30,5 +32,7 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
+
+__PACKAGE__->meta->make_immutable;
 
 1;
