@@ -6,9 +6,10 @@ name 'Catalyst-Runtime';
 all_from 'lib/Catalyst/Runtime.pm';
 
 requires 'namespace::clean';
-requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00300';
+requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00400';
 requires 'Moose' => '0.59';
 requires 'Carp';
+requires 'Class::C3::Adopt::NEXT';
 requires 'Class::MOP';
 requires 'CGI::Simple::Cookie';
 requires 'Data::Dump';
@@ -32,7 +33,6 @@ requires 'URI' => '1.35';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
 requires 'MRO::Compat';
 
-test_requires 'NEXT';
 test_requires 'Class::Data::Inheritable';
 
 if (   ( exists $ENV{AGGREGATE_TESTS} && !$ENV{AGGREGATE_TESTS})
@@ -40,6 +40,9 @@ if (   ( exists $ENV{AGGREGATE_TESTS} && !$ENV{AGGREGATE_TESTS})
     tests join q{ },
         grep { $_ ne 't/aggregate.t' }
         map  { glob } qw[t/*.t t/aggregate/*.t];
+}
+else {
+    test_requires('Test::Aggregate', '0.34_01');
 }
 
 if (-e 'inc/.author') {

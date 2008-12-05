@@ -1,5 +1,9 @@
 package Catalyst;
 
+# we don't need really need this, but if we load it before MRO::Compat gets
+# loaded (via Moose and Class::MOP), we can avoid some nasty warnings
+use Class::C3;
+
 use Moose;
 extends 'Catalyst::Component';
 use bytes;
@@ -76,7 +80,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.8000_03';
+our $VERSION = '5.8000_04';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -526,7 +530,7 @@ sub _comp_names {
 sub _filter_component {
     my ( $c, $comp, @args ) = @_;
 
-    if ( Scalar::Util::blessed($c) && eval { $comp->can('ACCEPT_CONTEXT'); } ) {
+    if ( eval { $comp->can('ACCEPT_CONTEXT'); } ) {
         return $comp->ACCEPT_CONTEXT( $c, @args );
     }
     

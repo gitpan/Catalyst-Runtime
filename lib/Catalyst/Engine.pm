@@ -96,7 +96,7 @@ sub finalize_cookies {
 
 =head2 $self->finalize_error($c)
 
-Output an apropriate error message, called if there's an error in $c
+Output an appropriate error message. Called if there's an error in $c
 after the dispatch has finished. Will output debug messages if Catalyst
 is in debug mode, or a `please come back later` message otherwise.
 
@@ -622,6 +622,8 @@ sub write {
         $self->prepare_write($c);
         $self->{_prepared_write} = 1;
     }
+    
+    return 0 if !defined $buffer;
     
     my $len   = length($buffer);
     my $wrote = syswrite STDOUT, $buffer;

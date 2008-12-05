@@ -1,0 +1,53 @@
+---
+abstract: 'The Catalyst Framework Runtime'
+author:
+  - 'Catalyst Contributors, see Catalyst.pm'
+build_requires:
+  Class::Data::Inheritable: 0
+  Test::Aggregate: 0.34_01
+  Test::NoTabs: 0
+  Test::Pod: 1.14
+  Test::Pod::Coverage: 1.04
+distribution_type: module
+generated_by: 'Module::Install version 0.77'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Catalyst-Runtime
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  CGI::Simple::Cookie: 0
+  Carp: 0
+  Class::C3::Adopt::NEXT: 0
+  Class::MOP: 0
+  Data::Dump: 0
+  File::Modified: 0
+  HTML::Entities: 0
+  HTTP::Body: 1.04
+  HTTP::Headers: 1.64
+  HTTP::Request: 0
+  HTTP::Request::AsCGI: 0.5
+  HTTP::Response: 0
+  LWP::UserAgent: 0
+  MRO::Compat: 0
+  Module::Pluggable: 3.01
+  Moose: 0.59
+  MooseX::Emulate::Class::Accessor::Fast: 0.00400
+  Path::Class: 0.09
+  Scalar::Util: 0
+  Sub::Exporter: 0
+  Text::Balanced: 0
+  Text::SimpleTable: 0.03
+  Time::HiRes: 0
+  Tree::Simple: 1.15
+  Tree::Simple::Visitor::FindByPath: 0
+  URI: 1.35
+  namespace::clean: 0
+  perl: 5.8.1
+resources:
+  license: http://dev.perl.org/licenses/
+version: 5.8000_04

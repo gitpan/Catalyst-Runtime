@@ -4,7 +4,7 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
-use Test::More tests => 66;
+use Test::More tests => 68;
 use Catalyst::Test 'TestApp';
 use Catalyst::Request;
 
@@ -151,3 +151,16 @@ SKIP:
     is( $response->header( 'X-Catalyst-Param-c' ), '1', 'param "c" ok' );
 }
 
+# Test an overridden uri method which calls the base method, SmartURI does this.
+SKIP:
+{
+    if ( $ENV{CATALYST_SERVER} ) {
+        skip 'Using remote server', 2;
+    }
+ 
+    require TestApp::RequestBaseBug;
+    TestApp->request_class('TestApp::RequestBaseBug');
+    ok( my $response = request('http://localhost/engine/request/uri'), 'Request' );
+    ok( $response->is_success, 'Response Successful 2xx' );
+    TestApp->request_class('Catalyst::Request');
+}

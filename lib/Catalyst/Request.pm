@@ -10,6 +10,8 @@ use HTTP::Headers;
 
 use Moose;
 
+with 'MooseX::Emulate::Class::Accessor::Fast';
+
 has action => (is => 'rw');
 has address => (is => 'rw');
 has arguments => (is => 'rw', default => sub { [] });
@@ -21,7 +23,7 @@ has protocol => (is => 'rw');
 has query_parameters  => (is => 'rw', default => sub { {} });
 has secure => (is => 'rw', default => 0);
 has captures => (is => 'rw', default => sub { [] });
-has uri => (is => 'rw');
+has uri => (is => 'rw', predicate => 'has_uri');
 has user => (is => 'rw');
 has headers => (
   is      => 'rw',
@@ -94,7 +96,7 @@ has base => (
   lazy => 1,
   default => sub {
     my $self = shift;
-    return $self->path if $self->uri;
+    return $self->path if $self->has_uri;
   },
 );
 
@@ -113,7 +115,7 @@ has hostname => (
   lazy      => 1,
   default   => sub {
     my ($self) = @_;
-    gethostbyaddr( inet_aton( $self->address ), AF_INET )
+    gethostbyaddr( inet_aton( $self->address ), AF_INET ) || 'localhost'
   },
 );
 
@@ -454,7 +456,8 @@ Returns true or false, indicating whether the connection is secure (https).
 
 =head2 $req->captures
 
-Returns a reference to an array containing regex captures.
+Returns a reference to an array containing captured args from chained
+actions or regex captures.
 
     my @captures = @{ $c->request->captures };
 

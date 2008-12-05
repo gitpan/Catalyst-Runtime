@@ -1,28 +1,47 @@
-  - Add Class::Accessor compats
-    * Catalyst::Request
-    * Catalyst::Response
-    * Catalyst::Dispatcher
-    * Catalyst::Request::Upload
-    * Catalyst::Action
-    * Catalyst::ActionChain
-    * Catalyst::ActionContainer
+  - Class::C3::Adopt::NEXT - some people are getting more than one warning
+    per package, make a test case for this (t0m)
 
-  - Make classes immutable at setup() time
+  - Catalyst::Plugin::Authentication fails tests. Believed to be as
+    Catalyst::Plugin::Authentication::Credential::Password has a
+    ->mk_accessors('_config'), which is also class data.
+    Make a test case for this (t0m)
 
+  - Looks like stash is not available during prepare_path when running under
+    Catalyst::Test.. Run MojoMojo's t/01app.t and it will explode with
+    "Can't use an undefined value as a HASH reference" - test case for core
+    + fix maybe (marcus)
 
-  - GRODITI's list:
-    * Update Test suite to not assume MyApp ISA Controller
-      - After that I'll set up attr handlers that will output helpful
-        error messages when you do it as well as how to fix it.
-    * comments marked /Moose TODO/i in the code
-    * Fix the CDI compat hack so we can start moving to immutable
-    * Profile before and after immutable.
-    * Now would be a good time to lay ground for the App / Ctx split
-    * Howto mantain branch in sync with the latest checkins ?
-    * Eliminate all instances of $instance->{$key}
-    * MooseX::Emulate::CAF seems to be working like a charm :)
-    * General code cleanups can't hurt
-    * How do we move from NEXT to C3 ? I have never used either of them
-      - What does the lineraized mro look like when we are using moose 
-        method modifiers?
-        - Does they all get clumped together or what? Is it a non-issue?
+  - Common engine test failures, look into and get tests into core.
+
+  - Catalyst-Plugin-Authorization-ACL, Can't locate object method "tree" via package "Catalyst::Dispatcher", fix the plugin as tree was never a public method.
+
+  - Catalyst-Model-Akismet, incorrectly inherits from Catalyst::Component::InstancePerContext, should compose as a role, fix the module.
+
+  - CatalystX-Imports, Class::MOP doesn't consider anon subs in the symbol table as methods, tests + fix?
+
+  - Catalyst::Plugin::Cache::Curried
+  - Catalyst::Controller::WrapCGI
+    - Both import 'meta' into controller package - mst thinks this can be fixed?.
+      but @marcus> and the generated accessors even call $_[0]->meta, so I don't think we can remove it. 
+      . Add a test for this in core.
+      . Fix core to use CMOP to look up metaclass, rather than ->meta method, and
+        namespace::clean the meta method out, fix generated accessors to do the same?
+
+  - MooseX::Emulate::Class::Accessor::Fast
+    - Tests for uses of C::A::F from Catalyst repos. - t0m
+    - New release once these are done.
+
+  - Update Test suite to not assume MyApp ISA Controller
+    - After that set up attr handlers that will output helpful error messages when you do it as well as how to fix it. (done already?)
+  
+  - Comments marked /Moose TODO/i in the code
+  
+  - Eliminate all instances of $instance->{$key}
+
+  - Catalyst-Log-Log4perl - deep recursion in the test suite, investigate
+
+  - Profiling vs 5.70 and optimisation as needed.
+
+  - http://lists.scsys.co.uk/pipermail/catalyst-dev/2008-November/001546.html
+    - patch to list, andyg to look at?
+
