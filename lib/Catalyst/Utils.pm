@@ -6,6 +6,7 @@ use File::Spec;
 use HTTP::Request;
 use Path::Class;
 use URI;
+use Class::Inspector;
 use Carp qw/croak/;
 use Cwd;
 
@@ -260,9 +261,7 @@ sub ensure_class_loaded {
         if $class =~ m/\.pm$/;
 
     return if !$opts->{ ignore_loaded }
-        && Class::MOP::is_class_loaded($class); # if a symbol entry exists we don't load again
-
-    # as soon as Class::MOP 0.67 + 1 is released Class::MOP::load_class($class) can be used instead
+        && Class::Inspector->loaded( $class ); # if a symbol entry exists we don't load again
 
     # this hack is so we don't overwrite $@ if the load did not generate an error
     my $error;
@@ -275,9 +274,8 @@ sub ensure_class_loaded {
     }
 
     die $error if $error;
-
     die "require $class was successful but the package is not defined"
-        unless Class::MOP::is_class_loaded($class);
+        unless Class::Inspector->loaded($class);
 
     return 1;
 }

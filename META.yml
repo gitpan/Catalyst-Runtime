@@ -3,9 +3,7 @@ abstract: 'The Catalyst Framework Runtime'
 author:
   - 'Catalyst Contributors, see Catalyst.pm'
 build_requires:
-  Class::Data::Inheritable: 0
-  Test::Aggregate: 0.34_01
-  Test::NoTabs: 0
+  Test::Perl::Critic: 0
   Test::Pod: 1.14
   Test::Pod::Coverage: 1.04
 distribution_type: module
@@ -22,8 +20,9 @@ no_index:
 requires:
   CGI::Simple::Cookie: 0
   Carp: 0
-  Class::C3::Adopt::NEXT: 0
-  Class::MOP: 0
+  Class::Accessor::Fast: 0
+  Class::Data::Inheritable: 0
+  Class::Inspector: 1.06
   Data::Dump: 0
   File::Modified: 0
   HTML::Entities: 0
@@ -33,21 +32,17 @@ requires:
   HTTP::Request::AsCGI: 0.5
   HTTP::Response: 0
   LWP::UserAgent: 0
-  MRO::Compat: 0
   Module::Pluggable: 3.01
-  Moose: 0.59
-  MooseX::Emulate::Class::Accessor::Fast: 0.00400
+  NEXT: 0
   Path::Class: 0.09
   Scalar::Util: 0
-  Sub::Exporter: 0
   Text::Balanced: 0
   Text::SimpleTable: 0.03
   Time::HiRes: 0
   Tree::Simple: 1.15
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
-  namespace::clean: 0
   perl: 5.8.1
 resources:
   license: http://dev.perl.org/licenses/
-version: 5.8000_04
+version: 5.7099_04

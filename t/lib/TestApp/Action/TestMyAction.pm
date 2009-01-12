@@ -9,7 +9,7 @@ sub execute {
     my $self = shift;
     my ( $controller, $c, $test ) = @_;
     $c->res->header( 'X-TestAppActionTestMyAction', 'MyAction works' );
-    $self->next::method(@_);
+    $self->NEXT::execute(@_);
 }
 
 1;

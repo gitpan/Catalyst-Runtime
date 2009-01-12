@@ -1,8 +1,7 @@
 package Catalyst::Base;
 
+use strict;
 use base qw/Catalyst::Controller/;
-use Moose;
-no Moose;
 
 1;
 

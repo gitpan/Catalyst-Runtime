@@ -29,7 +29,7 @@ sub global_action : Private {
 sub execute {
     my $c      = shift;
     my $class  = ref( $c->component( $_[0] ) ) || $_[0];
-    my $action = $_[1]->reverse;
+    my $action = "$_[1]";
 
     my $method;
 
@@ -61,7 +61,7 @@ sub execute {
 sub finalize_error {
     my $c = shift;
     
-    $c->next::method(@_);
+    $c->NEXT::finalize_error(@_);
     
     $c->res->status(500);
     $c->res->body( 'FATAL ERROR: ' . join( ', ', @{ $c->error } ) );

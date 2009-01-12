@@ -1,12 +1,11 @@
 package Catalyst::Plugin::Test::Headers;
 
 use strict;
-use Class::C3;
 
 sub prepare {
     my $class = shift;
 
-    my $c = $class->next::method(@_);
+    my $c = $class->NEXT::prepare(@_);
 
     $c->response->header( 'X-Catalyst-Engine' => $c->engine );
     $c->response->header( 'X-Catalyst-Debug' => $c->debug ? 1 : 0 );
@@ -27,7 +26,7 @@ sub prepare {
 
 sub prepare_action {
     my $c = shift;
-    $c->next::method(@_);
+    $c->NEXT::prepare_action(@_);
     $c->res->header( 'X-Catalyst-Action' => $c->req->action );
 }
 

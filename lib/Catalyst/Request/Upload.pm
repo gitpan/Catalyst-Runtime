@@ -1,39 +1,16 @@
 package Catalyst::Request::Upload;
 
-use Moose;
-with 'MooseX::Emulate::Class::Accessor::Fast';
+use strict;
+use base 'Class::Accessor::Fast';
 
 use Catalyst::Exception;
 use File::Copy ();
 use IO::File   ();
 use File::Spec::Unix;
 
-has filename => (is => 'rw');
-has headers => (is => 'rw');
-has size => (is => 'rw');
-has tempname => (is => 'rw');
-has type => (is => 'rw');
-has basename => (is => 'rw');
+__PACKAGE__->mk_accessors(qw/filename headers size tempname type basename/);
 
-has fh => (
-  is => 'rw',
-  required => 1,
-  lazy => 1,
-  default => sub {
-    my $self = shift;
-
-    my $fh = IO::File->new($self->tempname, IO::File::O_RDONLY);
-    unless ( defined $fh ) {
-      my $filename = $self->tempname;
-      Catalyst::Exception->throw(
-          message => qq/Can't open '$filename': '$!'/ );
-    }
-
-    return $fh;
-  },
-);
-
-no Moose;
+sub new { shift->SUPER::new( ref( $_[0] ) ? $_[0] : {@_} ) }
 
 =head1 NAME
 
@@ -86,6 +63,24 @@ sub copy_to {
 =head2 $upload->fh
 
 Opens a temporary file (see tempname below) and returns an L<IO::File> handle.
+
+=cut
+
+sub fh {
+    my $self = shift;
+
+    my $fh = IO::File->new( $self->tempname, IO::File::O_RDONLY );
+
+    unless ( defined $fh ) {
+
+        my $filename = $self->tempname;
+
+        Catalyst::Exception->throw(
+            message => qq/Can't open '$filename': '$!'/ );
+    }
+
+    return $fh;
+}
 
 =head2 $upload->filename
 
@@ -163,10 +158,6 @@ Returns the path to the temporary file.
 
 Returns the client-supplied Content-Type.
 
-=head2 meta
-
-Provided by Moose
-
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
@@ -177,7 +168,5 @@ This program is free software, you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

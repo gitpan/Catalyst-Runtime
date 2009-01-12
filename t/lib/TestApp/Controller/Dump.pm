@@ -29,9 +29,4 @@ sub response : Action Relative {
     $c->forward('TestApp::View::Dump::Response');
 }
 
-sub body : Action Relative {
-    my ( $self, $c ) = @_;
-    $c->forward('TestApp::View::Dump::Body');
-}
-
 1;
