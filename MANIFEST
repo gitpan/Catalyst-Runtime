@@ -11,7 +11,6 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Catalyst.pm
-lib/Catalyst.pm.rej
 lib/Catalyst/Action.pm
 lib/Catalyst/ActionChain.pm
 lib/Catalyst/ActionContainer.pm
@@ -20,7 +19,6 @@ lib/Catalyst/Base.pm
 lib/Catalyst/Component.pm
 lib/Catalyst/Controller.pm
 lib/Catalyst/Dispatcher.pm
-lib/Catalyst/Dispatcher.pm.rej
 lib/Catalyst/DispatchType.pm
 lib/Catalyst/DispatchType/Chained.pm
 lib/Catalyst/DispatchType/Default.pm
@@ -69,7 +67,6 @@ t/lib/Catalyst/Plugin/Test/Headers.pm
 t/lib/Catalyst/Plugin/Test/Plugin.pm
 t/lib/PluginTestApp.pm
 t/lib/TestApp.pm
-t/lib/TestApp.pm.rej
 t/lib/TestApp/Action/TestBefore.pm
 t/lib/TestApp/Action/TestMyAction.pm
 t/lib/TestApp/Controller/Action.pm
@@ -133,7 +130,6 @@ t/lib/TestApp/Model/Foo.pm
 t/lib/TestApp/Model/Foo/Bar.pm
 t/lib/TestApp/Plugin/FullyQualified.pm
 t/lib/TestApp/View/Dump.pm
-t/lib/TestApp/View/Dump.pm.rej
 t/lib/TestApp/View/Dump/Parameters.pm
 t/lib/TestApp/View/Dump/Request.pm
 t/lib/TestApp/View/Dump/Response.pm
@@ -213,7 +209,6 @@ t/unit_core_engine_fixenv-lighttpd.t
 t/unit_core_log.t
 t/unit_core_merge_config_hashes.t
 t/unit_core_mvc.t
-t/unit_core_mvc.t.rej
 t/unit_core_path_to.t
 t/unit_core_plugin.t
 t/unit_core_uri_for.t
