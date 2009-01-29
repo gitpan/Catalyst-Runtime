@@ -6,7 +6,6 @@ use File::Spec;
 use HTTP::Request;
 use Path::Class;
 use URI;
-use Class::Inspector;
 use Carp qw/croak/;
 use Cwd;
 
@@ -19,6 +18,8 @@ Catalyst::Utils - The Catalyst Utils
 See L<Catalyst>.
 
 =head1 DESCRIPTION
+
+Catalyst Utilities. 
 
 =head1 METHODS
 
@@ -260,8 +261,11 @@ sub ensure_class_loaded {
     croak "ensure_class_loaded should be given a classname, not a filename ($class)"
         if $class =~ m/\.pm$/;
 
+    # $opts->{ignore_loaded} can be set to true, and this causes the class to be required, even
+    # if it already has symbol table entries. This is to support things like Schema::Loader, which
+    # part-generate classes in memory, but then also load some of their contents from disk.
     return if !$opts->{ ignore_loaded }
-        && Class::Inspector->loaded( $class ); # if a symbol entry exists we don't load again
+        && Class::MOP::is_class_loaded($class); # if a symbol entry exists we don't load again
 
     # this hack is so we don't overwrite $@ if the load did not generate an error
     my $error;
@@ -274,8 +278,9 @@ sub ensure_class_loaded {
     }
 
     die $error if $error;
-    die "require $class was successful but the package is not defined"
-        unless Class::Inspector->loaded($class);
+
+    warn "require $class was successful but the package is not defined."
+        unless Class::MOP::is_class_loaded($class);
 
     return 1;
 }
@@ -329,6 +334,45 @@ sub env_value {
     }
 
     return;
+}
+
+=head2 term_width
+
+Try to guess terminal width to use with formatting of debug output
+
+All you need to get this work, is:
+
+1) Install Term::Size::Any, or
+
+2) Export $COLUMNS from your shell. 
+
+(Warning to bash users: 'echo $COLUMNS' may be showing you the bash
+variable, not $ENV{COLUMNS}. 'export COLUMNS=$COLUMNS' and you should see 
+that 'env' now lists COLUMNS.)
+
+As last resort, default value of 80 chars will be used.
+
+=cut
+
+my $_term_width;
+
+sub term_width {
+    return $_term_width if $_term_width;
+
+    my $width = eval '
+        use Term::Size::Any;
+        my ($columns, $rows) = Term::Size::Any::chars;
+        return $columns;
+    ';
+
+    if ($@) {
+        $width = $ENV{COLUMNS}
+            if exists($ENV{COLUMNS})
+            && $ENV{COLUMNS} =~ m/^\d+$/;
+    }
+
+    $width = 80 unless ($width && $width >= 80);
+    return $_term_width = $width;
 }
 
 =head1 AUTHORS

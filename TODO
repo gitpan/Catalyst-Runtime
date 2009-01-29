@@ -1,0 +1,20 @@
+Known issues:
+
+     - Catalyst-Log-Log4perl Deep recursion on subroutine "MockApp::setup" due
+       to Adopt::NEXT not remembering which setup methods were already called
+       and which not, like NEXT does. Log::Log4perl needs to be fixed and the
+       problem should be described in Upgrading.pod. (rafl)
+
+     - MX::Emulate::CAF - list assignment (see notes in Upgrading.pod and
+       branch in svn)
+
+     - Catalyst::Plugin::Session::State::Cookie - cookie_name is undefined
+       unless explicitly configured because setup_session isn't executed.
+
+Documentation:
+
+   - Catalyst/Upgrading.pod needs brushing up
+
+Profiling:
+
+  - vs 5.70 and optimisation as needed.

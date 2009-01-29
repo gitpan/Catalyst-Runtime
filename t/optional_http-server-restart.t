@@ -3,16 +3,19 @@
 use strict;
 use warnings;
 
+use Test::More;
+BEGIN {
+    plan skip_all => 'set TEST_HTTP to enable this test' unless $ENV{TEST_HTTP};
+}
+
 use File::Path;
 use FindBin;
 use LWP::Simple;
 use IO::Socket;
 use IPC::Open3;
-use Test::More;
 use Time::HiRes qw/sleep/;
 eval "use Catalyst::Devel 1.0;";
 
-plan skip_all => 'set TEST_HTTP to enable this test' unless $ENV{TEST_HTTP};
 plan skip_all => 'Catalyst::Devel required' if $@;
 plan skip_all => 'Catalyst::Devel >= 1.04 required' if $Catalyst::Devel::VERSION <= 1.03;
 eval "use File::Copy::Recursive";
@@ -29,7 +32,7 @@ rmtree $tmpdir if -d $tmpdir;
 mkdir $tmpdir;
 chdir $tmpdir;
 
-system( 'perl', "-I$FindBin::Bin/../lib", "$FindBin::Bin/../script/catalyst.pl", 'TestApp' );
+system( $^X, "-I$FindBin::Bin/../lib", "$FindBin::Bin/../script/catalyst.pl", 'TestApp' );
 
 chdir "$FindBin::Bin/..";
 File::Copy::Recursive::dircopy( 't/lib', 't/tmp/TestApp/lib' );
@@ -42,7 +45,7 @@ my $port = 30000 + int rand( 1 + 10000 );
 
 my( $server, $pid );
 $pid = open3( undef, $server, undef,
-  'perl', "-I$FindBin::Bin/../lib",
+  $^X, "-I$FindBin::Bin/../lib",
   "$FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl", '-port',
   $port, '-restart' )
     or die "Unable to spawn standalone HTTP server: $!";
@@ -173,7 +176,7 @@ my $restartdirs = join ' ', map{
 } qw/Action Engine/;
 
 $pid = open3( undef, $server, undef,
-  'perl', "-I$FindBin::Bin/../lib",
+  $^X, "-I$FindBin::Bin/../lib",
   "$FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl", '-port',
   $port, '-restart', $restartdirs )
     or die "Unable to spawn standalone HTTP server: $!";
@@ -204,7 +207,7 @@ for ( 1 .. 20 ) {
         sleep 0.1;
         if ( $count++ > 100 ) {
             fail "Server restarted";
-            SKIP_NO_RESTART_2: {
+            SKIP: {
                 skip "Server didn't restart, no sense in checking response", 1;
             }
             next MULTI_DIR_RESTART;
