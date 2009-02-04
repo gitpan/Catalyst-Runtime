@@ -77,7 +77,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.8000_05';
+our $VERSION = '5.8000_06';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -805,8 +805,8 @@ around config => sub {
     my $orig = shift;
     my $c = shift;
 
-    $c->log->warn("Setting config after setup has been run is not a good idea.")
-      if ( @_ and $c->setup_finished );
+    croak('Setting config after setup has been run is not allowed.')
+        if ( @_ and $c->setup_finished );
 
     $c->$orig(@_);
 };
@@ -842,13 +842,11 @@ sub debug { 0 }
 
 =head2 $c->dispatcher
 
-Returns the dispatcher instance. Stringifies to class name. See
-L<Catalyst::Dispatcher>.
+Returns the dispatcher instance. See L<Catalyst::Dispatcher>.
 
 =head2 $c->engine
 
-Returns the engine instance. Stringifies to the class name. See
-L<Catalyst::Engine>.
+Returns the engine instance. See L<Catalyst::Engine>.
 
 
 =head2 UTILITY METHODS
@@ -873,7 +871,7 @@ sub path_to {
 
 =head2 $c->plugin( $name, $class, @args )
 
-Helper method for plugins. It creates a classdata accessor/mutator and
+Helper method for plugins. It creates a class data accessor/mutator and
 loads and instantiates the given class.
 
     MyApp->plugin( 'prototype', 'HTML::Prototype' );
@@ -923,8 +921,8 @@ Catalyst> line.
 
 sub setup {
     my ( $class, @arguments ) = @_;
-    $class->log->warn("Running setup twice is not a good idea.")
-      if ( $class->setup_finished );
+    croak('Running setup more than once')
+        if ( $class->setup_finished );
 
     unless ( $class->isa('Catalyst') ) {
 
