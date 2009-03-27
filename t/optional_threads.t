@@ -3,18 +3,17 @@
 use strict;
 use warnings;
 
-use Test::More;
-BEGIN {
-    plan skip_all => 'set TEST_THREADS to enable this test'
-        unless $ENV{TEST_THREADS};
-}
-
 use FindBin;
 use lib "$FindBin::Bin/lib";
+
+use Test::More;
 use Catalyst::Test 'TestApp';
 use Catalyst::Request;
 use Config;
 use HTTP::Response;
+
+plan skip_all => 'set TEST_THREADS to enable this test'
+    unless $ENV{TEST_THREADS};
 
 if ( $Config{useithreads} && !$ENV{CATALYST_SERVER} ) {
     require threads;

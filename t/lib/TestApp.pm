@@ -7,13 +7,16 @@ use Catalyst qw/
     Test::Plugin
     Test::Inline
     +TestApp::Plugin::FullyQualified
-    +TestApp::Plugin::AddDispatchTypes
 /;
 use Catalyst::Utils;
 
 our $VERSION = '0.01';
 
 TestApp->config( name => 'TestApp', root => '/some/dir' );
+
+unless (eval 'require Moose; 1') {
+    TestApp->config(setup_components => { except => 'TestApp::Controller::Moose' });
+}
 
 TestApp->setup;
 
@@ -30,7 +33,7 @@ sub global_action : Private {
 sub execute {
     my $c      = shift;
     my $class  = ref( $c->component( $_[0] ) ) || $_[0];
-    my $action = $_[1]->reverse;
+    my $action = "$_[1]";
 
     my $method;
 
@@ -62,7 +65,7 @@ sub execute {
 sub finalize_error {
     my $c = shift;
     
-    $c->next::method(@_);
+    $c->NEXT::finalize_error(@_);
     
     $c->res->status(500);
     $c->res->body( 'FATAL ERROR: ' . join( ', ', @{ $c->error } ) );
@@ -71,16 +74,6 @@ sub finalize_error {
 sub class_forward_test_method :Private {
     my ( $self, $c ) = @_;
     $c->response->headers->header( 'X-Class-Forward-Test-Method' => 1 );
-}
-
-sub class_go_test_method :Private {
-    my ( $self, $c ) = @_;
-    $c->response->headers->header( 'X-Class-Go-Test-Method' => 1 );
-}
-
-sub class_visit_test_method :Private {
-    my ( $self, $c ) = @_;
-    $c->response->headers->header( 'X-Class-Visit-Test-Method' => 1 );
 }
 
 sub loop_test : Local {

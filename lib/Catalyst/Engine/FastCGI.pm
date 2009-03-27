@@ -1,9 +1,7 @@
 package Catalyst::Engine::FastCGI;
 
-use Moose;
-extends 'Catalyst::Engine::CGI';
-
-# eval { Class::MOP::load_class("FCGI") };
+use strict;
+use base 'Catalyst::Engine::CGI';
 eval "use FCGI";
 die "Unable to load the FCGI module, you may need to install it:\n$@\n" if $@;
 
@@ -46,9 +44,7 @@ Options may also be specified;
 
 =item leave_umask
 
-Set to 1 to disable setting umask to 0 for socket open
-
-=item nointr
+Set to 1 to disable setting umask to 0 for socket open =item nointr
 
 Do not allow the listener to be interrupted by Ctrl+C
 
@@ -102,7 +98,7 @@ sub run {
     my $error = \*STDERR; # send STDERR to the web server
        $error = \*STDOUT  # send STDERR to stdout (a logfile)
          if $options->{keep_stderr}; # (if asked to)
-
+    
     my $request =
       FCGI::Request( \*STDIN, \*STDOUT, $error, \%env, $sock,
         ( $options->{nointr} ? 0 : &FCGI::FAIL_ACCEPT_ON_INTR ),
@@ -130,9 +126,6 @@ sub run {
             $self->daemon_detach() if $options->{detach};
 
             $proc_manager->pm_manage();
-
-            # Give each child its own RNG state.
-            srand;
         }
         elsif ( $options->{detach} ) {
             $self->daemon_detach();
@@ -143,9 +136,9 @@ sub run {
         $proc_manager && $proc_manager->pm_pre_dispatch();
 
         $self->_fix_env( \%env );
-
+        
         $class->handle_request( env => \%env );
-
+        
         $proc_manager && $proc_manager->pm_post_dispatch();
     }
 }
@@ -157,9 +150,9 @@ sub run {
 sub write {
     my ( $self, $c, $buffer ) = @_;
 
-    unless ( $self->_prepared_write ) {
+    unless ( $self->{_prepared_write} ) {
         $self->prepare_write($c);
-        $self->_prepared_write(1);
+        $self->{_prepared_write} = 1;
     }
     
     # XXX: We can't use Engine's write() method because syswrite
@@ -167,8 +160,8 @@ sub write {
     # written: http://www.fastcgi.com/om_archive/mail-archive/0128.html
     
     # Prepend the headers if they have not yet been sent
-    if ( $self->_has_header_buf ) {
-        $buffer = $self->_clear_header_buf . $buffer;
+    if ( my $headers = delete $self->{_header_buf} ) {
+        $buffer = $headers . $buffer;
     }
 
     # FastCGI does not stream data properly if using 'print $handle',

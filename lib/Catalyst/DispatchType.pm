@@ -1,8 +1,7 @@
 package Catalyst::DispatchType;
 
-use Moose;
-with 'MooseX::Emulate::Class::Accessor::Fast';
-no Moose;
+use strict;
+use base 'Class::Accessor::Fast';
 
 =head1 NAME
 
@@ -47,6 +46,15 @@ Should return true if it registers something, or false otherwise.
 
 sub register { }
 
+=head2 $self->expand_action
+
+Default fallback, returns nothing. See L<Catalyst::Dispatcher> for more info
+about expand_action.
+
+=cut
+
+sub expand_action { }
+
 =head2 $self->uri_for_action( $action, \@captures )
 
 abstract method, to be implemented by dispatchtypes. Takes a
@@ -59,15 +67,6 @@ arrayref, or undef if unable to do so.
 
 sub uri_for_action { }
 
-=head2 $self->expand_action
-
-Default fallback, returns nothing. See L<Catalyst::Dispatcher> for more info
-about expand_action.
-
-=cut
-
-sub expand_action { }
-
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
@@ -78,7 +77,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

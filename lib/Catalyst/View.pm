@@ -1,7 +1,7 @@
 package Catalyst::View;
 
-use Moose;
-extends qw/Catalyst::Component/;
+use strict;
+use base qw/Catalyst::Component/;
 
 =head1 NAME
 
@@ -62,8 +62,5 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
-
-no Moose;
-__PACKAGE__->meta->make_immutable();
 
 1;

@@ -7,8 +7,7 @@ package TestApp::Controller::Fork;
 use strict;
 use warnings;
 use base 'Catalyst::Controller';
-
-eval 'use YAML';
+use YAML;
 
 sub system : Local {
     my ($self, $c, $ls) = @_;

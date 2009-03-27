@@ -1,35 +1,11 @@
 package Catalyst::DispatchType::Chained;
 
-use Moose;
-extends 'Catalyst::DispatchType';
-
+use strict;
+use base qw/Catalyst::DispatchType/;
 use Text::SimpleTable;
 use Catalyst::ActionChain;
 use Catalyst::Utils;
 use URI;
-
-has _endpoints => (
-                   is => 'rw',
-                   isa => 'ArrayRef',
-                   required => 1,
-                   default => sub{ [] },
-                  );
-
-has _actions => (
-                 is => 'rw',
-                 isa => 'HashRef',
-                 required => 1,
-                 default => sub{ {} },
-                );
-
-has _children_of => (
-                     is => 'rw',
-                     isa => 'HashRef',
-                     required => 1,
-                     default => sub{ {} },
-                    );
-
-no Moose;
 
 # please don't perltidy this. hairy code within.
 
@@ -66,21 +42,16 @@ Debug output for Path Part dispatch points
 sub list {
     my ( $self, $c ) = @_;
 
-    return unless $self->_endpoints;
+    return unless $self->{endpoints};
 
     my $column_width = Catalyst::Utils::term_width() - 35 - 9;
     my $paths = Text::SimpleTable->new(
        [ 35, 'Path Spec' ], [ 36, 'Private' ], [ $column_width, 'Private' ]
     );
 
-    my $has_unattached_actions;
-    my $unattached_actions = Text::SimpleTable->new(
-        [ 35, 'Private' ], [ 36, 'Missing parent' ],
-    );
-
     ENDPOINT: foreach my $endpoint (
                   sort { $a->reverse cmp $b->reverse }
-                           @{ $self->_endpoints }
+                           @{ $self->{endpoints} }
                   ) {
         my $args = $endpoint->attributes->{Args}->[0];
         my @parts = (defined($args) ? (("*") x $args) : '...');
@@ -96,14 +67,10 @@ sub list {
                     if (defined $pp->[0] && length $pp->[0]);
             }
             $parent = $curr->attributes->{Chained}->[0];
-            $curr = $self->_actions->{$parent};
+            $curr = $self->{actions}{$parent};
             unshift(@parents, $curr) if $curr;
         }
-        if ($parent ne '/') {
-            $has_unattached_actions = 1;
-            $unattached_actions->row('/'.$parents[0]->reverse, $parent);
-            next ENDPOINT;
-        }
+        next ENDPOINT unless $parent eq '/'; # skip dangling action
         my @rows;
         foreach my $p (@parents) {
             my $name = "/${p}";
@@ -121,8 +88,6 @@ sub list {
     }
 
     $c->log->debug( "Loaded Chained actions:\n" . $paths->draw . "\n" );
-    $c->log->debug( "Unattached Chained actions:\n", $unattached_actions->draw . "\n" )
-        if $has_unattached_actions;
 }
 
 =head2 $self->match( $c, $path )
@@ -134,21 +99,20 @@ Calls C<recurse_match> to see if a chain matches the C<$path>.
 sub match {
     my ( $self, $c, $path ) = @_;
 
-    my $request = $c->request;
-    return 0 if @{$request->args};
+    return 0 if @{$c->req->args};
 
     my @parts = split('/', $path);
 
     my ($chain, $captures, $parts) = $self->recurse_match($c, '/', \@parts);
-    push @{$request->args}, @$parts if $parts && @$parts;
+    push @{$c->req->args}, @$parts if $parts && @$parts;
 
     return 0 unless $chain;
 
     my $action = Catalyst::ActionChain->from_chain($chain);
 
-    $request->action("/${action}");
-    $request->match("/${action}");
-    $request->captures($captures);
+    $c->req->action("/${action}");
+    $c->req->match("/${action}");
+    $c->req->captures($captures);
     $c->action($action);
     $c->namespace( $action->namespace );
 
@@ -163,7 +127,7 @@ Recursive search for a matching chain.
 
 sub recurse_match {
     my ( $self, $c, $parent, $path_parts ) = @_;
-    my $children = $self->_children_of->{$parent};
+    my $children = $self->{children_of}{$parent};
     return () unless $children;
     my $best_action;
     my @captures;
@@ -258,8 +222,13 @@ sub register {
           "Multiple Chained attributes not supported registering ${action}"
         );
     }
+    my $chained_to = $chained_attr[0];
 
-    my $children = ($self->_children_of->{ $chained_attr[0] } ||= {});
+    Catalyst::Exception->throw(
+      "Actions cannot chain to themselves registering /${action}"
+    ) if ($chained_to eq '/' . $action);
+
+    my $children = ($self->{children_of}->{ $chained_to } ||= {});
 
     my @path_part = @{ $action->attributes->{PathPart} || [] };
 
@@ -269,13 +238,13 @@ sub register {
         $part = $path_part[0];
     } elsif (@path_part > 1) {
         Catalyst::Exception->throw(
-          "Multiple PathPart attributes not supported registering " . $action->reverse()
+          "Multiple PathPart attributes not supported registering ${action}"
         );
     }
 
     if ($part =~ m(^/)) {
         Catalyst::Exception->throw(
-          "Absolute parameters to PathPart not allowed registering " . $action->reverse()
+          "Absolute parameters to PathPart not allowed registering ${action}"
         );
     }
 
@@ -283,10 +252,10 @@ sub register {
 
     unshift(@{ $children->{$part} ||= [] }, $action);
 
-    $self->_actions->{'/'.$action->reverse} = $action;
+    ($self->{actions} ||= {})->{'/'.$action->reverse} = $action;
 
     unless ($action->attributes->{CaptureArgs}) {
-        unshift(@{ $self->_endpoints }, $action);
+        unshift(@{ $self->{endpoints} ||= [] }, $action);
     }
 
     return 1;
@@ -321,7 +290,7 @@ sub uri_for_action {
                 if (defined($pp->[0]) && length($pp->[0]));
         }
         $parent = $curr->attributes->{Chained}->[0];
-        $curr = $self->_actions->{$parent};
+        $curr = $self->{actions}{$parent};
     }
 
     return undef unless $parent eq '/'; # fail for dangling action
@@ -351,13 +320,11 @@ sub expand_action {
     while ($curr) {
         push @chain, $curr;
         my $parent = $curr->attributes->{Chained}->[0];
-        $curr = $self->_actions->{$parent};
+        $curr = $self->{'actions'}{$parent};
     }
 
     return Catalyst::ActionChain->from_chain([reverse @chain]);
 }
-
-__PACKAGE__->meta->make_immutable;
 
 =head1 USAGE
 

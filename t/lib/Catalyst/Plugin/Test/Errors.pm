@@ -1,13 +1,12 @@
 package Catalyst::Plugin::Test::Errors;
 
 use strict;
-use Class::C3;
 
 sub error {
     my $c = shift;
 
     unless ( $_[0] ) {
-        return $c->next::method(@_);
+        return $c->NEXT::error(@_);
     }
 
     if ( $_[0] =~ /^(Unknown resource|No default action defined)/ ) {
@@ -27,7 +26,7 @@ sub error {
 
     $c->response->headers->push_header( 'X-Catalyst-Error' => $error );
 
-    $c->next::method(@_);
+    $c->NEXT::error(@_);
 }
 
 1;

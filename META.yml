@@ -2,14 +2,11 @@
 abstract: 'The Catalyst Framework Runtime'
 author:
   - 'Catalyst Contributors, see Catalyst.pm'
-build_requires:
-  Class::Data::Inheritable: 0
-  Test::Aggregate: 0.34_01
-  Test::MockObject: 0
+build_requires: {}
 configure_requires:
-  ExtUtils::MakeMaker: 6.46
+  ExtUtils::MakeMaker: 6.50
 distribution_type: module
-generated_by: 'Module::Install version 0.77'
+generated_by: 'Module::Install version 0.80'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -19,13 +16,12 @@ no_index:
   directory:
     - inc
     - t
-    - inc
-    - t
 requires:
   CGI::Simple::Cookie: 0
   Carp: 0
-  Class::C3::Adopt::NEXT: 0.05
-  Class::MOP: 0
+  Class::Accessor::Fast: 0
+  Class::Data::Inheritable: 0
+  Class::Inspector: 1.06
   Data::Dump: 0
   File::Modified: 0
   HTML::Entities: 0
@@ -35,21 +31,16 @@ requires:
   HTTP::Request::AsCGI: 0.5
   HTTP::Response: 0
   LWP::UserAgent: 0
-  MRO::Compat: 0
   Module::Pluggable: 3.01
-  Moose: 0.64
-  MooseX::Emulate::Class::Accessor::Fast: 0.00700
+  NEXT: 0
   Path::Class: 0.09
   Scalar::Util: 0
-  Scope::Upper: 0.06
-  Sub::Exporter: 0
   Text::Balanced: 0
   Text::SimpleTable: 0.03
   Time::HiRes: 0
   Tree::Simple: 1.15
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
-  namespace::clean: 0
   perl: 5.8.1
 resources:
   IRC: irc://irc.perl.org/#catalyst
@@ -57,4 +48,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.8000_06
+version: 5.71001

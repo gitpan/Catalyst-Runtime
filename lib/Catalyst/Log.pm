@@ -1,21 +1,18 @@
 package Catalyst::Log;
 
-use Moose;
-with 'MooseX::Emulate::Class::Accessor::Fast';
-
+use strict;
+use base 'Class::Accessor::Fast';
 use Data::Dump;
-use Class::MOP ();
 
 our %LEVELS = ();
 
-has level => (is => 'rw');
-has _body => (is => 'rw');
-has abort => (is => 'rw');
+__PACKAGE__->mk_accessors('level');
+__PACKAGE__->mk_accessors('body');
+__PACKAGE__->mk_accessors('abort');
 
 {
     my @levels = qw[ debug info warn error fatal ];
 
-    my $meta = Class::MOP::get_metaclass_by_name(__PACKAGE__);
     for ( my $i = 0 ; $i < @levels ; $i++ ) {
 
         my $name  = $levels[$i];
@@ -23,28 +20,29 @@ has abort => (is => 'rw');
 
         $LEVELS{$name} = $level;
 
-       $meta->add_method($name, sub {
+        no strict 'refs';
+
+        *{$name} = sub {
             my $self = shift;
 
-            if ( $self->level & $level ) {
+            if ( $self->{level} & $level ) {
                 $self->_log( $name, @_ );
             }
-        });
+        };
 
-        $meta->add_method("is_$name", sub {
+        *{"is_$name"} = sub {
             my $self = shift;
-            return $self->level & $level;
-        });;
+            return $self->{level} & $level;
+        };
     }
 }
 
-around new => sub {
-    my $orig = shift;
+sub new {
     my $class = shift;
-    my $self = $class->$orig;
+    my $self  = $class->SUPER::new;
     $self->levels( scalar(@_) ? @_ : keys %LEVELS );
     return $self;
-};
+}
 
 sub levels {
     my ( $self, @levels ) = @_;
@@ -54,20 +52,12 @@ sub levels {
 
 sub enable {
     my ( $self, @levels ) = @_;
-    my $level = $self->level;
-    for(map { $LEVELS{$_} } @levels){
-      $level |= $_;
-    }
-    $self->level($level);
+    $self->{level} |= $_ for map { $LEVELS{$_} } @levels;
 }
 
 sub disable {
     my ( $self, @levels ) = @_;
-    my $level = $self->level;
-    for(map { $LEVELS{$_} } @levels){
-      $level &= ~$_;
-    }
-    $self->level($level);
+    $self->{level} &= ~$_ for map { $LEVELS{$_} } @levels;
 }
 
 sub _dump {
@@ -80,29 +70,24 @@ sub _log {
     my $level   = shift;
     my $message = join( "\n", @_ );
     $message .= "\n" unless $message =~ /\n$/;
-    my $body = $self->_body;
-    $body .= sprintf( "[%s] %s", $level, $message );
-    $self->_body($body);
+    $self->{body} .= sprintf( "[%s] %s", $level, $message );
 }
 
 sub _flush {
     my $self = shift;
-    if ( $self->abort || !$self->_body ) {
+    if ( $self->abort || !$self->body ) {
         $self->abort(undef);
     }
     else {
-        $self->_send_to_log( $self->_body );
+        $self->_send_to_log( $self->body );
     }
-    $self->_body(undef);
+    $self->body(undef);
 }
 
 sub _send_to_log {
     my $self = shift;
     print STDERR @_;
 }
-
-no Moose;
-__PACKAGE__->meta->make_immutable();
 
 1;
 
@@ -184,10 +169,6 @@ arguments.
     $log = Catalyst::Log->new;
     $log = Catalyst::Log->new( 'warn', 'error' );
 
-=head2 level
-
-Contains a bitmask of the currently set log levels.
-
 =head2 levels
 
 Set log levels
@@ -236,8 +217,6 @@ This protected method is what actually sends the log information to STDERR.
 You may subclass this module and override this method to get finer control
 over the log output.
 
-=head2 meta
-
 =head1 SEE ALSO
 
 L<Catalyst>.
@@ -252,7 +231,5 @@ This program is free software, you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

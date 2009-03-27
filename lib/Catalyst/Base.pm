@@ -1,8 +1,7 @@
 package Catalyst::Base;
 
+use strict;
 use base qw/Catalyst::Controller/;
-use Moose;
-no Moose;
 
 1;
 
@@ -15,7 +14,7 @@ Catalyst::Base - Deprecated base class
 =head1 DESCRIPTION
 
 This used to be the base class for Catalyst Controllers. It
-remains here for compatibility reasons.
+remains here for compability reasons.
 
 =head1 SEE ALSO
 

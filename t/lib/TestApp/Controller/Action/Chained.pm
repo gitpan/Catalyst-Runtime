@@ -15,7 +15,11 @@ sub begin :Private { }
 #
 #   Simple parent/child action test
 #
-sub foo  :PathPart('chained/foo')  :CaptureArgs(1) :Chained('/') { }
+sub foo  :PathPart('chained/foo')  :CaptureArgs(1) :Chained('/') {
+    my ( $self, $c, @args ) = @_;
+    die "missing argument" unless @args;
+    die "more than 1 argument" if @args > 1;
+}
 sub endpoint  :PathPart('end')  :Chained('/action/chained/foo')  :Args(1) { }
 
 #
@@ -184,12 +188,6 @@ sub korv        : Chained('apan')  CaptureArgs(0) PathPart('') { }
 sub wurst       : Chained('apan')  CaptureArgs(1) PathPart('') { }
 sub static_end  : Chained('korv')  Args(0)                     { }
 sub capture_end : Chained('wurst') Args(0)        PathPart('') { }
-
-
-# */search vs doc/*
-sub view : Chained('/') PathPart('chained') CaptureArgs(1) {}
-sub star_search : Chained('view') PathPart('search') Args(0) { }
-sub doc_star : Chained('/') PathPart('chained/doc') Args(1) {}
 
 sub end :Private {
   my ($self, $c) = @_;

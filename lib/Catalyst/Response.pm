@@ -1,32 +1,16 @@
 package Catalyst::Response;
 
-use Moose;
-use HTTP::Headers;
+use strict;
+use base 'Class::Accessor::Fast';
 
-with 'MooseX::Emulate::Class::Accessor::Fast';
+__PACKAGE__->mk_accessors(qw/cookies body headers location status/);
 
-has cookies   => (is => 'rw', default => sub { {} });
-has body      => (is => 'rw', default => '', lazy => 1, predicate => 'has_body');
-has location  => (is => 'rw');
-has status    => (is => 'rw', default => 200);
-has finalized_headers => (is => 'rw', default => 0);
-has headers   => (
-  is      => 'rw',
-  handles => [qw(content_encoding content_length content_type header)],
-  default => sub { HTTP::Headers->new() },
-  required => 1,
-  lazy => 1,
-);
-has _context => (
-  is => 'rw',
-  weak_ref => 1,
-  handles => ['write'],
-  clearer => '_clear_context',
-);
+*output = \&body;
 
-sub output { shift->body(@_) }
-
-no Moose;
+sub content_encoding { shift->headers->content_encoding(@_) }
+sub content_length   { shift->headers->content_length(@_) }
+sub content_type     { shift->headers->content_type(@_) }
+sub header           { shift->headers->header(@_) }
 
 =head1 NAME
 
@@ -63,10 +47,6 @@ Sets or returns the output (text or binary data). If you are returning a large b
 you might want to use a L<IO::Handle> type of object (Something that implements the read method
 in the same fashion), or a filehandle GLOB. Catalyst
 will write it piece by piece into the response.
-
-=head2 $res->has_body
-
-Predicate which returns true when a body has been set.
 
 =head2 $res->content_encoding
 
@@ -153,10 +133,6 @@ sub redirect {
     return $self->location;
 }
 
-=head2 $res->location
-
-Sets or returns the HTTP 'Location'.
-
 =head2 $res->status
 
 Sets or returns the HTTP status.
@@ -167,30 +143,9 @@ Sets or returns the HTTP status.
 
 Writes $data to the output stream.
 
-=head2 meta
-
-Provided by Moose
-
-=head2 $res->print( @data )
-
-Prints @data to the output stream, separated by $,.  This lets you pass
-the response object to functions that want to write to an L<IO::Handle>.
-
 =cut
 
-sub print {
-    my $self = shift;
-    my $data = shift;
-
-    defined $self->write($data) or return;
-
-    for (@_) {
-        defined $self->write($,) or return;
-        defined $self->write($_) or return;
-    }
-    
-    return 1;
-}
+sub write { shift->{_context}->write(@_); }
 
 =head1 AUTHORS
 
@@ -202,7 +157,5 @@ This program is free software, you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
-
-__PACKAGE__->meta->make_immutable;
 
 1;

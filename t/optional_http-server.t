@@ -1,16 +1,13 @@
 use strict;
 use warnings;
 
-use Test::More;
-BEGIN {
-    plan skip_all => 'set TEST_HTTP to enable this test' unless $ENV{TEST_HTTP};
-}
-
 use File::Path;
 use FindBin;
 use IPC::Open3;
 use IO::Socket;
+use Test::More;
 
+plan skip_all => 'set TEST_HTTP to enable this test' unless $ENV{TEST_HTTP};
 eval "use Catalyst::Devel 1.0";
 plan skip_all => 'Catalyst::Devel required' if $@;
 eval "use File::Copy::Recursive";
@@ -28,7 +25,7 @@ rmtree $tmpdir if -d $tmpdir;
 # create a TestApp and copy the test libs into it
 mkdir $tmpdir;
 chdir $tmpdir;
-system( $^X, "-I$FindBin::Bin/../lib", "$FindBin::Bin/../script/catalyst.pl", 'TestApp' );
+system( 'perl', "-I$FindBin::Bin/../lib", "$FindBin::Bin/../script/catalyst.pl", 'TestApp' );
 chdir "$FindBin::Bin/..";
 File::Copy::Recursive::dircopy( 't/lib', 't/tmp/TestApp/lib' );
 
@@ -38,7 +35,7 @@ rmtree 't/tmp/TestApp/t';
 # spawn the standalone HTTP server
 my $port = 30000 + int rand(1 + 10000);
 my $pid = open3( undef, my $server, undef,
-  $^X, "-I$FindBin::Bin/../lib",
+  'perl', "-I$FindBin::Bin/../lib",
   "$FindBin::Bin/../t/tmp/TestApp/script/testapp_server.pl", '-port', $port )
     or die "Unable to spawn standalone HTTP server: $!";
 
@@ -53,10 +50,10 @@ $ENV{CATALYST_SERVER} = "http://localhost:$port";
 
 my $return;
 if ( $single_test ) {
-    $return = system( "$^X -Ilib/ $single_test" );
+    $return = system( "perl -Ilib/ $single_test" );
 }
 else {
-    $return = prove( '-r', '-Ilib/', glob('t/aggregate/live_*.t') );
+    $return = system( 'prove -r -Ilib/ t/live_*.t' );
 }
 
 # shut it down
@@ -82,17 +79,5 @@ sub check_port {
     }
     else {
         return 0;
-    }
-}
-
-sub prove {
-    if (!(my $pid = fork)) {
-        require App::Prove;
-        my $prove = App::Prove->new;
-        $prove->process_args(@_);
-        exit( $prove->run ? 0 : 1 );
-    } else {
-        waitpid $pid, 0;
-        return $?;
     }
 }
