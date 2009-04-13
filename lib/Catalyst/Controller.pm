@@ -1,12 +1,47 @@
 package Catalyst::Controller;
 
-use strict;
-use base qw/Catalyst::Component Catalyst::AttrContainer Class::Accessor::Fast/;
+use Moose;
+use Moose::Util qw/find_meta/;
+
+use namespace::clean -except => 'meta';
+
+BEGIN { extends qw/Catalyst::Component MooseX::MethodAttributes::Inheritable/; }
 
 use Catalyst::Exception;
 use Catalyst::Utils;
-use Class::Inspector;
-use NEXT;
+
+with 'Catalyst::Component::ApplicationAttribute';
+
+has path_prefix =>
+    (
+     is => 'rw',
+     isa => 'Str',
+     init_arg => 'path',
+     predicate => 'has_path_prefix',
+    );
+
+has action_namespace =>
+    (
+     is => 'rw',
+     isa => 'Str',
+     init_arg => 'namespace',
+     predicate => 'has_action_namespace',
+    );
+
+has actions =>
+    (
+     is => 'rw',
+     isa => 'HashRef',
+     init_arg => undef,
+    );
+
+sub BUILD {
+    my ($self, $args) = @_;
+    my $action  = delete $args->{action}  || {};
+    my $actions = delete $args->{actions} || {};
+    my $attr_value = $self->merge_config_hashes($actions, $action);
+    $self->actions($attr_value);
+}
 
 =head1 NAME
 
@@ -17,9 +52,9 @@ Catalyst::Controller - Catalyst Controller base class
   package MyApp::Controller::Search
   use base qw/Catalyst::Controller/;
 
-  sub foo : Local { 
+  sub foo : Local {
     my ($self,$c,@args) = @_;
-    ... 
+    ...
   } # Dispatches to /search/foo
 
 =head1 DESCRIPTION
@@ -31,15 +66,13 @@ for more info about how Catalyst dispatches to actions.
 
 =cut
 
+#I think both of these could be attributes. doesn't really seem like they need
+#to ble class data. i think that attributes +default would work just fine
 __PACKAGE__->mk_classdata($_) for qw/_dispatch_steps _action_class/;
 
 __PACKAGE__->_dispatch_steps( [qw/_BEGIN _AUTO _ACTION/] );
 __PACKAGE__->_action_class('Catalyst::Action');
 
-__PACKAGE__->mk_accessors( qw/_application/ );
-
-### _app as alias
-*_app = *_application;
 
 sub _DISPATCH : Private {
     my ( $self, $c ) = @_;
@@ -88,78 +121,96 @@ sub _END : Private {
     return !@{ $c->error };
 }
 
-sub new {
-    my $self = shift;
-    my $app = $_[0];
-    my $new = $self->NEXT::new(@_);
-    $new->_application( $app );
-    return $new;
-}
-
-
 sub action_for {
     my ( $self, $name ) = @_;
     my $app = ($self->isa('Catalyst') ? $self : $self->_application);
     return $app->dispatcher->get_action($name, $self->action_namespace);
 }
 
-sub action_namespace {
+#my opinion is that this whole sub really should be a builder method, not
+#something that happens on every call. Anyone else disagree?? -- groditi
+## -- apparently this is all just waiting for app/ctx split
+around action_namespace => sub {
+    my $orig = shift;
     my ( $self, $c ) = @_;
-    unless ( $c ) {
-        $c = ($self->isa('Catalyst') ? $self : $self->_application);
-    }
-    my $hash = (ref $self ? $self : $self->config); # hate app-is-class
-    return $hash->{namespace} if exists $hash->{namespace};
-    return Catalyst::Utils::class2prefix( ref($self) || $self,
-        $c->config->{case_sensitive} )
-      || '';
-}
 
-sub path_prefix {
-    my ( $self, $c ) = @_;
-    unless ( $c ) {
-        $c = ($self->isa('Catalyst') ? $self : $self->_application);
+    if( ref($self) ){
+        return $self->$orig if $self->has_action_namespace;
+    } else {
+        return $self->config->{namespace} if exists $self->config->{namespace};
     }
-    my $hash = (ref $self ? $self : $self->config); # hate app-is-class
-    return $hash->{path} if exists $hash->{path};
-    return shift->action_namespace(@_);
-}
 
+    my $case_s;
+    if( $c ){
+        $case_s = $c->config->{case_sensitive};
+    } else {
+        if ($self->isa('Catalyst')) {
+            $case_s = $self->config->{case_sensitive};
+        } else {
+            if (ref $self) {
+                $case_s = $self->_application->config->{case_sensitive};
+            } else {
+                confess("Can't figure out case_sensitive setting");
+            }
+        }
+    }
+
+    my $namespace = Catalyst::Utils::class2prefix(ref($self) || $self, $case_s) || '';
+    $self->$orig($namespace) if ref($self);
+    return $namespace;
+};
+
+#Once again, this is probably better written as a builder method
+around path_prefix => sub {
+    my $orig = shift;
+    my $self = shift;
+    if( ref($self) ){
+      return $self->$orig if $self->has_path_prefix;
+    } else {
+      return $self->config->{path} if exists $self->config->{path};
+    }
+    my $namespace = $self->action_namespace(@_);
+    $self->$orig($namespace) if ref($self);
+    return $namespace;
+};
+
+sub get_action_methods {
+    my $self = shift;
+    my $meta = find_meta($self);
+    confess("Metaclass for " . ref($meta) ." for " . $meta->name
+        . " cannot support register_actions.")
+        unless $meta->can('get_all_methods_with_attributes');
+    my @methods = $meta->get_all_methods_with_attributes;
+    return @methods;
+}
 
 sub register_actions {
     my ( $self, $c ) = @_;
+    $self->register_action_methods( $c, $self->get_action_methods );
+}
+
+sub register_action_methods {
+    my ( $self, $c, @methods ) = @_;
     my $class = ref $self || $self;
+    #this is still not correct for some reason.
     my $namespace = $self->action_namespace($c);
-    my %methods;
-    $methods{ $self->can($_) } = $_
-      for @{ Class::Inspector->methods($class) || [] };
 
-    # Advanced inheritance support for plugins and the like
-    my @action_cache;
-    {
-        no strict 'refs';
-        for my $isa ( @{"$class\::ISA"}, $class ) {
-            push @action_cache, @{ $isa->_action_cache }
-              if $isa->can('_action_cache');
-        }
-    }
-
-    foreach my $cache (@action_cache) {
-        my $code   = $cache->[0];
-        my $method = delete $methods{$code}; # avoid dupe registers
-        next unless $method;
-        my $attrs = $self->_parse_attrs( $c, $method, @{ $cache->[1] } );
+    foreach my $method (@methods) {
+        my $name = $method->name;
+        my $attributes = $method->attributes;
+        next unless $attributes;
+        my $attrs = $self->_parse_attrs( $c, $name, @{ $attributes } );
         if ( $attrs->{Private} && ( keys %$attrs > 1 ) ) {
             $c->log->debug( 'Bad action definition "'
-                  . join( ' ', @{ $cache->[1] } )
-                  . qq/" for "$class->$method"/ )
+                  . join( ' ', @{ $attributes } )
+                  . qq/" for "$class->$name"/ )
               if $c->debug;
             next;
         }
-        my $reverse = $namespace ? "$namespace/$method" : $method;
+        my $reverse = $namespace ? "${namespace}/${name}" : $name;
         my $action = $self->create_action(
-            name       => $method,
-            code       => $code,
+            name       => $name,
+            code       => $method->body,
             reverse    => $reverse,
             namespace  => $namespace,
             class      => $class,
@@ -178,10 +229,7 @@ sub create_action {
                     ? $args{attributes}{ActionClass}[0]
                     : $self->_action_class);
 
-    unless ( Class::Inspector->loaded($class) ) {
-        require Class::Inspector->filename($class);
-    }
-    
+    Class::MOP::load_class($class);
     return $class->new( \%args );
 }
 
@@ -204,14 +252,23 @@ sub _parse_attrs {
         }
     }
 
-    my $hash = (ref $self ? $self : $self->config); # hate app-is-class
-
-    if (exists $hash->{actions} || exists $hash->{action}) {
-      my $a = $hash->{actions} || $hash->{action};
-      %raw_attributes = ((exists $a->{'*'} ? %{$a->{'*'}} : ()),
-                         %raw_attributes,
-                         (exists $a->{$name} ? %{$a->{$name}} : ()));
+    #I know that the original behavior was to ignore action if actions was set
+    # but i actually think this may be a little more sane? we can always remove
+    # the merge behavior quite easily and go back to having actions have
+    # presedence over action by modifying the keys. i honestly think this is
+    # superior while mantaining really high degree of compat
+    my $actions;
+    if( ref($self) ) {
+        $actions = $self->actions;
+    } else {
+        my $cfg = $self->config;
+        $actions = $self->merge_config_hashes($cfg->{actions}, $cfg->{action});
     }
+
+    %raw_attributes = ((exists $actions->{'*'} ? %{$actions->{'*'}} : ()),
+                       %raw_attributes,
+                       (exists $actions->{$name} ? %{$actions->{$name}} : ()));
+
 
     my %final_attributes;
 
@@ -222,8 +279,8 @@ sub _parse_attrs {
         foreach my $value (ref($raw) eq 'ARRAY' ? @$raw : $raw) {
 
             my $meth = "_parse_${key}_attr";
-            if ( $self->can($meth) ) {
-                ( $key, $value ) = $self->$meth( $c, $name, $value );
+            if ( my $code = $self->can($meth) ) {
+                ( $key, $value ) = $self->$code( $c, $name, $value );
             }
             push( @{ $final_attributes{$key} }, $value );
         }
@@ -273,7 +330,7 @@ sub _parse_LocalRegex_attr {
 
     my $prefix = $self->path_prefix( $c );
     $prefix .= '/' if length( $prefix );
-   
+
     return ( 'Regex', "^${prefix}${value}" );
 }
 
@@ -333,6 +390,8 @@ sub _parse_MyAction_attr {
     return ( 'ActionClass', $value );
 }
 
+__PACKAGE__->meta->make_immutable;
+
 1;
 
 __END__
@@ -351,27 +410,21 @@ controller name. For instance controller 'MyApp::Controller::Foo::Bar'
 will be bound to 'foo/bar'. The default Root controller is an example
 of setting namespace to '' (the null string).
 
-=head2 path 
+=head2 path
 
 Sets 'path_prefix', as described below.
 
 =head1 METHODS
 
-=head2 $class->new($app, @args)
+=head2 BUILDARGS ($app, @args)
 
-Proxies through to NEXT::new and stashes the application instance as
-$self->_application.
+From L<Catalyst::Component::ApplicationAttribute>, stashes the application
+instance as $self->_application.
 
 =head2 $self->action_for('name')
 
 Returns the Catalyst::Action object (if any) for a given method name
 in this component.
-
-=head2 $self->register_actions($c)
-
-Finds all applicable actions for this component, creates
-Catalyst::Action objects (using $self->create_action) for them and
-registers them with $c->dispatcher.
 
 =head2 $self->action_namespace($c)
 
@@ -387,12 +440,27 @@ Returns the default path prefix for :PathPrefix, :Local, :LocalRegex and
 relative :Path actions in this component. Defaults to the action_namespace or
 can be overridden from the "path" config key.
 
+=head2 $self->register_actions($c)
+
+Finds all applicable actions for this component, creates
+Catalyst::Action objects (using $self->create_action) for them and
+registers them with $c->dispatcher.
+
+=head2 $self->get_action_methods()
+
+Returns a list of L<Moose::Meta::Method> objects, doing the
+L<MooseX::MethodAttributes::Role::Meta::Method> role, which are the set of
+action methods for this package.
+
+=head2 $self->register_action_methods($c, @methods)
+
+Creates action objects for a set of action methods using C< create_action >,
+and registers them with the dispatcher.
+
 =head2 $self->create_action(%args)
 
 Called with a hash of data to be use for construction of a new
 Catalyst::Action (or appropriate sub/alternative class) object.
-
-Primarily designed for the use of register_actions.
 
 =head2 $self->_application
 

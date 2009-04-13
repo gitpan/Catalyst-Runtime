@@ -184,7 +184,6 @@ sub import {
             !$SkipInstall
             and (
                 $CheckOnly
-                or ($mandatory and $ENV{PERL5_CPANPLUS_IS_RUNNING})
                 or _prompt(
                     qq{==> Auto-install the }
                       . ( @required / 2 )
@@ -766,4 +765,4 @@ installdeps ::
 
 __END__
 
-#line 1004
+#line 1003

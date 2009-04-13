@@ -1,7 +1,7 @@
 package Catalyst::View;
 
-use strict;
-use base qw/Catalyst::Component/;
+use Moose;
+extends qw/Catalyst::Component/;
 
 =head1 NAME
 
@@ -46,12 +46,6 @@ sub process {
 
 }
 
-=head2 $c->merge_hash_config( $hashref, $hashref )
-
-Merges two hashes together recursively, giving right-hand precedence.
-
-=cut
-
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
@@ -62,5 +56,8 @@ This program is free software, you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
+
+no Moose;
+__PACKAGE__->meta->make_immutable();
 
 1;
