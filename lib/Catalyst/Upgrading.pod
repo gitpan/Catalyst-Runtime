@@ -57,7 +57,7 @@ Moose components which say:
 to use the constructor provided by Moose, whilst working (if you do some hacks
 with the C< BUILDARGS > method), will not work with Catalyst 5.80 as
 C<Catalyst::Component> inherits from C<Moose::Object>, and so C< @ISA > fails
-to linearise.
+to linearize.
 
 The fix for this is to not inherit directly from C<Moose::Object>
 yourself. Having components which do not inherit their constructor from
@@ -82,10 +82,18 @@ compatible way is:
     BEGIN { extends 'Catalyst::Component' }; # Or ::Controller, or whatever
 
 Note that the C< extends > declaration needs to occur in a begin block for
-L<attributes> to operate correctly. You also don't get the L<Moose::Object>
-constructor, and therefore attribute initialization will not work as normally
-expected. If you want to use Moose attributes, then they need to be made lazy
-to correctly initialize.
+L<attributes> to operate correctly.
+
+You also don't get the L<Moose::Object> constructor, and therefore attribute 
+initialization will not work as normally expected. If you want to use Moose 
+attributes, then they need to be made lazy to correctly initialize.
+
+Note that this only applies if your component needs to maintain component
+backwards compatibility for Catalyst versions before 5.71001 - in 5.71001
+attributes work as expected, and the BUILD method is called normally
+(although BUILDARGS is not). 
+
+If you depend on Catalyst 5.8, then B<all> Moose features work as expected.
 
 =head3 use Moose in MyApp
 
@@ -124,7 +132,7 @@ to use L<Sub::Name> to name the subroutine. Example:
     *$full_method_name = subname $full_method_name, sub { ... };
 
 Additionally, you can take advantage of Catalysts use of L<Class::MOP> and
-install the closure using the appropriate metaclass. Example:
+install the closure using the appropriate meta class. Example:
 
     use Class::MOP;
     my $metaclass = Moose::Meta::Class->initialize($package_name);
@@ -132,7 +140,7 @@ install the closure using the appropriate metaclass. Example:
 
 =head2 Hooking into application setup
 
-To execute code during application startup the following snippet in MyApp.pm
+To execute code during application start-up the following snippet in MyApp.pm
 used to work:
 
     sub setup {
@@ -157,7 +165,7 @@ The right way to do it is this:
         ... # things to do after the actual setup
     };
 
-The setup_finalize hook was introduced as a way to void this issue.
+The setup_finalize hook was introduced as a way to avoid this issue.
 
 =head2 Components with a new method which returns false
 
@@ -236,6 +244,11 @@ COMPONENT method in your @ISA.
 
 =head1 WARNINGS
 
+=head2 Catalyst::Base
+
+Any code using L<Catalyst::Base> will now warn, and this module will be removed
+in a future release.
+
 =head2 Methods in Catalyst::Dispatcher
 
 The following methods in Catalyst::Dispatcher are both an implementation
@@ -287,7 +300,7 @@ to B<any> of the packages defined within that component.
 
 =head2 $c->plugin method
 
-Calling the plugin method is deprecated, and calling it at runtime is B<highly
+Calling the plugin method is deprecated, and calling it at run time is B<highly
 deprecated>.
 
 Instead you are recommended to use L< Catalyst::Model::Adaptor > or similar to

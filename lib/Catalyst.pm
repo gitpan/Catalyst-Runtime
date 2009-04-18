@@ -43,11 +43,9 @@ sub depth { scalar @{ shift->stack || [] }; }
 sub comp { shift->component(@_) }
 
 sub req {
-    # carp "the use of req() is deprecated in favour of request()";
     my $self = shift; return $self->request(@_);
 }
 sub res {
-    # carp "the use of res() is deprecated in favour of response()";
     my $self = shift; return $self->response(@_);
 }
 
@@ -76,7 +74,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.8000_07';
+our $VERSION = '5.80001';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -1482,6 +1480,7 @@ sub execute {
 
     push( @{ $c->stack }, $code );
     
+    no warnings 'recursion';
     eval { $c->state( $code->execute( $class, $c, @{ $c->req->args } ) || 0 ) };
 
     $c->_stats_finish_execute( $stats_info ) if $c->use_stats and $stats_info;
@@ -2181,11 +2180,16 @@ sub setup_component {
         );
     }
 
-    Catalyst::Exception->throw(
-        message =>
-        qq/Couldn't instantiate component "$component", "COMPONENT() didn't return an object-like value"/
-    ) unless blessed($instance);
-
+    unless (blessed $instance) {
+        my $metaclass = Moose::Util::find_meta($component);
+        my $method_meta = $metaclass->find_method_by_name('COMPONENT');
+        my $component_method_from = $method_meta->associated_metaclass->name;
+        my $value = defined($instance) ? $instance : 'undef';
+        Catalyst::Exception->throw(
+            message =>
+            qq/Couldn't instantiate component "$component", COMPONENT() method (from $component_method_from) didn't return an object-like value (value was $value)./
+        );
+    }
     return $instance;
 }
 

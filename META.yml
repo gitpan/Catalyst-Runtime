@@ -4,12 +4,13 @@ author:
   - 'Catalyst Contributors, see Catalyst.pm'
 build_requires:
   Class::Data::Inheritable: 0
+  ExtUtils::MakeMaker: 6.42
   Test::Aggregate: 0.34_01
   Test::MockObject: 0
 configure_requires:
-  ExtUtils::MakeMaker: 6.50
+  ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.77'
+generated_by: 'Module::Install version 0.84'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -17,8 +18,6 @@ meta-spec:
 name: Catalyst-Runtime
 no_index:
   directory:
-    - inc
-    - t
     - inc
     - t
 recommends:
@@ -60,4 +59,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.8000_07
+version: 5.80001
