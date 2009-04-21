@@ -196,7 +196,6 @@ t/lib/TestApp/Plugin/FullyQualified.pm
 t/lib/TestApp/RequestBaseBug.pm
 t/lib/TestApp/View/Dump.pm
 t/lib/TestApp/View/Dump/Body.pm
-t/lib/TestApp/View/Dump/Parameters.pm
 t/lib/TestApp/View/Dump/Request.pm
 t/lib/TestApp/View/Dump/Response.pm
 t/lib/TestAppChainedAbsolutePathPart.pm
@@ -244,11 +243,13 @@ t/unit_core_mvc.t
 t/unit_core_path_to.t
 t/unit_core_plugin.t
 t/unit_core_setup.t
+t/unit_core_setup_log.t
 t/unit_core_uri_for.t
 t/unit_core_uri_with.t
 t/unit_dispatcher_requestargs_restore.t
 t/unit_load_catalyst_test.t
 t/unit_metaclass_compat_non_moose.t
+t/unit_metaclass_compat_non_moose_controller.t
 t/unit_response.t
 t/unit_stats.t
 t/unit_utils_env_value.t

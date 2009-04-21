@@ -2,6 +2,7 @@ package Catalyst;
 
 use Moose;
 extends 'Catalyst::Component';
+use Moose::Util qw/find_meta/;
 use bytes;
 use Scope::Upper ();
 use Catalyst::Exception;
@@ -74,7 +75,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80001';
+our $VERSION = '5.80002';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -1054,10 +1055,11 @@ EOF
     }
 
     # Call plugins setup, this is stupid and evil.
+    # Also screws C3 badly on 5.10, hack to avoid.
     {
         no warnings qw/redefine/;
         local *setup = sub { };
-        $class->setup;
+        $class->setup unless $Catalyst::__AM_RESTARTING;
     }
 
     # Initialize our data structure
@@ -1097,7 +1099,7 @@ EOF
     # applying modifiers).
     Scope::Upper::reap(sub {
         my $meta = Class::MOP::get_metaclass_by_name($class);
-        $meta->make_immutable unless $meta->is_immutable;
+        $meta->make_immutable(replace_constructor => 1) unless $meta->is_immutable;
     }, Scope::Upper::SCOPE(1));
 
     $class->setup_finalize;
@@ -2161,6 +2163,14 @@ sub setup_components {
 
 =cut
 
+sub _controller_init_base_classes {
+    my ($class, $component) = @_;
+    foreach my $class ( reverse @{ mro::get_linear_isa($component) } ) {
+        Moose->init_meta( for_class => $class )
+            unless find_meta($class);
+    }
+}
+
 sub setup_component {
     my( $class, $component ) = @_;
 
@@ -2168,6 +2178,14 @@ sub setup_component {
         return $component;
     }
 
+    # FIXME - Ugly, ugly hack to ensure the we force initialize non-moose base classes
+    #         nearest to Catalyst::Controller first, no matter what order stuff happens
+    #         to be loaded. There are TODO tests in Moose for this, see
+    #         f2391d17574eff81d911b97be15ea51080500003
+    if ($component->isa('Catalyst::Controller')) {
+        $class->_controller_init_base_classes($component);
+    }
+    
     my $suffix = Catalyst::Utils::class2classsuffix( $component );
     my $config = $class->config->{ $suffix } || {};
 
@@ -2380,14 +2398,19 @@ sub setup_log {
     $levels ||= '';
     $levels =~ s/^\s+//;
     $levels =~ s/\s+$//;
-    my %levels = map { $_ => 1 } split /\s*,\s*/, $levels || '';
-    
+    my %levels = map { $_ => 1 } split /\s*,\s*/, $levels;
+
+    my $env_debug = Catalyst::Utils::env_value( $class, 'DEBUG' );
+    if ( defined $env_debug ) {
+        $levels{debug} = 1 if $env_debug; # Ugly!
+        delete($levels{debug}) unless $env_debug;
+    }
+
     unless ( $class->log ) {
         $class->log( Catalyst::Log->new(keys %levels) );
     }
 
-    my $env_debug = Catalyst::Utils::env_value( $class, 'DEBUG' );
-    if ( defined($env_debug) or $levels{debug} ) {
+    if ( $levels{debug} ) {
         Class::MOP::get_metaclass_by_name($class)->add_method('debug' => sub { 1 });
         $class->log->debug('Debug messages enabled');
     }
