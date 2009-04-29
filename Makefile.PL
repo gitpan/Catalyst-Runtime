@@ -8,11 +8,11 @@ all_from 'lib/Catalyst/Runtime.pm';
 requires 'namespace::clean';
 requires 'Scope::Upper' => '0.06';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00801';
-requires 'Moose' => '0.73';
-requires 'MooseX::MethodAttributes::Inheritable' => '0.06';
+requires 'Class::MOP' => '0.83';
+requires 'Moose' => '0.76';
+requires 'MooseX::MethodAttributes::Inheritable' => '0.09';
 requires 'Carp';
 requires 'Class::C3::Adopt::NEXT' => '0.07';
-requires 'Class::MOP' => '0.79';
 requires 'CGI::Simple::Cookie';
 requires 'Data::Dump';
 requires 'File::Modified';
@@ -21,7 +21,7 @@ requires 'HTTP::Body'    => '1.04'; # makes uploadtmp work
 requires 'HTTP::Headers' => '1.64';
 requires 'HTTP::Request';
 requires 'HTTP::Response';
-requires 'HTTP::Request::AsCGI' => '0.5';
+requires 'HTTP::Request::AsCGI' => '0.8';
 requires 'LWP::UserAgent';
 requires 'Module::Pluggable' => '3.01';
 requires 'Path::Class' => '0.09';
@@ -40,17 +40,16 @@ recommends 'B::Hooks::OP::Check::StashChange';
 test_requires 'Class::Data::Inheritable';
 test_requires 'Test::MockObject';
 
-# Run aggregate tests if AGGREGATE_TESTS environment = 1, but not if it = 0
-# Otherwise default to using Test::Aggregate if installed, but not requiring it.
-if (   ( exists $ENV{AGGREGATE_TESTS} && !$ENV{AGGREGATE_TESTS})
-    || (!exists $ENV{AGGREGATE_TESTS} && !can_use('Test::Aggregate', '0.34_01'))) {
+# aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate is available
+if ($ENV{AGGREGATE_TESTS} && can_use('Test::Aggregate', '0.34_01')) {
+    test_requires('Test::Aggregate', '0.34_01');
+}
+else {
     tests join q{ },
         grep { $_ ne 't/aggregate.t' }
         map  { glob } qw[t/*.t t/aggregate/*.t];
 }
-else {
-    test_requires('Test::Aggregate', '0.34_01');
-}
+
 my @force_build_requires_if_author = qw(
   Test::NoTabs
   Test::Pod
@@ -73,7 +72,7 @@ if ($Module::Install::AUTHOR) {
 
   # Strip out the author only build_requires from META.yml
   # Need to do this _after_ WriteAll else it looses track of them
-  strip_author_only_build_requires(@force_build_requires_if_author);
+  strip_author_only_build_requires(@force_build_requires_if_author, 'Test::Aggregate');
 
   Meta->{values}{resources} = [
     [ 'MailingList' => 'http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/catalyst' ],

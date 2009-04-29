@@ -6,7 +6,8 @@ with 'MooseX::Emulate::Class::Accessor::Fast';
 use Data::Dump;
 use Class::MOP ();
 
-our %LEVELS = ();
+our %LEVELS = (); # Levels stored as bit field, ergo debug = 1, warn = 2 etc
+our %LEVEL_MATCH = (); # Stored as additive, thus debug = 31, warn = 30 etc
 
 has level => (is => 'rw');
 has _body => (is => 'rw');
@@ -16,12 +17,16 @@ has abort => (is => 'rw');
     my @levels = qw[ debug info warn error fatal ];
 
     my $meta = Class::MOP::get_metaclass_by_name(__PACKAGE__);
-    for ( my $i = 0 ; $i < @levels ; $i++ ) {
+    my $summed_level = 0;
+    for ( my $i = $#levels ; $i >= 0 ; $i-- ) {
 
         my $name  = $levels[$i];
+
         my $level = 1 << $i;
+        $summed_level |= $level;
 
         $LEVELS{$name} = $level;
+        $LEVEL_MATCH{$name} = $summed_level;
 
        $meta->add_method($name, sub {
             my $self = shift;
@@ -42,7 +47,9 @@ around new => sub {
     my $orig = shift;
     my $class = shift;
     my $self = $class->$orig;
+
     $self->levels( scalar(@_) ? @_ : keys %LEVELS );
+
     return $self;
 };
 
@@ -55,7 +62,7 @@ sub levels {
 sub enable {
     my ( $self, @levels ) = @_;
     my $level = $self->level;
-    for(map { $LEVELS{$_} } @levels){
+    for(map { $LEVEL_MATCH{$_} } @levels){
       $level |= $_;
     }
     $self->level($level);
@@ -105,7 +112,7 @@ sub _send_to_log {
 # Alias _body to body, add a before modifier to warn..
 my $meta = __PACKAGE__->meta; # Calling meta method here fine as we happen at compile time.
 $meta->add_method('body', $meta->get_method('_body'));
-my %package_hash; # Only warn once per method, per package. 
+my %package_hash; # Only warn once per method, per package.
                   # I haven't provided a way to disable them, patches welcome.
 $meta->add_before_method_modifier('body', sub {
     my $class = blessed(shift);
@@ -235,8 +242,8 @@ Is the log level active?
 
 =head2 abort
 
-Should Catalyst emit logs for this request? Will be reset at the end of 
-each request. 
+Should Catalyst emit logs for this request? Will be reset at the end of
+each request.
 
 *NOTE* This method is not compatible with other log apis, so if you plan
 to use Log4Perl or another logger, you should call it like this:

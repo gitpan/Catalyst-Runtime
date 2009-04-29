@@ -25,16 +25,18 @@ sub build_test_app_with_setup {
     return $name;
 }
 
+local %ENV; # Don't allow env variables to mess us up.
+
 {
     my $app = build_test_app_with_setup('MyTestDebug', '-Debug');
 
     ok my $c = MyTestDebug->new, 'Get debug app object';
     ok my $log = $c->log, 'Get log object';
     isa_ok $log, 'Catalyst::Log', 'It should be a Catalyst::Log object';
-    ok !$log->is_warn, 'Warnings should be disabled';
-    ok !$log->is_error, 'Errors should be disabled';
-    ok !$log->is_fatal, 'Fatal errors should be disabled';
-    ok !$log->is_info, 'Info should be disabled';
+    ok $log->is_warn, 'Warnings should be enabled';
+    ok $log->is_error, 'Errors should be enabled';
+    ok $log->is_fatal, 'Fatal errors should be enabled';
+    ok $log->is_info, 'Info should be enabled';
     ok $log->is_debug, 'Debugging should be enabled';
     ok $app->debug, 'debug method should return true';
 }

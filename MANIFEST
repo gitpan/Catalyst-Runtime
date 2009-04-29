@@ -76,6 +76,7 @@ t/aggregate/live_component_controller_action_regexp.t
 t/aggregate/live_component_controller_action_streaming.t
 t/aggregate/live_component_controller_action_visit.t
 t/aggregate/live_component_controller_args.t
+t/aggregate/live_component_controller_atttributes.t
 t/aggregate/live_component_controller_moose.t
 t/aggregate/live_engine_request_auth.t
 t/aggregate/live_engine_request_body.t
@@ -165,6 +166,7 @@ t/lib/TestApp/Controller/Action/TestMultipath.pm
 t/lib/TestApp/Controller/Action/TestRelative.pm
 t/lib/TestApp/Controller/Action/Visit.pm
 t/lib/TestApp/Controller/Args.pm
+t/lib/TestApp/Controller/Attributes.pm
 t/lib/TestApp/Controller/Dump.pm
 t/lib/TestApp/Controller/Engine/Request/Uploads.pm
 t/lib/TestApp/Controller/Engine/Request/URI.pm
@@ -180,6 +182,7 @@ t/lib/TestApp/Controller/Immutable.pm
 t/lib/TestApp/Controller/Immutable/HardToReload.pm
 t/lib/TestApp/Controller/Index.pm
 t/lib/TestApp/Controller/Moose.pm
+t/lib/TestApp/Controller/Moose/MethodModifiers.pm
 t/lib/TestApp/Controller/Priorities.pm
 t/lib/TestApp/Controller/Priorities/loc_vs_index.pm
 t/lib/TestApp/Controller/Priorities/locre_vs_index.pm
@@ -244,6 +247,7 @@ t/unit_core_path_to.t
 t/unit_core_plugin.t
 t/unit_core_setup.t
 t/unit_core_setup_log.t
+t/unit_core_setup_stats.t
 t/unit_core_uri_for.t
 t/unit_core_uri_with.t
 t/unit_dispatcher_requestargs_restore.t

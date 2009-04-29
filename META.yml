@@ -5,7 +5,6 @@ author:
 build_requires:
   Class::Data::Inheritable: 0
   ExtUtils::MakeMaker: 6.42
-  Test::Aggregate: 0.34_01
   Test::MockObject: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.42
@@ -26,21 +25,21 @@ requires:
   CGI::Simple::Cookie: 0
   Carp: 0
   Class::C3::Adopt::NEXT: 0.07
-  Class::MOP: 0.79
+  Class::MOP: 0.83
   Data::Dump: 0
   File::Modified: 0
   HTML::Entities: 0
   HTTP::Body: 1.04
   HTTP::Headers: 1.64
   HTTP::Request: 0
-  HTTP::Request::AsCGI: 0.5
+  HTTP::Request::AsCGI: 0.8
   HTTP::Response: 0
   LWP::UserAgent: 0
   MRO::Compat: 0
   Module::Pluggable: 3.01
-  Moose: 0.73
+  Moose: 0.76
   MooseX::Emulate::Class::Accessor::Fast: 0.00801
-  MooseX::MethodAttributes::Inheritable: 0.06
+  MooseX::MethodAttributes::Inheritable: 0.09
   Path::Class: 0.09
   Scalar::Util: 0
   Scope::Upper: 0.06
@@ -59,4 +58,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.80002
+version: 5.80003
