@@ -100,6 +100,7 @@ t/aggregate/live_plugin_loaded.t
 t/aggregate/live_priorities.t
 t/aggregate/live_recursion.t
 t/aggregate/unit_core_action_for.t
+t/aggregate/unit_core_appclass_roles_in_plugin_list.t
 t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_uri_for_action.t
 t/aggregate/unit_core_uri_for_multibytechar.t
@@ -111,6 +112,7 @@ t/conf/extra.conf.in
 t/custom_live_component_controller_action_auto_doublebug.t
 t/custom_live_path_bug.t
 t/dead_load_multiple_chained_attributes.t
+t/dead_no_unknown_error.t
 t/dead_recursive_chained_attributes.t
 t/deprecated.t
 t/lib/Catalyst/Action/TestAfter.pm
@@ -181,6 +183,7 @@ t/lib/TestApp/Controller/Fork.pm
 t/lib/TestApp/Controller/Immutable.pm
 t/lib/TestApp/Controller/Immutable/HardToReload.pm
 t/lib/TestApp/Controller/Index.pm
+t/lib/TestApp/Controller/Keyword.pm
 t/lib/TestApp/Controller/Moose.pm
 t/lib/TestApp/Controller/Moose/MethodModifiers.pm
 t/lib/TestApp/Controller/Priorities.pm
@@ -197,10 +200,12 @@ t/lib/TestApp/Model/Foo/Bar.pm
 t/lib/TestApp/Plugin/AddDispatchTypes.pm
 t/lib/TestApp/Plugin/FullyQualified.pm
 t/lib/TestApp/RequestBaseBug.pm
+t/lib/TestApp/Role.pm
 t/lib/TestApp/View/Dump.pm
 t/lib/TestApp/View/Dump/Body.pm
 t/lib/TestApp/View/Dump/Request.pm
 t/lib/TestApp/View/Dump/Response.pm
+t/lib/TestAppBadlyImmutable.pm
 t/lib/TestAppChainedAbsolutePathPart.pm
 t/lib/TestAppChainedAbsolutePathPart/Controller/Foo.pm
 t/lib/TestAppChainedRecursive.pm
@@ -212,7 +217,12 @@ t/lib/TestAppMetaCompat/Controller/Books.pm
 t/lib/TestAppOnDemand.pm
 t/lib/TestAppOnDemand/Controller/Body.pm
 t/lib/TestAppPathBug.pm
+t/lib/TestAppPluginWithConstructor.pm
 t/lib/TestAppStats.pm
+t/lib/TestAppUnknownError.pm
+t/lib/TestAppWithMeta.pm
+t/lib/TestAppWithMeta/Controller/Root.pm
+t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
 t/live_fork.t
 t/live_stats.t
@@ -252,6 +262,7 @@ t/unit_core_uri_for.t
 t/unit_core_uri_with.t
 t/unit_dispatcher_requestargs_restore.t
 t/unit_load_catalyst_test.t
+t/unit_metaclass_compat_extend_non_moose_controller.t
 t/unit_metaclass_compat_non_moose.t
 t/unit_metaclass_compat_non_moose_controller.t
 t/unit_response.t

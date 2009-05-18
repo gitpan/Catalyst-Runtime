@@ -1,10 +1,11 @@
 package Catalyst;
 
 use Moose;
+use Moose::Meta::Class ();
 extends 'Catalyst::Component';
 use Moose::Util qw/find_meta/;
 use bytes;
-use Scope::Upper ();
+use B::Hooks::EndOfScope ();
 use Catalyst::Exception;
 use Catalyst::Log;
 use Catalyst::Request;
@@ -75,7 +76,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80003';
+our $VERSION = '5.80004';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -1099,16 +1100,17 @@ EOF
     # Note however that we have to do the work on scope end, so that method
     # modifiers work correctly in MyApp (as you have to call setup _before_
     # applying modifiers).
-    Scope::Upper::reap(sub {
+    B::Hooks::EndOfScope::on_scope_end {
+        return if $@;
         my $meta = Class::MOP::get_metaclass_by_name($class);
         if ( $meta->is_immutable && ! { $meta->immutable_options }->{inline_constructor} ) {
-            die "You made your application class ($class) immutable, "
+            warn "You made your application class ($class) immutable, "
                 . "but did not inline the constructor.\n"
                 . "This will break catalyst, please pass "
                 . "(replace_constructor => 1) when making your class immutable.\n";
         }
         $meta->make_immutable(replace_constructor => 1) unless $meta->is_immutable;
-    }, Scope::Upper::SCOPE(1));
+    };
 
     $class->setup_finalize;
 }
@@ -1188,7 +1190,7 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
-    s/([^$URI::uric])/$URI::Escape::escapes{$1}/go for @args;
+    s/([^A-Za-z0-9\-_.!~*'()])/$URI::Escape::escapes{$1}/go for @args;
 
     unshift(@args, $path);
 
@@ -1222,7 +1224,7 @@ sub uri_for {
               $_ = "$_";
               utf8::encode( $_ ) if utf8::is_utf8($_);
               # using the URI::Escape pattern here so utf8 chars survive
-              s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
+              s/([^A-Za-z0-9\-_.!~*'()])/$URI::Escape::escapes{$1}/go;
               s/ /+/g;
               "${key}=$_"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
       } @keys);
@@ -2174,7 +2176,7 @@ sub setup_components {
 sub _controller_init_base_classes {
     my ($app_class, $component) = @_;
     foreach my $class ( reverse @{ mro::get_linear_isa($component) } ) {
-        Moose->init_meta( for_class => $class )
+        Moose::Meta::Class->initialize( $class )
             unless find_meta($class);
     }
 }
@@ -2478,9 +2480,6 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
         my ( $proto, $plugin, $instant ) = @_;
         my $class = ref $proto || $proto;
 
-        # no ignore_loaded here, the plugin may already have been
-        # defined in memory and we don't want to error on "no file" if so
-
         Class::MOP::load_class( $plugin );
 
         $proto->_plugins->{$plugin} = 1;
@@ -2501,14 +2500,27 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
 
         $class->_plugins( {} ) unless $class->_plugins;
         $plugins ||= [];
-        for my $plugin ( reverse @$plugins ) {
 
-            unless ( $plugin =~ s/\A\+// ) {
-                $plugin = "Catalyst::Plugin::$plugin";
-            }
+        my @plugins = map { s/\A\+// ? $_ : "Catalyst::Plugin::$_" } @$plugins;
+        
+        Class::MOP::load_class($_) for @plugins;
+        
+        for my $plugin ( reverse @plugins ) {
+            my $meta = find_meta($plugin);
+            next if $meta && $meta->isa('Moose::Meta::Role');
 
             $class->_register_plugin($plugin);
         }
+
+        my @roles =
+            map { $_->name }
+            grep { $_ && blessed($_) && $_->isa('Moose::Meta::Role') }
+            map { find_meta($_) }
+            @plugins;
+         
+        Moose::Util::apply_all_roles(
+            $class => @roles
+        ) if @roles;
     }
 }
 
@@ -2747,6 +2759,8 @@ Oleg Kostyuk <cub.uanic@gmail.com>
 phaylon: Robert Sedlacek <phaylon@dunkelheit.at>
 
 rafl: Florian Ragwitz <rafl@debian.org>
+
+random: Roland Lammel <lammel@cpan.org>
 
 sky: Arthur Bergman
 

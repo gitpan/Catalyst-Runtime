@@ -38,19 +38,24 @@ my $build_exports = sub {
         Catalyst::Exception->throw("$me only works with local requests, not remote")
             if $ENV{CATALYST_SERVER};
 
+        ### check explicitly for the class here, or the Cat->meta call will blow
+        ### up in our face
+        Catalyst::Exception->throw("Must specify a test app: use Catalyst::Test 'TestApp'") unless $class;
+
         ### place holder for $c after the request finishes; reset every time
         ### requests are done.
         my $c;
 
         ### hook into 'dispatch' -- the function gets called after all plugins
         ### have done their work, and it's an easy place to capture $c.
-        no warnings 'redefine';
-        my $dispatch = Catalyst->can('dispatch');
-        local *Catalyst::dispatch = sub {
-            $c = shift;
-            $dispatch->( $c, @_ );
-        };
 
+        my $meta = Catalyst->meta;
+        $meta->make_mutable;
+        $meta->add_after_method_modifier( "dispatch", sub {
+            $c = shift;
+        });
+        $meta->make_immutable;
+        
         ### do the request; C::T::request will know about the class name, and
         ### we've already stopped it from doing remote requests above.
         my $res = $request->( @_ );
@@ -129,20 +134,6 @@ Catalyst::Test - Test Catalyst Applications
     # Run tests against a remote server
     CATALYST_SERVER='http://localhost:3000/' prove -r -l lib/ t/
 
-    # Tests with inline apps need to use Catalyst::Engine::Test
-    package TestApp;
-
-    use Catalyst;
-
-    sub foo : Global {
-            my ( $self, $c ) = @_;
-            $c->res->output('bar');
-    }
-
-    __PACKAGE__->setup();
-
-    package main;
-
     use Catalyst::Test 'TestApp';
     use Test::More tests => 1;
 
@@ -167,6 +158,24 @@ specific testing methods as displayed in the method section.
 
 The L<get> and L<request> functions take either a URI or an L<HTTP::Request>
 object.
+
+=head1 INLINE TESTS WILL NO LONGER WORK
+
+While it used to be possible to inline a whole testapp into a C<.t> file for a
+distribution, this will no longer work.
+
+The convention is to place your L<Catalyst> test apps into C<t/lib> in your
+distribution. E.g.: C<t/lib/TestApp.pm>, C<t/lib/TestApp/Controller/Root.pm>,
+etc..  Multiple test apps can be used in this way.
+
+Then write your C<.t> files like so:
+
+    use strict;
+    use warnings;
+    use FindBin '$Bin';
+    use lib "$Bin/lib";
+    use Test::More tests => 6;
+    use Catalyst::Test 'TestApp';
 
 =head1 METHODS
 

@@ -1,4 +1,4 @@
-use inc::Module::Install 0.64;
+use inc::Module::Install 0.87;
 
 perl_version '5.008001';
 
@@ -6,11 +6,11 @@ name 'Catalyst-Runtime';
 all_from 'lib/Catalyst/Runtime.pm';
 
 requires 'namespace::clean';
-requires 'Scope::Upper' => '0.06';
+requires 'B::Hooks::EndOfScope' => '0.08';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00801';
 requires 'Class::MOP' => '0.83';
-requires 'Moose' => '0.76';
-requires 'MooseX::MethodAttributes::Inheritable' => '0.09';
+requires 'Moose' => '0.78';
+requires 'MooseX::MethodAttributes::Inheritable' => '0.10';
 requires 'Carp';
 requires 'Class::C3::Adopt::NEXT' => '0.07';
 requires 'CGI::Simple::Cookie';
@@ -38,7 +38,9 @@ requires 'MRO::Compat';
 recommends 'B::Hooks::OP::Check::StashChange';
 
 test_requires 'Class::Data::Inheritable';
-test_requires 'Test::MockObject';
+test_requires 'Test::MockObject' => '1.07'; # Newish (hah, 2006!) version to
+                                            # hopefully avoid broken distro
+                                            # packages (RT#46104)
 
 # aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate is available
 if ($ENV{AGGREGATE_TESTS} && can_use('Test::Aggregate', '0.34_01')) {
@@ -106,10 +108,18 @@ EOF
 # NOTE - This is the version number of the _incompatible_ code,
 #        not the version number of the fixed version.
 my %conflicts = (
+    'Catalyst::Authentication::Credential::HTTP' => '1.009',
+    'Catalyst::Plugin::Session::Store::File' => '0.16',
+    'Catalyst::Plugin::Session' => '0.21',
+    'Catalyst::Plugin::Session::State::Cookie' => '0.10',
+    'Catalyst::Plugin::Session::Store::FastMmap' => '0.09',
+    'Catalyst::Controller::AllowDisable' => '0.03',
+    'Reaction' => '0.001999',
+    'Catalyst::Plugin::Upload::Image::Magick' => '0.03',
     'Catalyst::Plugin::ConfigLoader'   => '0.22', # Older versions work but
                                                   # throw Data::Visitor warns
     'Catalyst::Devel'                  => '0.09',
-    'Catalyst::Plugin::SmartURI'       => '0.029',
+    'Catalyst::Plugin::SmartURI'       => '0.032',
     'CatalystX::CRUD'                  => '0.37',
     'Catalyst::Action::RenderView'     => '0.07',
     'Catalyst::Plugin::DebugCookie'    => '0.999002',
@@ -117,6 +127,8 @@ my %conflicts = (
     'CatalystX::Imports'               => '0.03',
     'Catalyst::Plugin::HashedCookies'  => '1.03',
     'Catalyst::Action::REST'           => '0.67',
+    'CatalystX::CRUD'                  => '0.42',
+    'CatalystX::CRUD::Model::RDBO'     => '0.20',
 );
 check_conflicts(%conflicts);
 

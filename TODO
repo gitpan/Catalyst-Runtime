@@ -1,25 +1,25 @@
 Known Bugs:
-   - Moose bug causes issues if you use Moose in your application, but want to
-     use base classes which have not been converted to Moose yet.
-
-     Tests in Moose for this are: http://tinyurl.com/c2k85c
-
-     Note: This issue _does not affect_ components which have been converted to
-           Moose, or applications which do not use Moose, and causes a 
-           compile-time error if present.
 
    - Bug ->go or ->visit causes actions which have Args or CaptureArgs caled
      twice when called via ->go or ->visit.
 
      Test app: http://github.com/bobtfish/catalyst-app-bug-go_chain/tree/master
 
-   - Certain errors in your application to do with using other code which does
-     not exist can cause an 'Unknown error' issue.
-
-     Test app: http://github.com/bobtfish/catalyst-app-bug-unknown-error/tree/master
-
 Compatibility warnings to add:
 
    - $self->config should warn as config should only ever be called as a
      class method.
+
+Proposed functionality / feature additions:
+
+    - Log setup needs to be less lame, so Catalyst::Plugin::Log::* can die
+      in a fire. Having $c->log_class would be a good start. kane volunteered
+      to do some of this.
+
+      Simple example: Catalyst::Plugin::Log::Colorful should just be a
+      subclass of Catalyst::Log, no ::Plugin:: needed.
+
+      See also: Catalyst::Plugin::Log::Dispatch and
+      http://github.com/willert/catalyst-plugin-log4perl-simple/tree
+
 

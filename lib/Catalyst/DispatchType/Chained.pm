@@ -127,7 +127,7 @@ sub list {
             push(@rows, [ '', $name ]);
         }
         push(@rows, [ '', (@rows ? "=> " : '')."/${endpoint}" ]);
-        $rows[0][0] = join('/', '', @parts);
+        $rows[0][0] = join('/', '', @parts) || '/';
         $paths->row(@$_) for @rows;
     }
 
@@ -329,7 +329,9 @@ sub uri_for_action {
         if (my $cap = $curr->attributes->{CaptureArgs}) {
             return undef unless @captures >= $cap->[0]; # not enough captures
             if ($cap->[0]) {
-                unshift(@parts, splice(@captures, -$cap->[0]));
+                unshift(@parts,
+                    map { s/([^A-Za-z0-9\-_.!~*'()])/$URI::Escape::escapes{$1}/go; $_; }
+                    splice(@captures, -$cap->[0]));
             }
         }
         if (my $pp = $curr->attributes->{PartPath}) {
