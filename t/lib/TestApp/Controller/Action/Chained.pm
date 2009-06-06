@@ -3,6 +3,8 @@ package TestApp::Controller::Action::Chained;
 use strict;
 use warnings;
 
+use HTML::Entities;
+
 use base qw/Catalyst::Controller/;
 
 sub begin :Private { }
@@ -194,6 +196,14 @@ sub capture_end : Chained('wurst') Args(0)        PathPart('') { }
 sub view : Chained('/') PathPart('chained') CaptureArgs(1) {}
 sub star_search : Chained('view') PathPart('search') Args(0) { }
 sub doc_star : Chained('/') PathPart('chained/doc') Args(1) {}
+
+sub return_arg : Chained('view') PathPart('return_arg') Args(1) {}
+
+sub return_arg_decoded : Chained('/') PathPart('chained/return_arg_decoded') Args(1) {
+    my ($self, $c) = @_;
+    $c->req->args([ map { decode_entities($_) } @{ $c->req->args }]);
+}
+
 
 sub end :Private {
   my ($self, $c) = @_;

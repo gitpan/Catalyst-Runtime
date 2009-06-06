@@ -71,6 +71,7 @@ t/aggregate/live_component_controller_action_inheritance.t
 t/aggregate/live_component_controller_action_local.t
 t/aggregate/live_component_controller_action_multipath.t
 t/aggregate/live_component_controller_action_path.t
+t/aggregate/live_component_controller_action_path_matchsingle.t
 t/aggregate/live_component_controller_action_private.t
 t/aggregate/live_component_controller_action_regexp.t
 t/aggregate/live_component_controller_action_streaming.t
@@ -82,8 +83,10 @@ t/aggregate/live_engine_request_auth.t
 t/aggregate/live_engine_request_body.t
 t/aggregate/live_engine_request_body_demand.t
 t/aggregate/live_engine_request_cookies.t
+t/aggregate/live_engine_request_env.t
 t/aggregate/live_engine_request_headers.t
 t/aggregate/live_engine_request_parameters.t
+t/aggregate/live_engine_request_remote_user.t
 t/aggregate/live_engine_request_uploads.t
 t/aggregate/live_engine_request_uri.t
 t/aggregate/live_engine_response_cookies.t
@@ -111,6 +114,7 @@ t/cdi_backcompat_plugin_accessor_override.t
 t/conf/extra.conf.in
 t/custom_live_component_controller_action_auto_doublebug.t
 t/custom_live_path_bug.t
+t/dead_load_bad_args.t
 t/dead_load_multiple_chained_attributes.t
 t/dead_no_unknown_error.t
 t/dead_recursive_chained_attributes.t
@@ -120,6 +124,7 @@ t/lib/Catalyst/Action/TestBefore.pm
 t/lib/Catalyst/Plugin/Test/Deprecated.pm
 t/lib/Catalyst/Plugin/Test/Errors.pm
 t/lib/Catalyst/Plugin/Test/Headers.pm
+t/lib/Catalyst/Plugin/Test/MangleDollarUnderScore.pm
 t/lib/Catalyst/Plugin/Test/Plugin.pm
 t/lib/CDICompatTestPlugin.pm
 t/lib/DeprecatedTestApp.pm
@@ -203,6 +208,7 @@ t/lib/TestApp/RequestBaseBug.pm
 t/lib/TestApp/Role.pm
 t/lib/TestApp/View/Dump.pm
 t/lib/TestApp/View/Dump/Body.pm
+t/lib/TestApp/View/Dump/Env.pm
 t/lib/TestApp/View/Dump/Request.pm
 t/lib/TestApp/View/Dump/Response.pm
 t/lib/TestAppBadlyImmutable.pm
@@ -211,6 +217,8 @@ t/lib/TestAppChainedAbsolutePathPart/Controller/Foo.pm
 t/lib/TestAppChainedRecursive.pm
 t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppDoubleAutoBug.pm
+t/lib/TestAppMatchSingleArg.pm
+t/lib/TestAppMatchSingleArg/Controller/Root.pm
 t/lib/TestAppMetaCompat.pm
 t/lib/TestAppMetaCompat/Controller/Base.pm
 t/lib/TestAppMetaCompat/Controller/Books.pm

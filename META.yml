@@ -5,11 +5,12 @@ author:
 build_requires:
   Class::Data::Inheritable: 0
   ExtUtils::MakeMaker: 6.42
+  Test::Exception: 0
   Test::MockObject: 1.07
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.88'
+generated_by: 'Module::Install version 0.89'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -40,7 +41,7 @@ requires:
   Module::Pluggable: 3.01
   Moose: 0.78
   MooseX::Emulate::Class::Accessor::Fast: 0.00801
-  MooseX::MethodAttributes::Inheritable: 0.10
+  MooseX::MethodAttributes::Inheritable: 0.12
   Path::Class: 0.09
   Scalar::Util: 0
   Sub::Exporter: 0
@@ -58,4 +59,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.80004
+version: 5.80005

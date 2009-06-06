@@ -10,7 +10,7 @@ requires 'B::Hooks::EndOfScope' => '0.08';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00801';
 requires 'Class::MOP' => '0.83';
 requires 'Moose' => '0.78';
-requires 'MooseX::MethodAttributes::Inheritable' => '0.10';
+requires 'MooseX::MethodAttributes::Inheritable' => '0.12';
 requires 'Carp';
 requires 'Class::C3::Adopt::NEXT' => '0.07';
 requires 'CGI::Simple::Cookie';
@@ -41,6 +41,7 @@ test_requires 'Class::Data::Inheritable';
 test_requires 'Test::MockObject' => '1.07'; # Newish (hah, 2006!) version to
                                             # hopefully avoid broken distro
                                             # packages (RT#46104)
+test_requires 'Test::Exception';
 
 # aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate is available
 if ($ENV{AGGREGATE_TESTS} && can_use('Test::Aggregate', '0.34_01')) {
@@ -108,6 +109,9 @@ EOF
 # NOTE - This is the version number of the _incompatible_ code,
 #        not the version number of the fixed version.
 my %conflicts = (
+    'Catalyst::Plugin::ENV' => '9999', # This plugin is just stupid, full stop
+                                       # should have been a core fix.
+    'Catalyst::Plugin::Unicode::Encoding' => '0.2',
     'Catalyst::Authentication::Credential::HTTP' => '1.009',
     'Catalyst::Plugin::Session::Store::File' => '0.16',
     'Catalyst::Plugin::Session' => '0.21',
