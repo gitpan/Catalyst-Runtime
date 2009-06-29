@@ -7,6 +7,8 @@ use Moose::Util qw/find_meta/;
 use bytes;
 use B::Hooks::EndOfScope ();
 use Catalyst::Exception;
+use Catalyst::Exception::Detach;
+use Catalyst::Exception::Go;
 use Catalyst::Log;
 use Catalyst::Request;
 use Catalyst::Request::Upload;
@@ -58,8 +60,8 @@ sub finalize_output { shift->finalize_body(@_) };
 our $COUNT     = 1;
 our $START     = time;
 our $RECURSION = 1000;
-our $DETACH    = "catalyst_detach\n";
-our $GO        = "catalyst_go\n";
+our $DETACH    = Catalyst::Exception::Detach->new;
+our $GO        = Catalyst::Exception::Go->new;
 
 #I imagine that very few of these really need to be class variables. if any.
 #maybe we should just make them attributes with a default?
@@ -76,7 +78,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80005';
+our $VERSION = '5.80006';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -493,8 +495,13 @@ sub clear_errors {
     $c->error(0);
 }
 
-# search components given a name and some prefixes
 sub _comp_search_prefixes {
+    my $c = shift;
+    return map $c->components->{ $_ }, $c->_comp_names_search_prefixes(@_);
+}
+
+# search components given a name and some prefixes
+sub _comp_names_search_prefixes {
     my ( $c, $name, @prefixes ) = @_;
     my $appclass = ref $c || $c;
     my $filter   = "^${appclass}::(" . join( '|', @prefixes ) . ')::';
@@ -510,18 +517,18 @@ sub _comp_search_prefixes {
     my $query  = ref $name ? $name : qr/^$name$/i;
     my @result = grep { $eligible{$_} =~ m{$query} } keys %eligible;
 
-    return map { $c->components->{ $_ } } @result if @result;
+    return @result if @result;
 
     # if we were given a regexp to search against, we're done.
     return if ref $name;
 
     # regexp fallback
     $query  = qr/$name/i;
-    @result = map { $c->components->{ $_ } } grep { $eligible{ $_ } =~ m{$query} } keys %eligible;
+    @result = grep { $eligible{ $_ } =~ m{$query} } keys %eligible;
 
     # no results? try against full names
     if( !@result ) {
-        @result = map { $c->components->{ $_ } } grep { m{$query} } keys %eligible;
+        @result = grep { m{$query} } keys %eligible;
     }
 
     # don't warn if we didn't find any results, it just might not exist
@@ -558,7 +565,9 @@ sub _comp_names {
 
     my $filter = "^${appclass}::(" . join( '|', @prefixes ) . ')::';
 
-    my @names = map { s{$filter}{}; $_; } $c->_comp_search_prefixes( undef, @prefixes );
+    my @names = map { s{$filter}{}; $_; }
+        $c->_comp_names_search_prefixes( undef, @prefixes );
+
     return @names;
 }
 
@@ -1192,7 +1201,7 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
-    s/([^A-Za-z0-9\-_.!~*'()])/$URI::Escape::escapes{$1}/go for @args;
+    s/([^$URI::uric])/$URI::Escape::escapes{$1}/go for @args;
 
     unshift(@args, $path);
 
@@ -1226,7 +1235,7 @@ sub uri_for {
               $_ = "$_";
               utf8::encode( $_ ) if utf8::is_utf8($_);
               # using the URI::Escape pattern here so utf8 chars survive
-              s/([^A-Za-z0-9\-_.!~*'()])/$URI::Escape::escapes{$1}/go;
+              s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
               s/ /+/g;
               "${key}=$_"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
       } @keys);
@@ -1502,11 +1511,11 @@ sub execute {
     my $last = pop( @{ $c->stack } );
 
     if ( my $error = $@ ) {
-        if ( !ref($error) and $error eq $DETACH ) {
-            die $DETACH if($c->depth > 1);
+        if ( blessed($error) and $error->isa('Catalyst::Exception::Detach') ) {
+            $error->rethrow if $c->depth > 1;
         }
-        elsif ( !ref($error) and $error eq $GO ) {
-            die $GO if($c->depth > 0);
+        elsif ( blessed($error) and $error->isa('Catalyst::Exception::Go') ) {
+            $error->rethrow if $c->depth > 0;
         }
         else {
             unless ( ref $error ) {
@@ -2503,8 +2512,8 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
         $class->_plugins( {} ) unless $class->_plugins;
         $plugins ||= [];
 
-        my @plugins = map { s/\A\+// ? $_ : "Catalyst::Plugin::$_" } @$plugins;
-        
+        my @plugins = Catalyst::Utils::resolve_namespace($class . '::Plugin', 'Catalyst::Plugin', @$plugins);
+
         for my $plugin ( reverse @plugins ) {
             Class::MOP::load_class($plugin);
             my $meta = find_meta($plugin);
@@ -2518,7 +2527,7 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
             grep { $_ && blessed($_) && $_->isa('Moose::Meta::Role') }
             map { find_meta($_) }
             @plugins;
-         
+
         Moose::Util::apply_all_roles(
             $class => @roles
         ) if @roles;
@@ -2777,7 +2786,7 @@ willert: Sebastian Willert <willert@cpan.org>
 
 =head1 LICENSE
 
-This library is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut

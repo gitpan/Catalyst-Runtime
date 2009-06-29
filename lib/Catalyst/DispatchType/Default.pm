@@ -41,7 +41,7 @@ other possibilities have been exhausted.
 
 sub match {
     my ( $self, $c, $path ) = @_;
-    return if $path =~ m!/!;    # Not at root yet, wait for it ...
+    return if $path ne '';    # Not at root yet, wait for it ...
     my $result = ( $c->get_actions( 'default', $c->req->path ) )[-1];
 
     # Find default on namespace or super
@@ -58,13 +58,15 @@ sub match {
     return 0;
 }
 
+sub _is_low_precedence { 1 }
+
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut

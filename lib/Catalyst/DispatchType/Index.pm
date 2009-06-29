@@ -2,7 +2,7 @@ package Catalyst::DispatchType::Index;
 
 use Moose;
 extends 'Catalyst::DispatchType';
-no Moose;
+use namespace::clean -except => 'meta';
 
 =head1 NAME
 
@@ -25,6 +25,12 @@ dispatch types, see:
 
 =back
 
+=cut
+
+has _actions => (
+    is => 'rw', isa => 'HashRef', default => sub { +{} }
+);
+
 =head1 METHODS
 
 =head2 $self->match( $c, $path )
@@ -40,6 +46,8 @@ sub match {
     return if @{ $c->req->args };
     my $result = $c->get_action( 'index', $path );
 
+    return 0 unless $result && exists $self->_actions->{ $result->reverse };
+
     if ($result && $result->match($c)) {
         $c->action($result);
         $c->namespace( $result->namespace );
@@ -48,6 +56,20 @@ sub match {
         return 1;
     }
     return 0;
+}
+
+=head2 $self->register( $c, $action )
+
+Register an action with this DispatchType.
+
+=cut
+
+sub register {
+    my ( $self, $c, $action ) = @_;
+
+    $self->_actions->{ $action->reverse } = $action;
+
+    return 1;
 }
 
 =head2 $self->uri_for_action( $action, $captures )
@@ -67,13 +89,15 @@ sub uri_for_action {
     return "/".$action->namespace;
 }
 
+sub _is_low_precedence { 1 }
+
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut

@@ -7,7 +7,7 @@ BEGIN { require 5.008001; }
 
 # Remember to update this in Catalyst as well!
 
-our $VERSION='5.80005';
+our $VERSION='5.80006';
 
 $VERSION = eval $VERSION;
 
@@ -21,7 +21,7 @@ See L<Catalyst>.
 
 =head1 DESCRIPTION
 
-This is the primary class for the Catalyst-Runtime distribution, version 5.70.
+This is the primary class for the Catalyst-Runtime distribution, version 5.80.
 
 =head1 AUTHORS
 
@@ -29,7 +29,7 @@ Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut

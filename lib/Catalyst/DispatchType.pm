@@ -44,7 +44,7 @@ sub match { die "Abstract method!" }
 =head2 $self->register( $c, $action )
 
 abstract method, to be implemented by dispatchtypes. Takes a
-context object and a L<Catalyst::Action> object. 
+context object and a L<Catalyst::Action> object.
 
 Should return true if it registers something, or false otherwise.
 
@@ -73,13 +73,15 @@ about expand_action.
 
 sub expand_action { }
 
+sub _is_low_precedence { 0 }
+
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut

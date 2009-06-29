@@ -34,17 +34,14 @@ has _registered_dispatch_types => (is => 'rw', default => sub { {} }, required =
 has _method_action_class => (is => 'rw', default => 'Catalyst::Action');
 has _action_hash => (is => 'rw', required => 1, lazy => 1, default => sub { {} });
 has _container_hash => (is => 'rw', required => 1, lazy => 1, default => sub { {} });
-has preload_dispatch_types => (is => 'rw', required => 1, lazy => 1, default => sub { [@PRELOAD] });
 
-has postload_dispatch_types => (is => 'rw', required => 1, lazy => 1, default => sub { [@POSTLOAD] });
-
-# Wrap accessors so you can assign a list and it will capture a list ref.
-around qw/preload_dispatch_types postload_dispatch_types/ => sub {
-    my $orig = shift;
-    my $self = shift;
-    return $self->$orig([@_]) if (scalar @_ && ref $_[0] ne 'ARRAY');
-    return $self->$orig(@_);
-};
+my %dispatch_types = ( pre => \@PRELOAD, post => \@POSTLOAD );
+foreach my $type (keys %dispatch_types) {
+    has $type . "load_dispatch_types" => (
+        is => 'rw', required => 1, lazy => 1, default => sub { $dispatch_types{$type} },
+        traits => ['MooseX::Emulate::Class::Accessor::Fast::Meta::Role::Attribute'], # List assignment is CAF style
+    );
+}
 
 =head1 NAME
 
@@ -61,7 +58,7 @@ application based on the attributes you set.
 
 =head1 METHODS
 
-=head2 new 
+=head2 new
 
 Construct a new dispatcher.
 
@@ -225,7 +222,7 @@ Documented in L<Catalyst>
 sub go {
     my $self = shift;
     $self->_do_visit('go', @_);
-    die $Catalyst::GO;
+    Catalyst::Exception::Go->throw;
 }
 
 =head2 $self->forward( $c, $command [, \@arguments ] )
@@ -271,7 +268,7 @@ Documented in L<Catalyst>
 sub detach {
     my ( $self, $c, $command, @args ) = @_;
     $self->_do_forward(detach => $c, $command, @args ) if $command;
-    die $Catalyst::DETACH;
+    Catalyst::Exception::Detach->throw;
 }
 
 sub _action_rel2abs {
@@ -370,9 +367,7 @@ sub prepare_action {
 
   DESCEND: while (@path) {
         $path = join '/', @path;
-        $path =~ s#^/##;
-
-        $path = '' if $path eq '/';    # Root action
+        $path =~ s#^/+##;
 
         # Check out dispatch types to see if any will handle the path at
         # this level
@@ -411,7 +406,7 @@ sub get_action {
     return $self->_action_hash->{"${namespace}/${name}"};
 }
 
-=head2 $self->get_action_by_path( $path ); 
+=head2 $self->get_action_by_path( $path );
 
 Returns the named action by its full private path.
 
@@ -459,9 +454,6 @@ sub get_containers {
     }
 
     return reverse grep { defined } @containers, $self->_container_hash->{''};
-
-    #return (split '/', $namespace); # isnt this more clear?
-    my @parts = split '/', $namespace;
 }
 
 =head2 $self->uri_for_action($action, \@captures)
@@ -531,9 +523,28 @@ sub register {
         }
     }
 
+    my @dtypes = @{ $self->_dispatch_types };
+    my @normal_dtypes;
+    my @low_precedence_dtypes;
+
+    for my $type ( @dtypes ) {
+        if ($type->_is_low_precedence) {
+            push @low_precedence_dtypes, $type;
+        } else {
+            push @normal_dtypes, $type;
+        }
+    }
+
     # Pass the action to our dispatch types so they can register it if reqd.
-    foreach my $type ( @{ $self->_dispatch_types } ) {
-        $type->register( $c, $action );
+    my $was_registered = 0;
+    foreach my $type ( @normal_dtypes ) {
+        $was_registered = 1 if $type->register( $c, $action );
+    }
+
+    if (not $was_registered) {
+        foreach my $type ( @low_precedence_dtypes ) {
+            $type->register( $c, $action );
+        }
     }
 
     my $namespace = $action->namespace;
@@ -640,12 +651,11 @@ sub _load_dispatch_types {
     my ( $self, @types ) = @_;
 
     my @loaded;
-
     # Preload action types
     for my $type (@types) {
-        my $class =
-          ( $type =~ /^\+(.*)$/ ) ? $1 : "Catalyst::DispatchType::${type}";
-
+        # first param is undef because we cannot get the appclass
+        my $class = Catalyst::Utils::resolve_namespace(undef, 'Catalyst::DispatchType', $type);
+        
         eval { Class::MOP::load_class($class) };
         Catalyst::Exception->throw( message => qq/Couldn't load "$class"/ )
           if $@;
@@ -661,16 +671,15 @@ sub _load_dispatch_types {
 
 Get the DispatchType object of the relevant type, i.e. passing C<$type> of
 C<Chained> would return a L<Catalyst::DispatchType::Chained> object (assuming
-of course it's being used.) 
+of course it's being used.)
 
 =cut
 
 sub dispatch_type {
     my ($self, $name) = @_;
 
-    unless ($name =~ s/^\+//) {
-        $name = "Catalyst::DispatchType::" . $name;
-    }
+    # first param is undef because we cannot get the appclass
+    $name = Catalyst::Utils::resolve_namespace(undef, 'Catalyst::DispatchType', $name);
 
     for (@{ $self->_dispatch_types }) {
         return $_ if ref($_) eq $name;
@@ -692,12 +701,12 @@ use Moose;
 # See also t/lib/TestApp/Plugin/AddDispatchTypes.pm
 
 # Alias _method_name to method_name, add a before modifier to warn..
-foreach my $public_method_name (qw/ 
-        tree 
-        dispatch_types 
-        registered_dispatch_types 
-        method_action_class  
-        action_hash 
+foreach my $public_method_name (qw/
+        tree
+        dispatch_types
+        registered_dispatch_types
+        method_action_class
+        action_hash
         container_hash
     /) {
     my $private_method_name = '_' . $public_method_name;
@@ -731,7 +740,7 @@ Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut

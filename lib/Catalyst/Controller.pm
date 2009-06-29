@@ -178,12 +178,27 @@ around path_prefix => sub {
 sub get_action_methods {
     my $self = shift;
     my $meta = find_meta($self);
-    confess("Metaclass for " . ref($meta) ." for " . $meta->name
-        . " cannot support register_actions.")
-        unless $meta->can('get_nearest_methods_with_attributes');
+    confess("Metaclass for "
+          . ref($meta) . " for "
+          . $meta->name
+          . " cannot support register_actions." )
+      unless $meta->can('get_nearest_methods_with_attributes');
     my @methods = $meta->get_nearest_methods_with_attributes;
+
+    # actions specified via config are also action_methods
+    push(
+        @methods,
+        map {
+            $meta->get_method($_)
+              || confess( 'Action "' 
+                  . $_
+                  . '" is not available from controller '
+                  . ( ref $self ) )
+          } keys %{ $self->_controller_actions }
+    ) if ( ref $self );
     return @methods;
 }
+
 
 sub register_actions {
     my ( $self, $c ) = @_;
@@ -199,7 +214,6 @@ sub register_action_methods {
     foreach my $method (@methods) {
         my $name = $method->name;
         my $attributes = $method->attributes;
-        next unless $attributes;
         my $attrs = $self->_parse_attrs( $c, $name, @{ $attributes } );
         if ( $attrs->{Private} && ( keys %$attrs > 1 ) ) {
             $c->log->debug( 'Bad action definition "'
@@ -370,15 +384,14 @@ sub _parse_ChainedParent_attr {
 }
 
 sub _parse_PathPrefix_attr {
-    my $self = shift;
-    return PathPart => $self->path_prefix;
+    my ( $self, $c ) = @_;
+    return PathPart => $self->path_prefix($c);
 }
 
 sub _parse_ActionClass_attr {
     my ( $self, $c, $name, $value ) = @_;
-    unless ( $value =~ s/^\+// ) {
-      $value = join('::', $self->_action_class, $value );
-    }
+    my $appname = $self->_application;
+    $value = Catalyst::Utils::resolve_namespace($appname . '::Action', $self->_action_class, $value);
     return ( 'ActionClass', $value );
 }
 
@@ -475,7 +488,7 @@ Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify
+This library is free software. You can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut

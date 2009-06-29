@@ -5,6 +5,7 @@ perl_version '5.008001';
 name 'Catalyst-Runtime';
 all_from 'lib/Catalyst/Runtime.pm';
 
+requires 'namespace::autoclean';
 requires 'namespace::clean';
 requires 'B::Hooks::EndOfScope' => '0.08';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00801';
@@ -32,20 +33,20 @@ requires 'Time::HiRes';
 requires 'Tree::Simple' => '1.15';
 requires 'Tree::Simple::Visitor::FindByPath';
 requires 'URI' => '1.35';
+requires 'Task::Weaken';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
 requires 'MRO::Compat';
+requires 'String::RewritePrefix' => '0.004'; # Catalyst::Utils::resolve_namespace
 
 recommends 'B::Hooks::OP::Check::StashChange';
 
 test_requires 'Class::Data::Inheritable';
-test_requires 'Test::MockObject' => '1.07'; # Newish (hah, 2006!) version to
-                                            # hopefully avoid broken distro
-                                            # packages (RT#46104)
 test_requires 'Test::Exception';
 
-# aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate is available
-if ($ENV{AGGREGATE_TESTS} && can_use('Test::Aggregate', '0.34_01')) {
-    test_requires('Test::Aggregate', '0.34_01');
+# aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate and a Test::Simple it works with is available
+if ($ENV{AGGREGATE_TESTS} && can_use('Test::Simple', '0.88') && can_use('Test::Aggregate', '0.35_05')) {
+    test_requires('Test::Aggregate', '0.35_05');
+    test_requires('Test::Simple', '0.88');
 }
 else {
     tests join q{ },
@@ -109,6 +110,7 @@ EOF
 # NOTE - This is the version number of the _incompatible_ code,
 #        not the version number of the fixed version.
 my %conflicts = (
+    'Catalyst::Component::ACCEPT_CONTEXT' => '0.06',
     'Catalyst::Plugin::ENV' => '9999', # This plugin is just stupid, full stop
                                        # should have been a core fix.
     'Catalyst::Plugin::Unicode::Encoding' => '0.2',

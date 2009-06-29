@@ -19,6 +19,7 @@ lib/Catalyst/Base.pm
 lib/Catalyst/ClassData.pm
 lib/Catalyst/Component.pm
 lib/Catalyst/Component/ApplicationAttribute.pm
+lib/Catalyst/Component/ContextClosure.pm
 lib/Catalyst/Controller.pm
 lib/Catalyst/Delta.pod
 lib/Catalyst/Dispatcher.pm
@@ -35,6 +36,8 @@ lib/Catalyst/Engine/HTTP.pm
 lib/Catalyst/Engine/HTTP/Restarter.pm
 lib/Catalyst/Engine/HTTP/Restarter/Watcher.pm
 lib/Catalyst/Exception.pm
+lib/Catalyst/Exception/Detach.pm
+lib/Catalyst/Exception/Go.pm
 lib/Catalyst/Log.pm
 lib/Catalyst/Model.pm
 lib/Catalyst/Request.pm
@@ -67,6 +70,7 @@ t/aggregate/live_component_controller_action_forward.t
 t/aggregate/live_component_controller_action_global.t
 t/aggregate/live_component_controller_action_go.t
 t/aggregate/live_component_controller_action_index.t
+t/aggregate/live_component_controller_action_index_or_default.t
 t/aggregate/live_component_controller_action_inheritance.t
 t/aggregate/live_component_controller_action_local.t
 t/aggregate/live_component_controller_action_multipath.t
@@ -79,11 +83,13 @@ t/aggregate/live_component_controller_action_visit.t
 t/aggregate/live_component_controller_args.t
 t/aggregate/live_component_controller_atttributes.t
 t/aggregate/live_component_controller_moose.t
+t/aggregate/live_component_view_single.t
 t/aggregate/live_engine_request_auth.t
 t/aggregate/live_engine_request_body.t
 t/aggregate/live_engine_request_body_demand.t
 t/aggregate/live_engine_request_cookies.t
 t/aggregate/live_engine_request_env.t
+t/aggregate/live_engine_request_escaped_path.t
 t/aggregate/live_engine_request_headers.t
 t/aggregate/live_engine_request_parameters.t
 t/aggregate/live_engine_request_remote_user.t
@@ -174,6 +180,7 @@ t/lib/TestApp/Controller/Action/TestRelative.pm
 t/lib/TestApp/Controller/Action/Visit.pm
 t/lib/TestApp/Controller/Args.pm
 t/lib/TestApp/Controller/Attributes.pm
+t/lib/TestApp/Controller/ContextClosure.pm
 t/lib/TestApp/Controller/Dump.pm
 t/lib/TestApp/Controller/Engine/Request/Uploads.pm
 t/lib/TestApp/Controller/Engine/Request/URI.pm
@@ -200,6 +207,8 @@ t/lib/TestApp/Controller/Priorities/re_vs_index.pm
 t/lib/TestApp/Controller/Root.pm
 t/lib/TestApp/DispatchType/CustomPostLoad.pm
 t/lib/TestApp/DispatchType/CustomPreLoad.pm
+t/lib/TestApp/Model.pm
+t/lib/TestApp/Model/ClosuresInConfig.pm
 t/lib/TestApp/Model/Foo.pm
 t/lib/TestApp/Model/Foo/Bar.pm
 t/lib/TestApp/Plugin/AddDispatchTypes.pm
@@ -217,6 +226,11 @@ t/lib/TestAppChainedAbsolutePathPart/Controller/Foo.pm
 t/lib/TestAppChainedRecursive.pm
 t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppDoubleAutoBug.pm
+t/lib/TestAppIndexDefault.pm
+t/lib/TestAppIndexDefault/Controller/Default.pm
+t/lib/TestAppIndexDefault/Controller/IndexChained.pm
+t/lib/TestAppIndexDefault/Controller/IndexPrivate.pm
+t/lib/TestAppIndexDefault/Controller/Root.pm
 t/lib/TestAppMatchSingleArg.pm
 t/lib/TestAppMatchSingleArg/Controller/Root.pm
 t/lib/TestAppMetaCompat.pm
@@ -224,6 +238,9 @@ t/lib/TestAppMetaCompat/Controller/Base.pm
 t/lib/TestAppMetaCompat/Controller/Books.pm
 t/lib/TestAppOnDemand.pm
 t/lib/TestAppOnDemand/Controller/Body.pm
+t/lib/TestAppOneView.pm
+t/lib/TestAppOneView/Controller/Root.pm
+t/lib/TestAppOneView/View/Dummy.pm
 t/lib/TestAppPathBug.pm
 t/lib/TestAppPluginWithConstructor.pm
 t/lib/TestAppStats.pm
@@ -232,6 +249,7 @@ t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm
 t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
+t/live_component_controller_context_closure.t
 t/live_fork.t
 t/live_stats.t
 t/meta_method_unneeded.t

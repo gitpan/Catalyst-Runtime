@@ -9,6 +9,8 @@ use URI;
 use Carp qw/croak/;
 use Cwd;
 
+use String::RewritePrefix;
+
 use namespace::clean;
 
 =head1 NAME
@@ -21,7 +23,7 @@ See L<Catalyst>.
 
 =head1 DESCRIPTION
 
-Catalyst Utilities. 
+Catalyst Utilities.
 
 =head1 METHODS
 
@@ -297,7 +299,7 @@ sub merge_hashes {
     my ( $lefthash, $righthash ) = @_;
 
     return $lefthash unless defined $righthash;
-    
+
     my %merged = %$lefthash;
     for my $key ( keys %$righthash ) {
         my $right_ref = ( ref $righthash->{ $key } || '' ) eq 'HASH';
@@ -311,7 +313,7 @@ sub merge_hashes {
             $merged{ $key } = $righthash->{ $key };
         }
     }
-    
+
     return \%merged;
 }
 
@@ -346,10 +348,10 @@ All you need to get this work, is:
 
 1) Install Term::Size::Any, or
 
-2) Export $COLUMNS from your shell. 
+2) Export $COLUMNS from your shell.
 
 (Warning to bash users: 'echo $COLUMNS' may be showing you the bash
-variable, not $ENV{COLUMNS}. 'export COLUMNS=$COLUMNS' and you should see 
+variable, not $ENV{COLUMNS}. 'export COLUMNS=$COLUMNS' and you should see
 that 'env' now lists COLUMNS.)
 
 As last resort, default value of 80 chars will be used.
@@ -377,13 +379,40 @@ sub term_width {
     return $_term_width = $width;
 }
 
+
+=head2 resolve_namespace
+
+Method which adds the namespace for plugins and actions.
+
+  __PACKAGE__->setup(qw(MyPlugin));
+
+  # will load Catalyst::Plugin::MyPlugin
+
+=cut
+
+
+sub resolve_namespace {
+    my $appnamespace = shift;
+    my $namespace = shift;
+    my @classes = @_;
+    return String::RewritePrefix->rewrite({
+        q[]  => qq[${namespace}::],
+        q[+] => q[],
+        (defined $appnamespace
+            ? (q[~] => qq[${appnamespace}::])
+            : ()
+        ),
+    }, @classes);
+}
+
+
 =head1 AUTHORS
 
 Catalyst Contributors, see Catalyst.pm
 
 =head1 COPYRIGHT
 
-This program is free software, you can redistribute it and/or modify it under
+This library is free software. You can redistribute it and/or modify it under
 the same terms as Perl itself.
 
 =cut
