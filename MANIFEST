@@ -113,6 +113,7 @@ t/aggregate/unit_core_appclass_roles_in_plugin_list.t
 t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_uri_for_action.t
 t/aggregate/unit_core_uri_for_multibytechar.t
+t/c3_appclass_bug.t
 t/c3_mro.t
 t/caf_backcompat.t
 t/catalyst_130pix.gif

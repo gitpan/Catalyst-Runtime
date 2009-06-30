@@ -78,7 +78,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80006';
+our $VERSION = '5.80007';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -103,12 +103,13 @@ sub import {
     }
 
     my $meta = Moose::Meta::Class->initialize($caller);
-    #Moose->import({ into => $caller }); #do we want to do this?
-
     unless ( $caller->isa('Catalyst') ) {
         my @superclasses = ($meta->superclasses, $class, 'Catalyst::Controller');
         $meta->superclasses(@superclasses);
     }
+    # Avoid possible C3 issues if 'Moose::Object' is already on RHS of MyApp
+    $meta->superclasses(grep { $_ ne 'Moose::Object' } $meta->superclasses);
+
     unless( $meta->has_method('meta') ){
         $meta->add_method(meta => sub { Moose::Meta::Class->initialize("${caller}") } );
     }
@@ -116,6 +117,8 @@ sub import {
     $caller->arguments( [@arguments] );
     $caller->setup_home;
 }
+
+sub _application { $_[0] }
 
 =head1 NAME
 
@@ -1232,12 +1235,12 @@ sub uri_for {
           my $key = $_;
           $val = '' unless defined $val;
           (map {
-              $_ = "$_";
-              utf8::encode( $_ ) if utf8::is_utf8($_);
+              my $param = "$_";
+              utf8::encode( $param ) if utf8::is_utf8($param);
               # using the URI::Escape pattern here so utf8 chars survive
-              s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
-              s/ /+/g;
-              "${key}=$_"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
+              $param =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
+              $param =~ s/ /+/g;
+              "${key}=$param"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
       } @keys);
     }
 
