@@ -44,6 +44,8 @@ sub BUILD {
     $self->_controller_actions($attr_value);
 }
 
+
+
 =head1 NAME
 
 Catalyst::Controller - Catalyst Controller base class
@@ -156,7 +158,7 @@ around action_namespace => sub {
         }
     }
 
-    my $namespace = Catalyst::Utils::class2prefix(ref($self) || $self, $case_s) || '';
+    my $namespace = Catalyst::Utils::class2prefix($self->catalyst_component_name, $case_s) || '';
     $self->$orig($namespace) if ref($self);
     return $namespace;
 };
@@ -177,8 +179,8 @@ around path_prefix => sub {
 
 sub get_action_methods {
     my $self = shift;
-    my $meta = find_meta($self);
-    confess("Metaclass for "
+    my $meta = find_meta($self) || confess("No metaclass setup for $self");
+    confess("Metaclass "
           . ref($meta) . " for "
           . $meta->name
           . " cannot support register_actions." )
@@ -190,7 +192,7 @@ sub get_action_methods {
         @methods,
         map {
             $meta->find_method_by_name($_)
-              || confess( 'Action "' 
+              || confess( 'Action "'
                   . $_
                   . '" is not available from controller '
                   . ( ref $self ) )
@@ -207,9 +209,14 @@ sub register_actions {
 
 sub register_action_methods {
     my ( $self, $c, @methods ) = @_;
-    my $class = ref $self || $self;
+    my $class = $self->catalyst_component_name;
     #this is still not correct for some reason.
     my $namespace = $self->action_namespace($c);
+
+    # Uncomment as soon as you fix the tests :)
+    #if (!blessed($self) && $self eq $c && scalar(@methods)) {
+    #    $c->log->warn("Action methods found defined in your application class, $self. This is deprecated, please move them into a Root controller.");
+    #}
 
     foreach my $method (@methods) {
         my $name = $method->name;

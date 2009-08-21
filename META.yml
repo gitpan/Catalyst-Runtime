@@ -6,7 +6,6 @@ build_requires:
   Class::Data::Inheritable: 0
   ExtUtils::MakeMaker: 6.42
   Test::Exception: 0
-  Test::Simple: 0.88
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
@@ -29,7 +28,6 @@ requires:
   Class::C3::Adopt::NEXT: 0.07
   Class::MOP: 0.83
   Data::Dump: 0
-  File::Modified: 0
   HTML::Entities: 0
   HTTP::Body: 1.04
   HTTP::Headers: 1.64
@@ -37,11 +35,12 @@ requires:
   HTTP::Request::AsCGI: 0.8
   HTTP::Response: 0
   LWP::UserAgent: 0
+  List::MoreUtils: 0
   MRO::Compat: 0
-  Module::Pluggable: 3.01
+  Module::Pluggable: 3.9
   Moose: 0.78
   MooseX::Emulate::Class::Accessor::Fast: 0.00801
-  MooseX::MethodAttributes::Inheritable: 0.12
+  MooseX::MethodAttributes::Inheritable: 0.15
   Path::Class: 0.09
   Scalar::Util: 0
   String::RewritePrefix: 0.004
@@ -55,11 +54,11 @@ requires:
   URI: 1.35
   namespace::autoclean: 0
   namespace::clean: 0
-  perl: 5.8.1
+  perl: 5.8.6
 resources:
   IRC: irc://irc.perl.org/#catalyst
   MailingList: http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/catalyst
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.80007
+version: 5.80008

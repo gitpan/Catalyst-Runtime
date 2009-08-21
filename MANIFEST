@@ -1,9 +1,11 @@
 Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
+inc/Module/Install/AuthorRequires.pm
 inc/Module/Install/AutoInstall.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Can.pm
+inc/Module/Install/CheckConflicts.pm
 inc/Module/Install/Fetch.pm
 inc/Module/Install/Include.pm
 inc/Module/Install/Makefile.pm
@@ -33,8 +35,6 @@ lib/Catalyst/Engine.pm
 lib/Catalyst/Engine/CGI.pm
 lib/Catalyst/Engine/FastCGI.pm
 lib/Catalyst/Engine/HTTP.pm
-lib/Catalyst/Engine/HTTP/Restarter.pm
-lib/Catalyst/Engine/HTTP/Restarter/Watcher.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Exception/Detach.pm
 lib/Catalyst/Exception/Go.pm
@@ -80,8 +80,9 @@ t/aggregate/live_component_controller_action_private.t
 t/aggregate/live_component_controller_action_regexp.t
 t/aggregate/live_component_controller_action_streaming.t
 t/aggregate/live_component_controller_action_visit.t
+t/aggregate/live_component_controller_anon.t
 t/aggregate/live_component_controller_args.t
-t/aggregate/live_component_controller_atttributes.t
+t/aggregate/live_component_controller_attributes.t
 t/aggregate/live_component_controller_moose.t
 t/aggregate/live_component_view_single.t
 t/aggregate/live_engine_request_auth.t
@@ -119,6 +120,7 @@ t/caf_backcompat.t
 t/catalyst_130pix.gif
 t/cdi_backcompat_plugin_accessor_override.t
 t/conf/extra.conf.in
+t/custom_exception_class_simple.t
 t/custom_live_component_controller_action_auto_doublebug.t
 t/custom_live_path_bug.t
 t/dead_load_bad_args.t
@@ -179,6 +181,7 @@ t/lib/TestApp/Controller/Action/Streaming.pm
 t/lib/TestApp/Controller/Action/TestMultipath.pm
 t/lib/TestApp/Controller/Action/TestRelative.pm
 t/lib/TestApp/Controller/Action/Visit.pm
+t/lib/TestApp/Controller/Anon.pm
 t/lib/TestApp/Controller/Args.pm
 t/lib/TestApp/Controller/Attributes.pm
 t/lib/TestApp/Controller/ContextClosure.pm
@@ -226,6 +229,7 @@ t/lib/TestAppChainedAbsolutePathPart.pm
 t/lib/TestAppChainedAbsolutePathPart/Controller/Foo.pm
 t/lib/TestAppChainedRecursive.pm
 t/lib/TestAppChainedRecursive/Controller/Foo.pm
+t/lib/TestAppClassExceptionSimpleTest.pm
 t/lib/TestAppDoubleAutoBug.pm
 t/lib/TestAppIndexDefault.pm
 t/lib/TestAppIndexDefault/Controller/Default.pm
@@ -237,6 +241,9 @@ t/lib/TestAppMatchSingleArg/Controller/Root.pm
 t/lib/TestAppMetaCompat.pm
 t/lib/TestAppMetaCompat/Controller/Base.pm
 t/lib/TestAppMetaCompat/Controller/Books.pm
+t/lib/TestAppNonMooseController.pm
+t/lib/TestAppNonMooseController/Controller/Foo.pm
+t/lib/TestAppNonMooseController/ControllerBase.pm
 t/lib/TestAppOnDemand.pm
 t/lib/TestAppOnDemand/Controller/Body.pm
 t/lib/TestAppOneView.pm
@@ -271,6 +278,7 @@ t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
 t/unit_controller_config.t
 t/unit_controller_namespace.t
+t/unit_core_action.t
 t/unit_core_classdata.t
 t/unit_core_component.t
 t/unit_core_component_loading.t
