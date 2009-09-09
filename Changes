@@ -1,4 +1,25 @@
 # This file documents the revision history for Perl extension Catalyst.
+#
+5.80012 2009-09-09 19:09:09
+
+  Bug fixes:
+     - Fix t/optional_http-server.t test.
+     - Fix t/optional_http-server-restart.t test.
+     - Fix duplicate components being loaded at setup time, each component is
+       now loaded at most once + tests.
+     - Fix backward compatibility - hash key configured actions are stored in
+       is returned to 'actions'.
+     - Fix get_action_methods returning duplicate methods when a method is both
+       decorated with method attributes and set as an action in config.
+
+  Refactoring / cleanups:
+     - Reduce minimum supported perl version from 5.8.6 to 5.8.4 as there are
+       many people still running/testing this version with no known issues.
+
+  Tests:
+     - Make the optional_http_server.t test an author only test which must be
+       run by authors to stop it being broken again.
+     - Fix recursion warnings in the test suites.
 
 5.80011 2009-08-23 13:48:15
 
@@ -48,9 +69,7 @@
          new Catalyst::Restarter in a recent Catalyst::Devel instead.
        - New unit test for Catalyst::Action 'unit_core_action.t'
        - Bump minimum supported perl version from 5.8.1 to 5.8.6 as there are
-         known issues with 5.8.3, and nobody is prepared to fix / support perl
-         older than 5.8.6 any more. Patches to regain compatibility to older
-         perls would be welcome.
+         known issues with 5.8.3.
        - Debug output uses dynamic column sizing to create more readable output
          when using a larger $ENV{COLUMNS} setting. (groditi)
 

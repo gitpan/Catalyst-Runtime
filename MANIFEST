@@ -2,6 +2,7 @@ Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
 inc/Module/Install/AuthorRequires.pm
+inc/Module/Install/AuthorTests.pm
 inc/Module/Install/AutoInstall.pm
 inc/Module/Install/Base.pm
 inc/Module/Install/Can.pm
@@ -114,11 +115,11 @@ t/aggregate/unit_core_appclass_roles_in_plugin_list.t
 t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_uri_for_action.t
 t/aggregate/unit_core_uri_for_multibytechar.t
+t/author/optional_http-server.t
 t/c3_appclass_bug.t
 t/c3_mro.t
 t/caf_backcompat.t
 t/catalyst_130pix.gif
-t/cdi_backcompat_plugin_accessor_override.t
 t/conf/extra.conf.in
 t/custom_exception_class_simple.t
 t/custom_live_component_controller_action_auto_doublebug.t
@@ -266,7 +267,6 @@ t/optional_apache-cgi.pl
 t/optional_apache-fastcgi-non-root.pl
 t/optional_apache-fastcgi.pl
 t/optional_http-server-restart.t
-t/optional_http-server.t
 t/optional_lighttpd-fastcgi-non-root.t
 t/optional_lighttpd-fastcgi.t
 t/optional_memleak.t
@@ -276,6 +276,7 @@ t/optional_threads.t
 t/plugin_new_method_backcompat.t
 t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
+t/unit_controller_actions.t
 t/unit_controller_config.t
 t/unit_controller_namespace.t
 t/unit_core_action.t

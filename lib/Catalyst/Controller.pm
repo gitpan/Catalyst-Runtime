@@ -2,7 +2,7 @@ package Catalyst::Controller;
 
 use Moose;
 use Moose::Util qw/find_meta/;
-
+use List::MoreUtils qw/uniq/;
 use namespace::clean -except => 'meta';
 
 BEGIN { extends qw/Catalyst::Component MooseX::MethodAttributes::Inheritable/; }
@@ -29,9 +29,9 @@ has action_namespace =>
      predicate => 'has_action_namespace',
     );
 
-has _controller_actions =>
+has actions =>
     (
-     is => 'rw',
+     accessor => '_controller_actions',
      isa => 'HashRef',
      init_arg => undef,
     );
@@ -137,21 +137,23 @@ around action_namespace => sub {
     my $orig = shift;
     my ( $self, $c ) = @_;
 
+    my $class = ref($self) || $self;
+    my $appclass = ref($c) || $c;
     if( ref($self) ){
         return $self->$orig if $self->has_action_namespace;
     } else {
-        return $self->config->{namespace} if exists $self->config->{namespace};
+        return $class->config->{namespace} if exists $class->config->{namespace};
     }
 
     my $case_s;
     if( $c ){
-        $case_s = $c->config->{case_sensitive};
+        $case_s = $appclass->config->{case_sensitive};
     } else {
         if ($self->isa('Catalyst')) {
-            $case_s = $self->config->{case_sensitive};
+            $case_s = $class->config->{case_sensitive};
         } else {
             if (ref $self) {
-                $case_s = $self->_application->config->{case_sensitive};
+                $case_s = ref($self->_application)->config->{case_sensitive};
             } else {
                 confess("Can't figure out case_sensitive setting");
             }
@@ -198,7 +200,7 @@ sub get_action_methods {
                   . ( ref $self ) )
           } keys %{ $self->_controller_actions }
     ) if ( ref $self );
-    return @methods;
+    return uniq @methods;
 }
 
 

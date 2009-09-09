@@ -5,9 +5,10 @@ BEGIN { # Make it easy for newbies
     if ($Module::Install::AUTHOR) {
         require Module::Install::AuthorRequires;
         require Module::Install::CheckConflicts;
+        require Module::Install::AuthorTests;
     }
 }
-perl_version '5.008006';
+perl_version '5.008004';
 
 name 'Catalyst-Runtime';
 all_from 'lib/Catalyst/Runtime.pm';
@@ -61,6 +62,7 @@ else {
         map  { glob } qw[t/*.t t/aggregate/*.t];
 }
 
+author_tests 't/author';
 author_requires(map {; $_ => 0 } qw(
   Test::NoTabs
   Test::Pod
