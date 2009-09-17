@@ -129,6 +129,9 @@ t/dead_load_multiple_chained_attributes.t
 t/dead_no_unknown_error.t
 t/dead_recursive_chained_attributes.t
 t/deprecated.t
+t/deprecated_appclass_action_warnings.t
+t/lib/ACLTestApp.pm
+t/lib/ACLTestApp/Controller/Root.pm
 t/lib/Catalyst/Action/TestAfter.pm
 t/lib/Catalyst/Action/TestBefore.pm
 t/lib/Catalyst/Plugin/Test/Deprecated.pm
@@ -137,10 +140,12 @@ t/lib/Catalyst/Plugin/Test/Headers.pm
 t/lib/Catalyst/Plugin/Test/MangleDollarUnderScore.pm
 t/lib/Catalyst/Plugin/Test/Plugin.pm
 t/lib/CDICompatTestPlugin.pm
+t/lib/DeprecatedActionsInAppClassTestApp.pm
 t/lib/DeprecatedTestApp.pm
 t/lib/DeprecatedTestApp/C/Root.pm
 t/lib/NullPackage.pm
 t/lib/PluginTestApp.pm
+t/lib/PluginTestApp/Controller/Root.pm
 t/lib/TestApp.pm
 t/lib/TestApp/Action/TestBefore.pm
 t/lib/TestApp/Action/TestMyAction.pm
@@ -232,6 +237,7 @@ t/lib/TestAppChainedRecursive.pm
 t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppClassExceptionSimpleTest.pm
 t/lib/TestAppDoubleAutoBug.pm
+t/lib/TestAppDoubleAutoBug/Controller/Root.pm
 t/lib/TestAppIndexDefault.pm
 t/lib/TestAppIndexDefault/Controller/Default.pm
 t/lib/TestAppIndexDefault/Controller/IndexChained.pm
@@ -252,7 +258,9 @@ t/lib/TestAppOneView/Controller/Root.pm
 t/lib/TestAppOneView/View/Dummy.pm
 t/lib/TestAppPathBug.pm
 t/lib/TestAppPluginWithConstructor.pm
+t/lib/TestAppPluginWithConstructor/Controller/Root.pm
 t/lib/TestAppStats.pm
+t/lib/TestAppStats/Controller/Root.pm
 t/lib/TestAppUnknownError.pm
 t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm

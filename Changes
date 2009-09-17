@@ -1,5 +1,28 @@
 # This file documents the revision history for Perl extension Catalyst.
-#
+
+5.80013 2009-09-17 11:07:04
+
+   Bug fixes:
+     - Preserve immutable_options when temporarily making a class mutable in
+       Catalyst::ClassData as this is needed by new Class::MOP.
+       This could have potentially caused issues when using the deprecated runtime
+       plugins feature in an application with plugins which define their own new
+       method.
+     - Require new Moose version and new versions of various dependencies
+       to avoid warnings from newest Moose release.
+
+  Documentation:
+     - Rework the $c->go documentation to make it more clear.
+     - Additional documentation in Catalyst::Upgrading covering more deprecation
+       warnings.
+
+  Refactoring / cleanups:
+     - Action methods in the application class are deprecated and applications
+       using them will now generate a warning at startup.
+     - The -short option has been removed from catalyst.pl, stopping new
+       applications from being generated using the ::[MVC]:: naming scheme as
+       this is deprecated and generates warnings. RT#49771
+
 5.80012 2009-09-09 19:09:09
 
   Bug fixes:

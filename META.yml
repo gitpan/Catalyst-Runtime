@@ -38,9 +38,9 @@ requires:
   List::MoreUtils: 0
   MRO::Compat: 0
   Module::Pluggable: 3.9
-  Moose: 0.78
-  MooseX::Emulate::Class::Accessor::Fast: 0.00801
-  MooseX::MethodAttributes::Inheritable: 0.15
+  Moose: 0.90
+  MooseX::Emulate::Class::Accessor::Fast: 0.00903
+  MooseX::MethodAttributes::Inheritable: 0.16
   Path::Class: 0.09
   Scalar::Util: 0
   String::RewritePrefix: 0.004
@@ -52,7 +52,7 @@ requires:
   Tree::Simple: 1.15
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
-  namespace::autoclean: 0
+  namespace::autoclean: 0.09
   namespace::clean: 0
   perl: 5.8.4
 resources:
@@ -61,4 +61,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.80012
+version: 5.80013
