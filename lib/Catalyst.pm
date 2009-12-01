@@ -4,7 +4,6 @@ use Moose;
 use Moose::Meta::Class ();
 extends 'Catalyst::Component';
 use Moose::Util qw/find_meta/;
-use bytes;
 use B::Hooks::EndOfScope ();
 use Catalyst::Exception;
 use Catalyst::Exception::Detach;
@@ -79,7 +78,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80014_01';
+our $VERSION = '5.80014_02';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -1793,7 +1792,7 @@ sub finalize_headers {
         }
         else {
             # everything should be bytes at this point, but just in case
-            $response->content_length( bytes::length( $response->body ) );
+            $response->content_length( length( $response->body ) );
         }
     }
 
@@ -2892,6 +2891,8 @@ David Kamholz E<lt>dkamholz@cpan.orgE<gt>
 David Naughton, C<naughton@umn.edu>
 
 David E. Wheeler
+
+dhoss: Devin Austin <dhoss@cpan.org>
 
 dkubb: Dan Kubb <dan.kubb-cpan@onautopilot.com>
 

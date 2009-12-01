@@ -47,6 +47,13 @@ lib/Catalyst/Request.pm
 lib/Catalyst/Request/Upload.pm
 lib/Catalyst/Response.pm
 lib/Catalyst/Runtime.pm
+lib/Catalyst/Script/CGI.pm
+lib/Catalyst/Script/Create.pm
+lib/Catalyst/Script/FastCGI.pm
+lib/Catalyst/Script/Server.pm
+lib/Catalyst/Script/Test.pm
+lib/Catalyst/ScriptRole.pm
+lib/Catalyst/ScriptRunner.pm
 lib/Catalyst/Stats.pm
 lib/Catalyst/Test.pm
 lib/Catalyst/Upgrading.pod
@@ -136,6 +143,13 @@ t/aggregate/unit_core_merge_config_hashes.t
 t/aggregate/unit_core_mvc.t
 t/aggregate/unit_core_path_to.t
 t/aggregate/unit_core_plugin.t
+t/aggregate/unit_core_script_cgi.t
+t/aggregate/unit_core_script_create.t
+t/aggregate/unit_core_script_fastcgi.t
+t/aggregate/unit_core_script_help.t
+t/aggregate/unit_core_script_server.t
+t/aggregate/unit_core_script_test.t
+t/aggregate/unit_core_scriptrunner.t
 t/aggregate/unit_core_setup.t
 t/aggregate/unit_core_setup_log.t
 t/aggregate/unit_core_setup_stats.t
@@ -152,7 +166,11 @@ t/aggregate/unit_response.t
 t/aggregate/unit_utils_env_value.t
 t/aggregate/unit_utils_prefix.t
 t/aggregate/unit_utils_request.t
+t/aggregate/utf8_content_length.t
 t/author/http-server.t
+t/author/notabs.t
+t/author/pod.t
+t/author/podcoverage.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
 t/custom_exception_class_simple.t
@@ -171,6 +189,9 @@ t/lib/Catalyst/Plugin/Test/Errors.pm
 t/lib/Catalyst/Plugin/Test/Headers.pm
 t/lib/Catalyst/Plugin/Test/MangleDollarUnderScore.pm
 t/lib/Catalyst/Plugin/Test/Plugin.pm
+t/lib/Catalyst/Script/Bar.pm
+t/lib/Catalyst/Script/Baz.pm
+t/lib/Catalyst/Script/CompileTest.pm
 t/lib/CDICompatTestPlugin.pm
 t/lib/DeprecatedActionsInAppClassTestApp.pm
 t/lib/DeprecatedTestApp.pm
@@ -178,6 +199,9 @@ t/lib/DeprecatedTestApp/C/Root.pm
 t/lib/NullPackage.pm
 t/lib/PluginTestApp.pm
 t/lib/PluginTestApp/Controller/Root.pm
+t/lib/ScriptTestApp/Script/Bar.pm
+t/lib/ScriptTestApp/Script/CompileTest.pm
+t/lib/ScriptTestApp/Script/Foo.pm
 t/lib/TestApp.pm
 t/lib/TestApp/Action/TestBefore.pm
 t/lib/TestApp/Action/TestMyAction.pm
@@ -196,6 +220,7 @@ t/lib/TestApp/Controller/Action/Chained/Auto/Detach.pm
 t/lib/TestApp/Controller/Action/Chained/Auto/Foo.pm
 t/lib/TestApp/Controller/Action/Chained/Auto/Forward.pm
 t/lib/TestApp/Controller/Action/Chained/Bar.pm
+t/lib/TestApp/Controller/Action/Chained/CaptureArgs.pm
 t/lib/TestApp/Controller/Action/Chained/Foo.pm
 t/lib/TestApp/Controller/Action/Chained/ParentChain.pm
 t/lib/TestApp/Controller/Action/Chained/ParentChain/Relative.pm
@@ -270,6 +295,8 @@ t/lib/TestAppChainedRecursive/Controller/Foo.pm
 t/lib/TestAppClassExceptionSimpleTest.pm
 t/lib/TestAppDoubleAutoBug.pm
 t/lib/TestAppDoubleAutoBug/Controller/Root.pm
+t/lib/TestAppEncoding.pm
+t/lib/TestAppEncoding/Controller/Root.pm
 t/lib/TestAppIndexDefault.pm
 t/lib/TestAppIndexDefault/Controller/Default.pm
 t/lib/TestAppIndexDefault/Controller/IndexChained.pm
@@ -293,6 +320,7 @@ t/lib/TestAppPluginWithConstructor.pm
 t/lib/TestAppPluginWithConstructor/Controller/Root.pm
 t/lib/TestAppStats.pm
 t/lib/TestAppStats/Controller/Root.pm
+t/lib/TestAppToTestScripts.pm
 t/lib/TestAppUnknownError.pm
 t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm

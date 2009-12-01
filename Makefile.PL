@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use inc::Module::Install 0.87;
+use inc::Module::Install 0.91;
 {   # Ensure that these get used - yes, M::I loads them for us, but if you're
     # in author mode and don't have them installed, then the error is tres
     # cryptic.
@@ -18,10 +18,11 @@ all_from 'lib/Catalyst/Runtime.pm';
 requires 'List::MoreUtils';
 requires 'namespace::autoclean' => '0.09';
 requires 'namespace::clean';
+requires 'namespace::autoclean';
 requires 'B::Hooks::EndOfScope' => '0.08';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00903';
-requires 'Class::MOP' => '0.83';
-requires 'Moose' => '0.90';
+requires 'Class::MOP' => '0.95';
+requires 'Moose' => '0.93';
 requires 'MooseX::MethodAttributes::Inheritable' => '0.17';
 requires 'MooseX::Role::WithOverloading' => '0.03';
 requires 'Carp';
@@ -33,7 +34,7 @@ requires 'HTTP::Body'    => '1.04'; # makes uploadtmp work
 requires 'HTTP::Headers' => '1.64';
 requires 'HTTP::Request' => '5.814';
 requires 'HTTP::Response' => '5.813';
-requires 'HTTP::Request::AsCGI' => '0.8';
+requires 'HTTP::Request::AsCGI' => '1.0';
 requires 'LWP::UserAgent';
 requires 'Module::Pluggable' => '3.9';
 requires 'Path::Class' => '0.09';
@@ -47,9 +48,10 @@ requires 'URI' => '1.35';
 requires 'Task::Weaken';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
 requires 'MRO::Compat';
+requires 'MooseX::Getopt' => '0.25';
+requires 'MooseX::Types';
+requires 'MooseX::Types::Common::Numeric';
 requires 'String::RewritePrefix' => '0.004'; # Catalyst::Utils::resolve_namespace
-
-recommends 'B::Hooks::OP::Check::StashChange';
 
 test_requires 'Class::Data::Inheritable';
 test_requires 'Test::Exception';
@@ -65,7 +67,7 @@ else {
         grep { $_ ne 't/aggregate.t' }
         map  { glob } qw[t/*.t t/aggregate/*.t];
 }
-author_requires 'CatalystX::LeakChecker', '0.03'; # Skipped if this isn't installed
+author_requires 'CatalystX::LeakChecker', '0.05'; # Skipped if this isn't installed
 author_requires 'File::Copy::Recursive'; # For http server test
 
 author_tests 't/author';
@@ -113,6 +115,7 @@ EOF
 # NOTE - This is the version number of the _incompatible_ code,
 #        not the version number of the fixed version.
 my %conflicts = (
+    'Catalyst::Plugin::SubRequest' => '0.14',
     'Catalyst::Model::Akismet' => '0.02',
     'Catalyst::Component::ACCEPT_CONTEXT' => '0.06',
     'Catalyst::Plugin::ENV' => '9999', # This plugin is just stupid, full stop
