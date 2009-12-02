@@ -65,9 +65,6 @@ META.yml
 README
 script/catalyst.pl
 t/01use.t
-t/02pod.t
-t/03podcoverage.t
-t/04critic.t
 t/aggregate.t
 t/aggregate/c3_appclass_bug.t
 t/aggregate/c3_mro.t

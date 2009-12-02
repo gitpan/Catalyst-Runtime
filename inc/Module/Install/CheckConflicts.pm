@@ -12,10 +12,8 @@ BEGIN {
 }
 
 sub check_conflicts {
-    my $self = shift;
-    # Deal with the fact that prompt_script calls us with just the script
-    # name by totally ignoring it. HACK!
-    my %conflicts = @_ unless scalar(@_) == 1;
+    my ($self, %conflicts) = @_;
+
     my %conflicts_found;
     for my $mod (sort keys %conflicts) {
         next unless $self->can_use($mod);
@@ -64,4 +62,4 @@ EOM
 
 __END__
 
-#line 124
+#line 122
