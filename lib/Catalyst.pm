@@ -78,7 +78,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80015';
+our $VERSION = '5.80016';
 
 {
     my $dev_version = $VERSION =~ /_\d{2}$/;
@@ -2686,12 +2686,11 @@ There are a number of 'base' config variables which can be set:
 
 =item *
 
-C<default_model> - The default model picked if you say C<< $c->model >>. See L</$c->model($name)>.
+C<default_model> - The default model picked if you say C<< $c->model >>. See L<< /$c->model($name) >>.
 
 =item *
 
-C<default_view> - The default view to be rendered or returned when C<< $c->view >>. See L</$c->view($name)>.
-is called.
+C<default_view> - The default view to be rendered or returned when C<< $c->view >> is called. See L<< /$c->view($name) >>.
 
 =item *
 
