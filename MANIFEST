@@ -71,6 +71,7 @@ t/aggregate/c3_mro.t
 t/aggregate/caf_backcompat.t
 t/aggregate/custom_live_component_controller_action_auto_doublebug.t
 t/aggregate/custom_live_path_bug.t
+t/aggregate/error_page_dump.t
 t/aggregate/live_component_controller_action_action.t
 t/aggregate/live_component_controller_action_auto.t
 t/aggregate/live_component_controller_action_begin.t

@@ -78,13 +78,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80016';
-
-{
-    my $dev_version = $VERSION =~ /_\d{2}$/;
-    *_IS_DEVELOPMENT_VERSION = sub () { $dev_version };
-}
-
+our $VERSION = '5.80017';
 $VERSION = eval $VERSION;
 
 sub import {
@@ -96,11 +90,6 @@ sub import {
 
     my $caller = caller();
     return if $caller eq 'main';
-
-    # Kill Adopt::NEXT warnings if we're a non-RC version
-    unless (_IS_DEVELOPMENT_VERSION()) {
-        Class::C3::Adopt::NEXT->unimport(qr/^Catalyst::/);
-    }
 
     my $meta = Moose::Meta::Class->initialize($caller);
     unless ( $caller->isa('Catalyst') ) {
@@ -332,8 +321,8 @@ call to forward.
 
     my $foodata = $c->forward('/foo');
     $c->forward('index');
-    $c->forward(qw/MyApp::Model::DBIC::Foo do_stuff/);
-    $c->forward('MyApp::View::TT');
+    $c->forward(qw/Model::DBIC::Foo do_stuff/);
+    $c->forward('View::TT');
 
 Note that L<< forward|/"$c->forward( $action [, \@arguments ] )" >> implies
 an C<< eval { } >> around the call (actually
@@ -348,16 +337,16 @@ Or make sure to always return true values from your actions and write
 your code like this:
 
     $c->forward('foo') || return;
-    
+
 Another note is that C<< $c->forward >> always returns a scalar because it
 actually returns $c->state which operates in a scalar context.
 Thus, something like:
 
     return @array;
-    
-in an action that is forwarded to is going to return a scalar, 
+
+in an action that is forwarded to is going to return a scalar,
 i.e. how many items are in that array, which is probably not what you want.
-If you need to return an array then return a reference to it, 
+If you need to return an array then return a reference to it,
 or stash it like so:
 
     $c->stash->{array} = \@array;
@@ -417,9 +406,9 @@ sub visit { my $c = shift; $c->dispatcher->visit( $c, @_ ) }
 
 =head2 $c->go( $class, $method, [, \@captures, \@arguments ] )
 
-The relationship between C<go> and 
+The relationship between C<go> and
 L<< visit|/"$c->visit( $action [, \@captures, \@arguments ] )" >> is the same as
-the relationship between 
+the relationship between
 L<< forward|/"$c->forward( $class, $method, [, \@arguments ] )" >> and
 L<< detach|/"$c->detach( $action [, \@arguments ] )" >>. Like C<< $c->visit >>,
 C<< $c->go >> will perform a full dispatch on the specified action or method,
@@ -504,7 +493,7 @@ sub error {
 
 =head2 $c->state
 
-Contains the return value of the last executed action.   
+Contains the return value of the last executed action.
 Note that << $c->state >> operates in a scalar context which means that all
 values it returns are scalar.
 
@@ -802,7 +791,7 @@ component name will be returned.
 If Catalyst can't find a component by name, it will fallback to regex
 matching by default. To disable this behaviour set
 disable_component_resolution_regex_fallback to a true value.
-    
+
     __PACKAGE__->config( disable_component_resolution_regex_fallback => 1 );
 
 =cut
@@ -1215,7 +1204,7 @@ When used as a string, provides a textual URI.
 
 If no arguments are provided, the URI for the current action is returned.
 To return the current action and also provide @args, use
-C<< $c->uri_for( $c->action, @args ) >>. 
+C<< $c->uri_for( $c->action, @args ) >>.
 
 If the first argument is a string, it is taken as a public URI path relative
 to C<< $c->namespace >> (if it doesn't begin with a forward slash) or
