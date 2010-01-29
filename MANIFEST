@@ -69,6 +69,7 @@ t/aggregate.t
 t/aggregate/c3_appclass_bug.t
 t/aggregate/c3_mro.t
 t/aggregate/caf_backcompat.t
+t/aggregate/catalyst_test_utf8.t
 t/aggregate/custom_live_component_controller_action_auto_doublebug.t
 t/aggregate/custom_live_path_bug.t
 t/aggregate/deprecated_test_import.t
@@ -204,6 +205,7 @@ t/lib/ScriptTestApp/Script/CompileTest.pm
 t/lib/ScriptTestApp/Script/Foo.pm
 t/lib/TestApp.pm
 t/lib/TestApp/Action/TestBefore.pm
+t/lib/TestApp/Action/TestExtraArgsAction.pm
 t/lib/TestApp/Action/TestMyAction.pm
 t/lib/TestApp/Controller/Action.pm
 t/lib/TestApp/Controller/Action/Action.pm

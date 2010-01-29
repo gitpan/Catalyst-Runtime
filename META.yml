@@ -56,7 +56,7 @@ requires:
   Tree::Simple::Visitor::FindByPath: 0
   URI: 1.35
   namespace::autoclean: 0.09
-  namespace::clean: 0
+  namespace::clean: 0.13
   perl: 5.8.4
 resources:
   IRC: irc://irc.perl.org/#catalyst
@@ -64,4 +64,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.80018
+version: 5.80019

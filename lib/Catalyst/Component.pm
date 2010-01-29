@@ -84,8 +84,6 @@ sub BUILDARGS {
         } elsif (Class::MOP::is_class_loaded($_[0]) &&
                 $_[0]->isa('Catalyst') && ref($_[1]) eq 'HASH') {
             $args = $_[1];
-        } elsif ($_[0] == $_[1]) {
-            $args = $_[1];
         } else {
             $args = +{ @_ };
         }
@@ -157,7 +155,7 @@ __END__
 
 =head1 METHODS
 
-=head2 new($c, $arguments)
+=head2 new($app, $arguments)
 
 Called by COMPONENT to instantiate the component; should return an object
 to be stored in the application's component hash.
@@ -168,9 +166,10 @@ C<< my $component_instance = $component->COMPONENT($app, $arguments); >>
 
 If this method is present (as it is on all Catalyst::Component subclasses,
 it is called by Catalyst during setup_components with the application class
-as $c and any config entry on the application for this component (for example,
+as $app and any config entry on the application for this component (for example,
 in the case of MyApp::Controller::Foo this would be
 C<< MyApp->config('Controller::Foo' => \%conf >>).
+
 The arguments are expected to be a hashref and are merged with the
 C<< __PACKAGE__->config >> hashref before calling C<< ->new >>
 to instantiate the component.
