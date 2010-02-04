@@ -133,6 +133,7 @@ t/aggregate/unit_core_action_for.t
 t/aggregate/unit_core_appclass_roles_in_plugin_list.t
 t/aggregate/unit_core_classdata.t
 t/aggregate/unit_core_component.t
+t/aggregate/unit_core_component_generating.t
 t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_component_loading.t
 t/aggregate/unit_core_component_mro.t
@@ -280,6 +281,7 @@ t/lib/TestApp/Model.pm
 t/lib/TestApp/Model/ClosuresInConfig.pm
 t/lib/TestApp/Model/Foo.pm
 t/lib/TestApp/Model/Foo/Bar.pm
+t/lib/TestApp/Model/Generating.pm
 t/lib/TestApp/Plugin/AddDispatchTypes.pm
 t/lib/TestApp/Plugin/FullyQualified.pm
 t/lib/TestApp/RequestBaseBug.pm
