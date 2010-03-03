@@ -1074,6 +1074,7 @@ sub run_tests {
         ['foo%2Fbar', 'baz%2Fquux'],
         ['foo%2Fbar', 'baz%2Fquux', { foo => 'bar', 'baz' => 'quux%2Ffrood'}],
         ['foo%2Fbar', 'baz%2Fquux', { foo => 'bar', 'baz%2Ffnoo' => 'quux%2Ffrood'}],
+        ['h%C3%BCtte', 'h%C3%BCtte', { test => 'h%C3%BCtte' } ],
     ) {
         my $path = '/chained/roundtrip_urifor/' .
             $thing->[0] . '/' . $thing->[1];

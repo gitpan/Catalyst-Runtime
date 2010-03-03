@@ -78,7 +78,9 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80020';
+our $VERSION = '5.80021';
+our $PRETTY_VERSION = $VERSION;
+
 $VERSION = eval $VERSION;
 
 sub import {
@@ -1144,7 +1146,7 @@ EOF
 
     if ( $class->debug ) {
         my $name = $class->config->{name} || 'Application';
-        $class->log->info("$name powered by Catalyst $Catalyst::VERSION");
+        $class->log->info("$name powered by Catalyst $Catalyst::PRETTY_VERSION");
     }
 
     # Make sure that the application class becomes immutable at this point,
@@ -1182,23 +1184,20 @@ EOF
     return 1; # Explicit return true as people have __PACKAGE__->setup as the last thing in their class. HATE.
 }
 
-
 =head2 $app->setup_finalize
 
-A hook to attach modifiers to.
-Using C<< after setup => sub{}; >> doesn't work, because of quirky things done for plugin setup.
-Also better than C< setup_finished(); >, as that is a getter method.
+A hook to attach modifiers to. This method does not do anything except set the
+C<setup_finished> accessor.
 
-    sub setup_finalize {
+Applying method modifiers to the C<setup> method doesn't work, because of quirky thingsdone for plugin setup.
 
+Example:
+
+    after setup_finalize => sub {
         my $app = shift;
 
-        ## do stuff, i.e., determine a primary key column for sessions stored in a DB
-
-        $app->next::method(@_);
-
-
-    }
+        ## do stuff here..
+    };
 
 =cut
 
@@ -1265,6 +1264,9 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
+    foreach my $arg (@args) {
+        utf8::encode($arg) if utf8::is_utf8($arg);
+    }
     s/([^$URI::uric])/$URI::Escape::escapes{$1}/go for @args;
     if (blessed $path) { # Action object only.
         s|/|%2F|g for @args;
@@ -1275,6 +1277,12 @@ sub uri_for {
                         ( scalar @args && ref $args[0] eq 'ARRAY'
                          ? @{ shift(@args) }
                          : ()) ];
+
+        foreach my $capture (@$captures) {
+            utf8::encode($capture) if utf8::is_utf8($capture);
+            $capture =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+        }
+
         my $action = $path;
         $path = $c->dispatcher->uri_for_action($action, $captures);
         if (not defined $path) {
@@ -1284,6 +1292,8 @@ sub uri_for {
         }
         $path = '/' if $path eq '';
     }
+
+    undef($path) if (defined $path && $path eq '');
 
     unshift(@args, $path);
 
