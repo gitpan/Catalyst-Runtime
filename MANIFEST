@@ -284,6 +284,7 @@ t/lib/TestApp/Model/Foo/Bar.pm
 t/lib/TestApp/Model/Generating.pm
 t/lib/TestApp/Plugin/AddDispatchTypes.pm
 t/lib/TestApp/Plugin/FullyQualified.pm
+t/lib/TestApp/Plugin/ParameterizedRole.pm
 t/lib/TestApp/RequestBaseBug.pm
 t/lib/TestApp/Role.pm
 t/lib/TestApp/View/Dump.pm

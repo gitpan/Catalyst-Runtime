@@ -86,7 +86,32 @@ use Catalyst::Engine::CGI;
     is ''.$r->base, 'http://www.foo.com/oslobilder/';
 }
 
+{
+    local $TODO = 'Another mod_rewrite case';
+    my $r = get_req (
+        PATH_INFO => '/auth/login',
+        SCRIPT_NAME => '/tx',
+        REQUEST_URI => '/login',
+    );
+    is ''.$r->path, 'auth/login';
+    is ''.$r->uri, 'http://www.foo.com/tx/auth/login';
+    is ''.$r->base, 'http://www.foo.com/tx/';
+}
 
+# test req->base and c->uri_for work correctly after an internally redirected request
+# (i.e. REDIRECT_URL set) when the PATH_INFO contains a regex
+{
+    my $path = '/engine/request/uri/Rx(here)';
+    my $r = get_req (
+        SCRIPT_NAME => '/',
+        PATH_INFO => $path,
+        REQUEST_URI => $path,
+        REDIRECT_URL => $path,
+    );
+
+    is $r->path, 'engine/request/uri/Rx(here)', 'URI contains correct path';
+    is $r->base, 'http://www.foo.com/', 'Base is correct';
+}
 
 
 # FIXME - Test proxy logic
