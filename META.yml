@@ -10,7 +10,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.95'
+generated_by: 'Module::Install version 0.97'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -25,6 +25,7 @@ requires:
   CGI::Simple::Cookie: 1.109
   Carp: 0
   Class::C3::Adopt::NEXT: 0.07
+  Class::Data::Inheritable: 0
   Class::MOP: 0.95
   Data::Dump: 0
   Data::OptList: 0
@@ -50,6 +51,8 @@ requires:
   String::RewritePrefix: 0.004
   Sub::Exporter: 0
   Task::Weaken: 0
+  Test::Exception: 0
+  Test::More: 0.88
   Text::Balanced: 0
   Text::SimpleTable: 0.03
   Time::HiRes: 0
@@ -65,4 +68,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.80023
+version: 5.80024
