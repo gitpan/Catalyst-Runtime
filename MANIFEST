@@ -137,6 +137,7 @@ t/aggregate/unit_core_component_generating.t
 t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_component_loading.t
 t/aggregate/unit_core_component_mro.t
+t/aggregate/unit_core_ctx_attr.t
 t/aggregate/unit_core_engine_cgi-prepare_path.t
 t/aggregate/unit_core_engine_fixenv-iis6.t
 t/aggregate/unit_core_engine_fixenv-lighttpd.t
@@ -268,6 +269,7 @@ t/lib/TestApp/Controller/Index.pm
 t/lib/TestApp/Controller/Keyword.pm
 t/lib/TestApp/Controller/Moose.pm
 t/lib/TestApp/Controller/Moose/MethodModifiers.pm
+t/lib/TestApp/Controller/Moose/NoAttributes.pm
 t/lib/TestApp/Controller/Priorities.pm
 t/lib/TestApp/Controller/Priorities/loc_vs_index.pm
 t/lib/TestApp/Controller/Priorities/locre_vs_index.pm
@@ -348,6 +350,7 @@ t/optional_threads.t
 t/plugin_new_method_backcompat.t
 t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
+t/unit_core_methodattributes_method_metaclass_on_subclasses.t
 t/unit_stats.t
 t/unit_utils_load_class.t
 t/unit_utils_subdir.t
