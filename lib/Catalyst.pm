@@ -79,7 +79,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80025';
+our $VERSION = '5.80026';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -427,6 +427,10 @@ C<< $c->go >> will perform a full dispatch on the specified action or method,
 with localized C<< $c->action >> and C<< $c->namespace >>. Like C<detach>,
 C<go> escapes the processing of the current request chain on completion, and
 does not return to its caller.
+
+@arguments are arguments to the final destination of $action. @captures are
+arguments to the intermediate steps, if any, on the way to the final sub of
+$action.
 
 =cut
 
@@ -1242,7 +1246,9 @@ sub setup_finalize {
 
 Constructs an absolute L<URI> object based on the application root, the
 provided path, and the additional arguments and query parameters provided.
-When used as a string, provides a textual URI.
+When used as a string, provides a textual URI.  If you need more flexibility
+than this (i.e. the option to provide relative URIs etc.) see
+L<Catalyst::Plugin::SmartURI>.
 
 If no arguments are provided, the URI for the current action is returned.
 To return the current action and also provide @args, use
@@ -1699,7 +1705,7 @@ sub _stats_start_execute {
         my $parent = $c->stack->[-1];
 
         # forward, locate the caller
-        if ( exists $c->counter->{"$parent"} ) {
+        if ( defined $parent && exists $c->counter->{"$parent"} ) {
             $c->stats->profile(
                 begin  => $action,
                 parent => "$parent" . $c->counter->{"$parent"},
@@ -2148,7 +2154,7 @@ sub log_request {
         $c->log->debug("Query keywords are: $keywords");
     }
 
-    $c->log_request_parameters( query => $request->query_parameters, body => $request->body_parameters );
+    $c->log_request_parameters( query => $request->query_parameters, $request->_has_body ? (body => $request->body_parameters) : () );
 
     $c->log_request_uploads($request);
 }
@@ -2405,8 +2411,7 @@ sub setup_components {
 
     my $config  = $class->config->{ setup_components };
 
-    my @comps = sort { length $a <=> length $b }
-                $class->locate_components($config);
+    my @comps = $class->locate_components($config);
     my %comps = map { $_ => 1 } @comps;
 
     my $deprecatedcatalyst_component_names = grep { /::[CMV]::/ } @comps;
@@ -2461,7 +2466,8 @@ sub locate_components {
         %$config
     );
 
-    my @comps = $locator->plugins;
+    # XXX think about ditching this sort entirely
+    my @comps = sort { length $a <=> length $b } $locator->plugins;
 
     return @comps;
 }

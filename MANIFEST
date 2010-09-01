@@ -74,6 +74,7 @@ t/aggregate/custom_live_component_controller_action_auto_doublebug.t
 t/aggregate/custom_live_path_bug.t
 t/aggregate/deprecated_test_import.t
 t/aggregate/error_page_dump.t
+t/aggregate/live__component_controller_action_chained2.t
 t/aggregate/live_component_controller_action_action.t
 t/aggregate/live_component_controller_action_auto.t
 t/aggregate/live_component_controller_action_begin.t
@@ -196,6 +197,8 @@ t/lib/Catalyst/Script/Bar.pm
 t/lib/Catalyst/Script/Baz.pm
 t/lib/Catalyst/Script/CompileTest.pm
 t/lib/CDICompatTestPlugin.pm
+t/lib/ChainedActionsApp.pm
+t/lib/ChainedActionsApp/Controller/Root.pm
 t/lib/DeprecatedActionsInAppClassTestApp.pm
 t/lib/DeprecatedTestApp.pm
 t/lib/DeprecatedTestApp/C/Root.pm
@@ -325,6 +328,8 @@ t/lib/TestAppOneView/View/Dummy.pm
 t/lib/TestAppPathBug.pm
 t/lib/TestAppPluginWithConstructor.pm
 t/lib/TestAppPluginWithConstructor/Controller/Root.pm
+t/lib/TestAppShowInternalActions.pm
+t/lib/TestAppShowInternalActions/Controller/Root.pm
 t/lib/TestAppStats.pm
 t/lib/TestAppStats/Controller/Root.pm
 t/lib/TestAppToTestScripts.pm
@@ -335,6 +340,7 @@ t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
 t/live_component_controller_context_closure.t
 t/live_fork.t
+t/live_show_internal_actions_warnings.t
 t/live_stats.t
 t/optional_apache-cgi-rewrite.pl
 t/optional_apache-cgi.pl
