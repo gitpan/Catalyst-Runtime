@@ -125,6 +125,7 @@ t/aggregate/live_loop.t
 t/aggregate/live_plugin_loaded.t
 t/aggregate/live_priorities.t
 t/aggregate/live_recursion.t
+t/aggregate/live_view_warnings.t
 t/aggregate/meta_method_unneeded.t
 t/aggregate/unit_controller_actions.t
 t/aggregate/unit_controller_config.t
@@ -334,6 +335,8 @@ t/lib/TestAppStats.pm
 t/lib/TestAppStats/Controller/Root.pm
 t/lib/TestAppToTestScripts.pm
 t/lib/TestAppUnknownError.pm
+t/lib/TestAppViewWarnings.pm
+t/lib/TestAppViewWarnings/Controller/Root.pm
 t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm
 t/lib/TestPluginWithConstructor.pm

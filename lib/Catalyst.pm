@@ -79,7 +79,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80028';
+our $VERSION = '5.80029';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -100,7 +100,12 @@ sub import {
     $meta->superclasses(grep { $_ ne 'Moose::Object' } $meta->superclasses);
 
     unless( $meta->has_method('meta') ){
-        $meta->add_method(meta => sub { Moose::Meta::Class->initialize("${caller}") } );
+        if ($Moose::VERSION >= 1.15) {
+            $meta->_add_meta_method('meta');
+        }
+        else {
+            $meta->add_method(meta => sub { Moose::Meta::Class->initialize("${caller}") } );
+        }
     }
 
     $caller->arguments( [@arguments] );
@@ -745,7 +750,12 @@ sub view {
         unless ( ref($name) ) { # Direct component hash lookup to avoid costly regexps
             my $comps = $c->components;
             my $check = $appclass."::View::".$name;
-            return $c->_filter_component( $comps->{$check}, @args ) if exists $comps->{$check};
+            if( exists $comps->{$check} ) {
+                return $c->_filter_component( $comps->{$check}, @args );
+            }
+            else {
+                $c->log->warn( "Attempted to use view '$check', but does not exist" );
+            }
         }
         my @result = $c->_comp_search_prefixes( $name, qw/View V/ );
         return map { $c->_filter_component( $_, @args ) } @result if ref $name;
