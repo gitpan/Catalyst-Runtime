@@ -55,6 +55,13 @@ has nproc => (
     documentation => 'Specify a number of child processes',
 );
 
+has proc_title => (
+    traits        => [qw(Getopt)],
+    isa           => Str,
+    is            => 'ro',
+    documentation => 'Set the process title',
+);
+
 sub _application_args {
     my ($self) = shift;
     return (
@@ -65,6 +72,7 @@ sub _application_args {
             manager => $self->manager,
             detach  => $self->daemon,
             keep_stderr => $self->keeperr,
+            proc_title => $self->proc_title,
         }
     );
 }
@@ -80,22 +88,23 @@ Catalyst::Script::FastCGI - The FastCGI Catalyst Script
   myapp_fastcgi.pl [options]
 
  Options:
-   -? --help      display this help and exits
-   -l --listen    Socket path to listen on
-                  (defaults to standard input)
-                  can be HOST:PORT, :PORT or a
-                  filesystem path
-   -n --nproc     specify number of processes to keep
-                  to serve requests (defaults to 1,
-                  requires -listen)
-   -p --pidfile   specify filename for pid file
-                  (requires -listen)
-   -d --daemon    daemonize (requires -listen)
-   -M --manager   specify alternate process manager
-                  (FCGI::ProcManager sub-class)
-                  or empty string to disable
-   -e --keeperr   send error messages to STDOUT, not
-                  to the webserver
+   -? --help       display this help and exits
+   -l --listen     Socket path to listen on
+                   (defaults to standard input)
+                   can be HOST:PORT, :PORT or a
+                   filesystem path
+   -n --nproc      specify number of processes to keep
+                   to serve requests (defaults to 1,
+                   requires -listen)
+   -p --pidfile    specify filename for pid file
+                   (requires -listen)
+   -d --daemon     daemonize (requires -listen)
+   -M --manager    specify alternate process manager
+                   (FCGI::ProcManager sub-class)
+                   or empty string to disable
+   -e --keeperr    send error messages to STDOUT, not
+                   to the webserver
+      --proc_title set the process title
 
 =head1 DESCRIPTION
 

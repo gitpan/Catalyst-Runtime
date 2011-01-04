@@ -39,6 +39,9 @@ testOption( [ qw/-e/ ], [undef, opthash(keep_stderr => 1)] );
 testOption( [ qw/--nproc 6/ ], [undef, opthash(nproc => 6)] );
 testOption( [ qw/--n 6/ ], [undef, opthash(nproc => 6)] );
 
+# proc_title
+testOption( [ qw/--proc_title foo/ ], [undef, opthash(proc_title => 'foo')] );
+
 done_testing;
 
 sub testOption {
@@ -62,6 +65,7 @@ sub opthash {
         detach => undef,
         nproc => undef,
         manager => undef,
+        proc_title => undef,
         @_,
     };
 }

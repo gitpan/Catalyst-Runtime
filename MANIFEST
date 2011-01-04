@@ -113,6 +113,7 @@ t/aggregate/live_engine_request_remote_user.t
 t/aggregate/live_engine_request_uploads.t
 t/aggregate/live_engine_request_uri.t
 t/aggregate/live_engine_response_cookies.t
+t/aggregate/live_engine_response_emptybody.t
 t/aggregate/live_engine_response_errors.t
 t/aggregate/live_engine_response_headers.t
 t/aggregate/live_engine_response_large.t

@@ -79,7 +79,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.80029';
+our $VERSION = '5.80030';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -369,6 +369,8 @@ or stash it like so:
     $c->stash->{array} = \@array;
 
 and access it from the stash.
+
+Keep in mind that the C<end> method used is that of the caller action. So a C<$c-E<gt>detach> inside a forwarded action would run the C<end> method from the original action requested.
 
 =cut
 
@@ -925,12 +927,18 @@ on the receiving component to access the config value.
     use Moose;
 
     # this attr will receive 'baz' at construction time
-    has 'bar' => ( 
+    has 'bar' => (
         is  => 'rw',
         isa => 'Str',
     );
 
 You can then get the value 'baz' by calling $c->model('Foo')->bar
+(or $self->bar inside code in the model).
+
+B<NOTE:> you MUST NOT call C<< $self->config >> or C<< __PACKAGE__->config >>
+as a way of reading config within your code, as this B<will not> give you the
+correctly merged config back. You B<MUST> take the config values supplied to
+the constructor and use those instead.
 
 =cut
 
@@ -1849,10 +1857,10 @@ sub finalize_headers {
     }
 
     # Content-Length
-    if ( $response->body && !$response->content_length ) {
+    if ( defined $response->body && length $response->body && !$response->content_length ) {
 
         # get the length from a filehandle
-        if ( blessed( $response->body ) && $response->body->can('read') )
+        if ( blessed( $response->body ) && $response->body->can('read') || ref( $response->body ) eq 'GLOB' )
         {
             my $stat = stat $response->body;
             if ( $stat && $stat->size > 0 ) {
@@ -2354,11 +2362,11 @@ sub prepare_write { my $c = shift; $c->engine->prepare_write( $c, @_ ) }
 
 =head2 $c->request_class
 
-Returns or sets the request class.
+Returns or sets the request class. Defaults to L<Catalyst::Request>.
 
 =head2 $c->response_class
 
-Returns or sets the response class.
+Returns or sets the response class. Defaults to L<Catalyst::Response>.
 
 =head2 $c->read( [$maxlength] )
 
