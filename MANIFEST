@@ -33,9 +33,7 @@ lib/Catalyst/DispatchType/Index.pm
 lib/Catalyst/DispatchType/Path.pm
 lib/Catalyst/DispatchType/Regex.pm
 lib/Catalyst/Engine.pm
-lib/Catalyst/Engine/CGI.pm
-lib/Catalyst/Engine/FastCGI.pm
-lib/Catalyst/Engine/HTTP.pm
+lib/Catalyst/Engine/Loader.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Exception/Basic.pm
 lib/Catalyst/Exception/Detach.pm
@@ -141,7 +139,7 @@ t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_component_loading.t
 t/aggregate/unit_core_component_mro.t
 t/aggregate/unit_core_ctx_attr.t
-t/aggregate/unit_core_engine_cgi-prepare_path.t
+t/aggregate/unit_core_engine-prepare_path.t
 t/aggregate/unit_core_engine_fixenv-iis6.t
 t/aggregate/unit_core_engine_fixenv-lighttpd.t
 t/aggregate/unit_core_log.t
