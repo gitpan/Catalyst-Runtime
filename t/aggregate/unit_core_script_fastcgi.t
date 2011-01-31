@@ -54,16 +54,18 @@ sub testOption {
     } "new_with_options";
     # First element of RUN_ARGS will be the script name, which we don't care about
     shift @TestAppToTestScripts::RUN_ARGS;
-    my $server = pop @TestAppToTestScripts::RUN_ARGS;
-    like ref($server), qr/^Plack::Handler/, 'Is a Plack::Handler';
     is_deeply \@TestAppToTestScripts::RUN_ARGS, $resultarray, "is_deeply comparison";
 }
 
 # Returns the hash expected when no flags are passed
 sub opthash {
     return {
-        (map { ($_ => undef) } qw(pidfile keep_stderr detach nproc manager)),
-        proc_title => 'perl-fcgi-pm [TestAppToTestScripts]',
+        pidfile => undef,
+        keep_stderr => undef,
+        detach => undef,
+        nproc => undef,
+        manager => undef,
+        proc_title => undef,
         @_,
     };
 }

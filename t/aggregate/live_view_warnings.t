@@ -2,7 +2,6 @@
 
 use strict;
 use warnings;
-no warnings 'once';
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";

@@ -107,7 +107,7 @@ use Catalyst::Test ();
 
 # FIXME - These vhosts in tests tests should be somewhere else...
 
-sub customize { Catalyst::Test::_customize_request($_[0], {}, @_[1 .. $#_]) }
+sub customize { Catalyst::Test::_customize_request(@_) }
 
 {
     my $req = Catalyst::Utils::request('/dummy');

@@ -1,10 +1,9 @@
 package Catalyst::Script::FastCGI;
+
+BEGIN { $ENV{CATALYST_ENGINE} ||= 'FastCGI' }
 use Moose;
 use MooseX::Types::Moose qw/Str Bool Int/;
-use Data::OptList;
 use namespace::autoclean;
-
-sub _plack_engine_name { 'FCGI' }
 
 with 'Catalyst::ScriptRole';
 
@@ -60,43 +59,20 @@ has proc_title => (
     traits        => [qw(Getopt)],
     isa           => Str,
     is            => 'ro',
-    lazy          => 1,
-    builder       => '_build_proc_title',
     documentation => 'Set the process title',
 );
-
-sub _build_proc_title {
-    my ($self) = @_;
-    return sprintf 'perl-fcgi-pm [%s]', $self->application_name;
-}
-
-sub BUILD {
-    my ($self) = @_;
-    $self->proc_title;
-}
-
-sub _plack_loader_args {
-    my ($self) = shift;
-    return (
-        map { $_->[0] => $self->${ \($_->[1] ? $_->[1]->[0] : $_->[0]) } }
-        Data::OptList::mkopt([
-            qw/pidfile listen manager nproc keep_stderr proc_title/,
-            detach     => [ 'daemon' ],
-        ])
-    );
-}
 
 sub _application_args {
     my ($self) = shift;
     return (
         $self->listen,
         {
-            nproc       => $self->nproc,
-            pidfile     => $self->pidfile,
-            manager     => $self->manager,
-            detach      => $self->daemon,
+            nproc   => $self->nproc,
+            pidfile => $self->pidfile,
+            manager => $self->manager,
+            detach  => $self->daemon,
             keep_stderr => $self->keeperr,
-            proc_title  => $self->proc_title,
+            proc_title => $self->proc_title,
         }
     );
 }

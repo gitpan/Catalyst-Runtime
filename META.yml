@@ -4,14 +4,13 @@ author:
   - 'Catalyst Contributors, see Catalyst.pm'
 build_requires:
   Class::Data::Inheritable: 0
-  Data::Dump: 0
   ExtUtils::MakeMaker: 6.42
   Test::Exception: 0
   Test::More: 0.88
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 1.00'
+generated_by: 'Module::Install version 0.99'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -26,6 +25,7 @@ requires:
   CGI::Simple::Cookie: 1.109
   Carp: 0
   Class::C3::Adopt::NEXT: 0.07
+  Class::Data::Inheritable: 0
   Class::MOP: 0.95
   Data::Dump: 0
   Data::OptList: 0
@@ -44,23 +44,21 @@ requires:
   MooseX::Emulate::Class::Accessor::Fast: 0.00903
   MooseX::Getopt: 0.30
   MooseX::MethodAttributes::Inheritable: 0.24
-  MooseX::Role::WithOverloading: 0.05
+  MooseX::Role::WithOverloading: 0.09
   MooseX::Types: 0
   MooseX::Types::Common::Numeric: 0
-  MooseX::Types::LoadableClass: 0.003
   Path::Class: 0.09
-  Plack: 0.9935
-  Plack::Middleware::ReverseProxy: 0.04
   Scalar::Util: 0
   String::RewritePrefix: 0.004
   Sub::Exporter: 0
   Task::Weaken: 0
+  Test::Exception: 0
+  Test::More: 0.88
   Text::Balanced: 0
   Text::SimpleTable: 0.03
   Time::HiRes: 0
   Tree::Simple: 1.15
   Tree::Simple::Visitor::FindByPath: 0
-  Try::Tiny: 0
   URI: 1.35
   namespace::autoclean: 0.09
   namespace::clean: 0.13
@@ -71,4 +69,4 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/
-version: 5.89000
+version: 5.80031
