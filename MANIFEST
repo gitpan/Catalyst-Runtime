@@ -74,11 +74,11 @@ t/aggregate/custom_live_component_controller_action_auto_doublebug.t
 t/aggregate/custom_live_path_bug.t
 t/aggregate/deprecated_test_import.t
 t/aggregate/error_page_dump.t
-t/aggregate/live__component_controller_action_chained2.t
 t/aggregate/live_component_controller_action_action.t
 t/aggregate/live_component_controller_action_auto.t
 t/aggregate/live_component_controller_action_begin.t
 t/aggregate/live_component_controller_action_chained.t
+t/aggregate/live_component_controller_action_chained2.t
 t/aggregate/live_component_controller_action_default.t
 t/aggregate/live_component_controller_action_detach.t
 t/aggregate/live_component_controller_action_end.t
@@ -112,6 +112,7 @@ t/aggregate/live_engine_request_parameters.t
 t/aggregate/live_engine_request_remote_user.t
 t/aggregate/live_engine_request_uploads.t
 t/aggregate/live_engine_request_uri.t
+t/aggregate/live_engine_response_body.t
 t/aggregate/live_engine_response_cookies.t
 t/aggregate/live_engine_response_emptybody.t
 t/aggregate/live_engine_response_errors.t
