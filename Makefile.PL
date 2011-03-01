@@ -19,9 +19,11 @@ requires 'namespace::clean' => '0.13';
 requires 'B::Hooks::EndOfScope' => '0.08';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00903';
 requires 'Class::MOP' => '0.95';
+requires 'Data::OptList';
 requires 'Moose' => '1.03';
 requires 'MooseX::MethodAttributes::Inheritable' => '0.24';
 requires 'MooseX::Role::WithOverloading' => '0.09';
+requires 'MooseX::Types::LoadableClass' => '0.003';
 requires 'Carp';
 requires 'Class::C3::Adopt::NEXT' => '0.07';
 requires 'CGI::Simple::Cookie' => '1.109';
@@ -43,6 +45,7 @@ requires 'Text::SimpleTable' => '0.03';
 requires 'Time::HiRes';
 requires 'Tree::Simple' => '1.15';
 requires 'Tree::Simple::Visitor::FindByPath';
+requires 'Try::Tiny';
 requires 'URI' => '1.35';
 requires 'Task::Weaken';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
@@ -51,10 +54,13 @@ requires 'MooseX::Getopt' => '0.30';
 requires 'MooseX::Types';
 requires 'MooseX::Types::Common::Numeric';
 requires 'String::RewritePrefix' => '0.004'; # Catalyst::Utils::resolve_namespace
+requires 'Plack' => '0.9935'; # Setup empty PATH_INFO if needed
+requires 'Plack::Middleware::ReverseProxy' => '0.04';
 
 test_requires 'Class::Data::Inheritable';
 test_requires 'Test::Exception';
 test_requires 'Test::More' => '0.88';
+test_requires 'Data::Dump';
 
 # aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate and a Test::Simple it works with is available
 if ($ENV{AGGREGATE_TESTS} && can_use('Test::Simple', '0.88') && can_use('Test::Aggregate', '0.364')) {
@@ -88,7 +94,7 @@ resources(
     'IRC'         => 'irc://irc.perl.org/#catalyst',
     'license',    => 'http://dev.perl.org/licenses/',
     'homepage',   => 'http://dev.catalyst.perl.org/',
-    'repository', => 'http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/',
+    'repository', => 'git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git',
 );
 
 install_script glob('script/*.pl');

@@ -1,15 +1,11 @@
 package Catalyst::Script::Server;
-
-BEGIN {
-    $ENV{CATALYST_ENGINE} ||= 'HTTP';
-    require Catalyst::Engine::HTTP;
-}
-
 use Moose;
 use MooseX::Types::Common::Numeric qw/PositiveInt/;
 use MooseX::Types::Moose qw/ArrayRef Str Bool Int RegexpRef/;
 use Catalyst::Utils;
 use namespace::autoclean;
+
+sub _plack_engine_name { 'Standalone' }
 
 with 'Catalyst::ScriptRole';
 
@@ -193,6 +189,24 @@ sub run {
     }
 
 
+}
+
+sub _plack_loader_args {
+    my ($self) = shift;
+    return (
+        port => $self->port,
+        host => $self->host,
+        keepalive => $self->keepalive ? 100 : 1,
+        server_ready => sub {
+            my ($args) = @_;
+
+            my $name  = $args->{server_software} || ref($args); # $args is $server
+            my $host  = $args->{host} || 0;
+            my $proto = $args->{proto} || 'http';
+
+            print STDERR "$name: Accepting connections at $proto://$host:$args->{port}/\n";
+        },
+    );
 }
 
 sub _application_args {

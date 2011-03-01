@@ -2,6 +2,151 @@
 
 Catalyst::Upgrading - Instructions for upgrading to the latest Catalyst
 
+=head1 Upgrading to Catalyst 5.90
+
+The major change is that L<Plack> now replaces most of the subclasses of
+L<Catalyst::Engine>.  If you are using one of the standard subclasses of
+L<Catalyst::Engine> this should be a straightforward upgrade for you. It was
+a design goal for this release to be as backwardly compatible as possible.
+However since L<Plack> is different from L<Catalyst::Engine> it would be 
+possible that edge case differences would exist.  Therefore we recommend care
+be taken with this upgrade and that testing should be greater than would be
+the case with a minor point update.
+
+It is highly recommended that you become familar with the L<Plack> ecosystem
+and documentation.  Being able to take advantage of L<Plack> development and
+middleware is a major bonus to this upgrade.
+
+If you have created a custom subclass of L<Catalyst:Engine> you will need to
+convert it to be a subclass of L<Plack::Handler>.
+
+If you are using the L<Plack> engine, L<Catalyst::Engine::PSGI>, this new
+release supercedes that code.
+
+If you are using a subclass of L<Catalyst::Engine> that is aimed at nonstandard
+or internal / testing uses, such as L<Catalyst::Engine::Embeddable> you should
+still be able to continue using that engine.
+
+Advice for specific subclasses of L<Catalyst::Engine> follows:
+
+=head2 Upgrading the FastCGI Engine
+
+No upgrade needed if your myapp_fastcgi.pl script is already upgraded
+enough to use L<Catalyst::Script::FastCGI>.
+
+=head2 Upgrading the mod_perl / Apache Engines
+
+The engines that are build upon the various iterations of mod_perl,
+L<Catalyst::Engine::Apache::MP13> and
+L<Catalyst::Engine::Apache2::MP20> should be seemless upgrades and will
+work using using L<Plack::Handler::Apache1> or L<Plack::Handler::Apache2>
+as required.  
+
+L<Catalyst::Engine::Apache2::MP19>, is however no longer supported, as Plack
+does not support mod_perl version 1.99??? FIXME - is this true?
+
+=head2 Upgrading the HTTP Engine
+
+The default development server that comes with the L<Catalyst> distribution
+should continue to work as expected with no changes as long as your C<myapp_server>
+script is upgraded to use L<Catalyst::Script::HTTP>.
+
+=head2 Upgrading the CGI Engine
+
+If you were using L<Catalyst::Engine::CGI> there is no upgrade needed if your
+myapp_cgi.pl script is already upgraded enough to use L<Catalyst::Script::CGI>.
+
+=head2 Upgrading the Preforking Engine
+
+If you were using L<Catalyst::Engine::HTTP::Prefork> then L<Starman>
+is automatically loaded.
+
+XXX FIXME - note how to run Starman with different options.
+
+=head2 Upgrading the PSGI Engine
+
+If you were using L<Catalyst::Engine::PSGI> this new release supercedes this
+engine in supporting L<Plack>. By default the Engine is now always L<Plack>.
+As a result, you can stop depending on L<Catalyst::Engine::PSGI> in your
+C<Makefile.PL>. 
+
+Applications that were using L<Catalyst::Engine::PSGI>
+previously should entirely continue to work in this release with no changes.
+
+However, if you have an C<app.psgi> script, then you no longer
+need to specify the PSGI engine.  Instead, the L<Catalyst> application class
+now has a new method C<raw_psgi_app> which returns a L<Plack> compatible coderef
+which you can wrap in middleware of your choice.
+
+Catalyst will use the .psgi for your application if it is located in the C<home>
+directory of the application
+
+For example, if you were using L<Catalyst::Engine::PSGI> in the past, you will
+have written (or generated) a C<script/myapp.psgi> file similar to this one:
+
+    use Plack::Builder;
+    use MyCatalytApp;
+
+    MyCatalystApp->setup_engine('PSGI');
+
+    builder {
+        enable ... # enable your desired middleware
+        sub { MyCatalystApp->run(@_) };
+    };
+
+Instead, you now say:
+
+    use Plack::Builder;
+    use MyCatalystApp;
+
+    builder {
+        enable ... #enable your desired middleware
+        MyCatalystApp->raw_psgi_app;
+    };
+
+And also rename C<< script/myapp.psgi >> to C<< myapp.psgi >>.
+
+If you rename your .psgi file without these modifications, then any tests run via
+L<Catalyst::Test> will not be compatible with the new release, and will result in
+the development server starting, rather than the expected test running.
+
+=head2 Engines which are known broken
+
+The following engines B<DO NOT> work as of Catalyst version 5.90. The core
+team is extremely happy to work with the developers and/or users of these
+engines to help them port to the new Plack/Engine system, however applications
+which are currently using these engines B<WILL NOT> run without modification
+to the engine code.
+
+=over
+
+=item Catalyst::Engine::Wx
+
+=back
+
+=head2 Engines with unknown status
+
+The following engines have untested or unknown compatibility.  Reports are
+highly welcomed:
+
+    Catalyst::Engine::Embeddable - needs testing, should work?
+    Catalyst::Engine::XMPP2
+    Catalyst::Engine::SCGI
+    Catalyst::Engine::Mojo
+    Catalyst::Engine::Zeus - broken for ages
+    Catalyst::Engine::JobQueue::POE - broken for ages
+    Catalyst::Engine::Stomp - fixed
+    Catalyst::Engine::Server (Marked as Deprecated)
+    Catalyst::Engine::HTTP::POE (Marked as Deprecated)
+
+=head2 Using middleware
+
+XXX Should this be here or elsewhere?
+
+=head2 Making an app.psgi file
+
+=head2 Running with plackup?
+
 =head1 Upgrading to Catalyst 5.80
 
 Most applications and plugins should run unaltered on Catalyst 5.80.
