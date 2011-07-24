@@ -1,8 +1,7 @@
 package Catalyst::Script::CGI;
 use Moose;
+BEGIN { $ENV{CATALYST_ENGINE} ||= 'CGI' }
 use namespace::autoclean;
-
-sub _plack_engine_name { 'CGI' }
 
 with 'Catalyst::ScriptRole';
 

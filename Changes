@@ -1,36 +1,40 @@
 # This file documents the revision history for Perl extension Catalyst.
 
-5.89002 2011-03-02 11:30:00 (TRIAL release)
+5.80033 2011-07-24 16:09:00
 
  Bug fixes:
-  - Fix a couple of test failures caused by optional dependencies such as FCGI
-    not being installed.
+  - Fix Catalyst::Request so that the hostname accessor is not incorrectly
+    populated with 'localhost' if a reverse DNS lookup fails.
 
- Refactoring:
-  - Simplified the API for getting a PSGI application code reference for a
-    Catalyst application for use in, for example, .psgi files. See
-    Catalyst::Upgrading for details.
+  - Fix Path actions debug screen to display number of arguments
 
-5.89001 2011-03-01 15:27:00 (TRIAL release)
+  - Fix a regression that prevented configuring attributes for all actions using
+    ->config(actions => { '*' => \%attrs }) from working
 
- Bug fixes:
-  - Fixed command-line argument passing in Catalyst::Script::FastCGI.
+  - Append $\ in Catalyst::Response->print to more closely match
+    IO::Handle's behaviour.
 
-  - Fixed Catalyst::Engine::Stomp compatibility. Applications using
-    Catalyst::Engine::Stomp are believed to continue working without
-    any changes with the new Catalyst major version.
+  - Fixed situation where a detach($action) from a forward within auto
+    was not breaking out correctly
 
-  - Fixed issues auto-loading engine with older scripts.
+  - Fix the disable_component_resolution_regex_fallback config setting
+    to also work in the $c->component method.
 
- Known problems:
-  - Catalyst::Engine::Wx is officially unsupported and BROKEN. If you
-    are using this engine then please get in touch with us and we'll
-    be happy to help with the changes it needs to be compatible with
-    the new major version of Catalyst.
+  - Handle users setting cookies with an undef value by not trying to
+    output that cookie (rather than trying to do so and causing an exception
+    as previously happened). A warning is logged if this occurs in debug
+    mode.
+  - Update tests to ignore $ENV{CATALYST_HOME} where required
 
- Documentation:
-  - The section of Catalyst::Upgrading describing how to upgrade to version 5.90
-    of Catalyst has been much improved.
+  - Change repository metadata to point at git.
+
+  - Clean namespaces in Catalyst::Request::Upload
+
+  - Catalyst::Test: Fixes to action_ok, action_redirect and action_notfound
+    test functions to be better documented, and have better default test
+    names.
+
+  - Update tests to ignore CATALYST_HOME env var.
 
 5.80032 2011-02-23 01:10:00
 
@@ -75,25 +79,6 @@
 
   - Fix undef warning in Catalyst::Engine::FastCGI when writing an empty
     body (e.g. doing a redirect)
-
-5.89000 2011-01-24 09:28:45 (TRIAL release)
-
- This is a development release from psgi branch of Catalyst-Runtime.
-
- Removed features:
-
-  - All of the Catalyst::Engine::* namespace is now gone. Instead we only have
-    one Catalyst::Engine class speaking the PSGI protocol natively. Everything
-    the various Catalyst::Engine:: classes did before is now supposed to happen
-    through PSGI handlers such as Plack::Handler::FCGI,
-    Plack::Handler::HTTP::Server::PSGI, Plack::Handler::Apache2, and so
-    on. However, deployment can still work the same as it did before. The
-    catalyst scripts still exist and continue to work.
-
-    If you find anything that either doesn't work anymore as it did before or
-    anything that could be done before with the various Catalyst::Engine::
-    classes, but can't be done anymore with the single PSGI Catalyst::Engine
-    class, please tell us *now*.
 
 5.80030 2011-01-04 13:13:02
 

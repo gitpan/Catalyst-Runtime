@@ -10,37 +10,18 @@ use HTML::Entities;
 use HTTP::Body;
 use HTTP::Headers;
 use URI::QueryParam;
-use Moose::Util::TypeConstraints;
-use Plack::Loader;
-use Plack::Middleware::Conditional;
-use Plack::Middleware::ReverseProxy;
-use Catalyst::EngineLoader;
 use Encode ();
 use utf8;
 
 use namespace::clean -except => 'meta';
 
-has env => (is => 'ro', writer => '_set_env', clearer => '_clear_env');
+has env => (is => 'rw');
 
 # input position and length
 has read_length => (is => 'rw');
 has read_position => (is => 'rw');
 
 has _prepared_write => (is => 'rw');
-
-has _response_cb => (
-    is      => 'ro',
-    isa     => 'CodeRef',
-    writer  => '_set_response_cb',
-    clearer => '_clear_response_cb',
-);
-
-has _writer => (
-    is      => 'ro',
-    isa     => duck_type([qw(write close)]),
-    writer  => '_set_writer',
-    clearer => '_clear_writer',
-);
 
 # Amount of data to read from input on each pass
 our $CHUNKSIZE = 64 * 1024;
@@ -80,12 +61,6 @@ sub finalize_body {
     else {
         $self->write( $c, $body );
     }
-
-    $self->_writer->close;
-    $self->_clear_writer;
-    $self->_clear_env;
-
-    return;
 }
 
 =head2 $self->finalize_cookies($c)
@@ -118,6 +93,11 @@ sub finalize_cookies {
                 -httponly => $val->{httponly} || 0,
             )
         );
+        if (!defined $cookie) {
+            $c->log->warn("undef passed in '$name' cookie value - not setting cookie")
+                if $c->debug;
+            next;
+        }
 
         push @cookies, $cookie->as_string;
     }
@@ -330,17 +310,7 @@ Abstract method, allows engines to write headers to response
 
 =cut
 
-sub finalize_headers {
-    my ($self, $ctx) = @_;
-
-    my @headers;
-    $ctx->response->headers->scan(sub { push @headers, @_ });
-
-    $self->_set_writer($self->_response_cb->([ $ctx->response->status, \@headers ]));
-    $self->_clear_response_cb;
-
-    return;
-}
+sub finalize_headers { }
 
 =head2 $self->finalize_read($c)
 
@@ -439,22 +409,7 @@ Abstract method implemented in engines.
 
 =cut
 
-sub prepare_connection {
-    my ($self, $ctx) = @_;
-
-    my $env = $self->env;
-    my $request = $ctx->request;
-
-    $request->address( $env->{REMOTE_ADDR} );
-    $request->hostname( $env->{REMOTE_HOST} )
-        if exists $env->{REMOTE_HOST};
-    $request->protocol( $env->{SERVER_PROTOCOL} );
-    $request->remote_user( $env->{REMOTE_USER} );
-    $request->method( $env->{REQUEST_METHOD} );
-    $request->secure( $env->{'psgi.url_scheme'} eq 'https' ? 1 : 0 );
-
-    return;
-}
+sub prepare_connection { }
 
 =head2 $self->prepare_cookies($c)
 
@@ -474,19 +429,7 @@ sub prepare_cookies {
 
 =cut
 
-sub prepare_headers {
-    my ($self, $ctx) = @_;
-
-    my $env = $self->env;
-    my $headers = $ctx->request->headers;
-
-    for my $header (keys %{ $env }) {
-        next unless $header =~ /^(HTTP|CONTENT|COOKIE)/i;
-        (my $field = $header) =~ s/^HTTPS?_//;
-        $field =~ tr/_/-/;
-        $headers->header($field => $env->{$header});
-    }
-}
+sub prepare_headers { }
 
 =head2 $self->prepare_parameters($c)
 
@@ -524,61 +467,7 @@ abstract method, implemented by engines.
 
 =cut
 
-sub prepare_path {
-    my ($self, $ctx) = @_;
-
-    my $env = $self->env;
-
-    my $scheme    = $ctx->request->secure ? 'https' : 'http';
-    my $host      = $env->{HTTP_HOST} || $env->{SERVER_NAME};
-    my $port      = $env->{SERVER_PORT} || 80;
-    my $base_path = $env->{SCRIPT_NAME} || "/";
-
-    # set the request URI
-    my $path;
-    if (!$ctx->config->{use_request_uri_for_path}) {
-        my $path_info = $env->{PATH_INFO};
-        if ( exists $env->{REDIRECT_URL} ) {
-            $base_path = $env->{REDIRECT_URL};
-            $base_path =~ s/\Q$path_info\E$//;
-        }
-        $path = $base_path . $path_info;
-        $path =~ s{^/+}{};
-        $path =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
-        $path =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
-    }
-    else {
-        my $req_uri = $env->{REQUEST_URI};
-        $req_uri =~ s/\?.*$//;
-        $path = $req_uri;
-        $path =~ s{^/+}{};
-    }
-
-    # Using URI directly is way too slow, so we construct the URLs manually
-    my $uri_class = "URI::$scheme";
-
-    # HTTP_HOST will include the port even if it's 80/443
-    $host =~ s/:(?:80|443)$//;
-
-    if ($port !~ /^(?:80|443)$/ && $host !~ /:/) {
-        $host .= ":$port";
-    }
-
-    my $query = $env->{QUERY_STRING} ? '?' . $env->{QUERY_STRING} : '';
-    my $uri   = $scheme . '://' . $host . '/' . $path . $query;
-
-    $ctx->request->uri( (bless \$uri, $uri_class)->canonical );
-
-    # set the base URI
-    # base must end in a slash
-    $base_path .= '/' unless $base_path =~ m{/$};
-
-    my $base_uri = $scheme . '://' . $host . $base_path;
-
-    $ctx->request->base( bless \$base_uri, $uri_class );
-
-    return;
-}
+sub prepare_path { }
 
 =head2 $self->prepare_request($c)
 
@@ -589,11 +478,7 @@ process the query string and extract query parameters.
 =cut
 
 sub prepare_query_parameters {
-    my ($self, $c) = @_;
-
-    my $query_string = exists $self->env->{QUERY_STRING}
-        ? $self->env->{QUERY_STRING}
-        : '';
+    my ( $self, $c, $query_string ) = @_;
 
     # Check for keywords (no = signs)
     # (yes, index() is faster than a regex :))
@@ -655,10 +540,7 @@ Populate the context object from the request object.
 
 =cut
 
-sub prepare_request {
-    my ($self, $ctx, %args) = @_;
-    $self->_set_env($args{env});
-}
+sub prepare_request { }
 
 =head2 $self->prepare_uploads($c)
 
@@ -738,7 +620,7 @@ sub read {
     my $rc = $self->read_chunk( $c, my $buffer, $readlen );
     if ( defined $rc ) {
         if (0 == $rc) { # Nothing more to read even though Content-Length
-                        # said there should be.
+                        # said there should be. FIXME - Warn in the log here?
             $self->finalize_read;
             return;
         }
@@ -759,10 +641,7 @@ there is no more data to be read.
 
 =cut
 
-sub read_chunk {
-    my ($self, $ctx) = (shift, shift);
-    return $self->env->{'psgi.input'}->read(@_);
-}
+sub read_chunk { }
 
 =head2 $self->read_length
 
@@ -773,58 +652,13 @@ header.
 
 The amount of input data that has already been read.
 
-=head2 $self->run($app, $server)
+=head2 $self->run($c)
 
-Start the engine. Builds a PSGI application and calls the
-run method on the server passed in, which then causes the
-engine to loop, handling requests..
+Start the engine. Implemented by the various engine classes.
 
 =cut
 
-sub run {
-    my ($self, $app, $psgi, @args) = @_;
-    # @args left here rather than just a $options, $server for back compat with the
-    # old style scripts which send a few args, then a hashref
-
-    # They should never actually be used in the normal case as the Plack engine is
-    # passed in got all the 'standard' args via the loader in the script already.
-
-    # FIXME - we should stash the options in an attribute so that custom args
-    # like Gitalist's --git_dir are possible to get from the app without stupid tricks.
-    my $server = pop @args if (scalar @args && blessed $args[-1]);
-    my $options = pop @args if (scalar @args && ref($args[-1]) eq 'HASH');
-    if (! $server ) {
-        $server = Catalyst::EngineLoader->new(application_name => ref($self))->auto();
-        # We're not being called from a script,
-                                                    # so auto detect what backend to run on.
-                                                    # This should never happen, as mod_perl
-                                                    # never calls ->run, instead the $app->handle
-                                                    # method is called per request.
-        $app->log->warn("Not supplied a Plack engine, falling back to engine auto-loader (are your scripts ancient?)")
-    }
-    $server->run($psgi, $options);
-}
-
-=head2 build_psgi_app ($app, @args)
-
-Builds and returns a PSGI application closure, wrapping it in the reverse proxy
-middleware if the using_frontend_proxy config setting is set.
-
-=cut
-
-sub build_psgi_app {
-    my ($self, $app, @args) = @_;
-
-    return sub {
-        my ($env) = @_;
-
-        return sub {
-            my ($respond) = @_;
-            $self->_set_response_cb($respond);
-            $app->handle_request(env => $env);
-        };
-    };
-}
+sub run { }
 
 =head2 $self->write($c, $buffer)
 
@@ -840,12 +674,33 @@ sub write {
         $self->_prepared_write(1);
     }
 
-    $buffer = q[] unless defined $buffer;
+    return 0 if !defined $buffer;
 
-    my $len = length($buffer);
-    $self->_writer->write($buffer);
+    my $len   = length($buffer);
+    my $wrote = syswrite STDOUT, $buffer;
 
-    return $len;
+    if ( !defined $wrote && $! == EWOULDBLOCK ) {
+        # Unable to write on the first try, will retry in the loop below
+        $wrote = 0;
+    }
+
+    if ( defined $wrote && $wrote < $len ) {
+        # We didn't write the whole buffer
+        while (1) {
+            my $ret = syswrite STDOUT, $buffer, $CHUNKSIZE, $wrote;
+            if ( defined $ret ) {
+                $wrote += $ret;
+            }
+            else {
+                next if $! == EWOULDBLOCK;
+                return;
+            }
+
+            last if $wrote >= $len;
+        }
+    }
+
+    return $wrote;
 }
 
 =head2 $self->unescape_uri($uri)
@@ -877,7 +732,7 @@ not directly available via Catalyst objects $c->request, $c->engine ...
 
 BEWARE: If you really need to access some environment variable from your Catalyst
 application you should use $c->engine->env->{VARNAME} instead of $ENV{VARNAME},
-as in some enviroments the %ENV hash does not contain what you would expect.
+as in some environments the %ENV hash does not contain what you would expect.
 
 =head1 AUTHORS
 

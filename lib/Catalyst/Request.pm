@@ -120,7 +120,7 @@ has hostname => (
   lazy      => 1,
   default   => sub {
     my ($self) = @_;
-    gethostbyaddr( inet_aton( $self->address ), AF_INET ) || 'localhost'
+    gethostbyaddr( inet_aton( $self->address ), AF_INET ) || $self->address
   },
 );
 
@@ -427,6 +427,10 @@ Shortcut for $req->parameters.
 
 Returns the path, i.e. the part of the URI after $req->base, for the current request.
 
+    http://localhost/path/foo
+
+    $c->request->path will contain 'path/foo'
+
 =head2 $req->path_info
 
 Alias for path, added for compatibility with L<CGI>.
@@ -484,7 +488,7 @@ Shortcut for $req->headers->referer. Returns the referring page.
 
 Returns true or false, indicating whether the connection is secure
 (https). Note that the URI scheme (eg., http vs. https) must be determined
-through heuristics, and therefore the reliablity of $req->secure will depend
+through heuristics, and therefore the reliability of $req->secure will depend
 on your server configuration. If you are serving secure pages on the standard
 SSL port (443) and/or setting the HTTPS environment variable, $req->secure
 should be valid.

@@ -29,11 +29,8 @@ use Tree::Simple::Visitor::FindByUID;
 use Class::C3::Adopt::NEXT;
 use List::MoreUtils qw/uniq/;
 use attributes;
-use String::RewritePrefix;
-use Catalyst::EngineLoader;
 use utf8;
 use Carp qw/croak carp shortmess/;
-use Try::Tiny;
 
 BEGIN { require 5.008004; }
 
@@ -71,17 +68,18 @@ our $GO        = Catalyst::Exception::Go->new;
 #maybe we should just make them attributes with a default?
 __PACKAGE__->mk_classdata($_)
   for qw/components arguments dispatcher engine log dispatcher_class
-  engine_loader context_class request_class response_class stats_class
-  setup_finished _psgi_app/;
+  engine_class context_class request_class response_class stats_class
+  setup_finished/;
 
 __PACKAGE__->dispatcher_class('Catalyst::Dispatcher');
+__PACKAGE__->engine_class('Catalyst::Engine::CGI');
 __PACKAGE__->request_class('Catalyst::Request');
 __PACKAGE__->response_class('Catalyst::Response');
 __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.89002';
+our $VERSION = '5.80033';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -863,6 +861,9 @@ sub component {
             return $c->_filter_component( $comp, @args ) if $comp;
         }
 
+        return
+            if $c->config->{disable_component_resolution_regex_fallback};
+
         # This is here so $c->comp( '::M::' ) works
         my $query = ref $name ? $name : qr{$name}i;
 
@@ -1116,10 +1117,7 @@ sub setup {
     $class->setup_log( delete $flags->{log} );
     $class->setup_plugins( delete $flags->{plugins} );
     $class->setup_dispatcher( delete $flags->{dispatcher} );
-    if (my $engine = delete $flags->{engine}) {
-        $class->log->warn("Specifying the engine in ->setup is no longer supported, XXX FIXME");
-    }
-    $class->setup_engine();
+    $class->setup_engine( delete $flags->{engine} );
     $class->setup_stats( delete $flags->{stats} );
 
     for my $flag ( sort keys %{$flags} ) {
@@ -1246,7 +1244,7 @@ EOF
 A hook to attach modifiers to. This method does not do anything except set the
 C<setup_finished> accessor.
 
-Applying method modifiers to the C<setup> method doesn't work, because of quirky thingsdone for plugin setup.
+Applying method modifiers to the C<setup> method doesn't work, because of quirky things done for plugin setup.
 
 Example:
 
@@ -1689,8 +1687,8 @@ sub execute {
                 $error = qq/Caught exception in $class->$name "$error"/;
             }
             $c->error($error);
-            $c->state(0);
         }
+        $c->state(0);
     }
     return $c->state;
 }
@@ -1945,7 +1943,7 @@ sub handle_request {
 
     # Always expect worst case!
     my $status = -1;
-    try {
+    eval {
         if ($class->debug) {
             my $secs = time - $START || 1;
             my $av = sprintf '%.3f', $COUNT / $secs;
@@ -1956,11 +1954,12 @@ sub handle_request {
         my $c = $class->prepare(@arguments);
         $c->dispatch;
         $status = $c->finalize;
-    }
-    catch {
-        chomp(my $error = $_);
-        $class->log->error(qq/Caught exception in engine "$error"/);
     };
+
+    if ( my $error = $@ ) {
+        chomp $error;
+        $class->log->error(qq/Caught exception in engine "$error"/);
+    }
 
     $COUNT++;
 
@@ -1997,38 +1996,28 @@ sub prepare {
         $c->res->headers->header( 'X-Catalyst' => $Catalyst::VERSION );
     }
 
-    try {
-        # Allow engine to direct the prepare flow (for POE)
-        if ( my $prepare = $c->engine->can('prepare') ) {
-            $c->engine->$prepare( $c, @arguments );
-        }
-        else {
-            $c->prepare_request(@arguments);
-            $c->prepare_connection;
-            $c->prepare_query_parameters;
-            $c->prepare_headers;
-            $c->prepare_cookies;
-            $c->prepare_path;
+    #XXX reuse coderef from can
+    # Allow engine to direct the prepare flow (for POE)
+    if ( $c->engine->can('prepare') ) {
+        $c->engine->prepare( $c, @arguments );
+    }
+    else {
+        $c->prepare_request(@arguments);
+        $c->prepare_connection;
+        $c->prepare_query_parameters;
+        $c->prepare_headers;
+        $c->prepare_cookies;
+        $c->prepare_path;
 
-            # Prepare the body for reading, either by prepare_body
-            # or the user, if they are using $c->read
-            $c->prepare_read;
+        # Prepare the body for reading, either by prepare_body
+        # or the user, if they are using $c->read
+        $c->prepare_read;
 
-            # Parse the body unless the user wants it on-demand
-            unless ( ref($c)->config->{parse_on_demand} ) {
-                $c->prepare_body;
-            }
+        # Parse the body unless the user wants it on-demand
+        unless ( ref($c)->config->{parse_on_demand} ) {
+            $c->prepare_body;
         }
     }
-    # VERY ugly and probably shouldn't rely on ->finalize actually working
-    catch {
-        # failed prepare is always due to an invalid request, right?
-        $c->response->status(400);
-        $c->response->content_type('text/plain');
-        $c->response->body('Bad Request');
-        $c->finalize;
-        die $_;
-    };
 
     my $method  = $c->req->method  || '';
     my $path    = $c->req->path;
@@ -2407,7 +2396,7 @@ Starts the engine.
 
 =cut
 
-sub run { my $c = shift; return $c->engine->run( $c, $c->_finalized_psgi_app, @_ ) }
+sub run { my $c = shift; return $c->engine->run( $c, @_ ) }
 
 =head2 $c->set_action( $action, $code, $namespace, $attrs )
 
@@ -2591,93 +2580,114 @@ Sets up engine.
 
 =cut
 
-sub engine_class {
-    my $class = shift;
-    $class->engine_loader->catalyst_engine_class(@_);
-}
-
 sub setup_engine {
-    my ($class) = @_;
+    my ( $class, $engine ) = @_;
 
-    $class->engine_loader(Catalyst::EngineLoader->new(application_name => $class));
+    if ($engine) {
+        $engine = 'Catalyst::Engine::' . $engine;
+    }
 
-    my $engine = $class->engine_class;
+    if ( my $env = Catalyst::Utils::env_value( $class, 'ENGINE' ) ) {
+        $engine = 'Catalyst::Engine::' . $env;
+    }
+
+    if ( $ENV{MOD_PERL} ) {
+        my $meta = Class::MOP::get_metaclass_by_name($class);
+
+        # create the apache method
+        $meta->add_method('apache' => sub { shift->engine->apache });
+
+        my ( $software, $version ) =
+          $ENV{MOD_PERL} =~ /^(\S+)\/(\d+(?:[\.\_]\d+)+)/;
+
+        $version =~ s/_//g;
+        $version =~ s/(\.[^.]+)\./$1/g;
+
+        if ( $software eq 'mod_perl' ) {
+
+            if ( !$engine ) {
+
+                if ( $version >= 1.99922 ) {
+                    $engine = 'Catalyst::Engine::Apache2::MP20';
+                }
+
+                elsif ( $version >= 1.9901 ) {
+                    $engine = 'Catalyst::Engine::Apache2::MP19';
+                }
+
+                elsif ( $version >= 1.24 ) {
+                    $engine = 'Catalyst::Engine::Apache::MP13';
+                }
+
+                else {
+                    Catalyst::Exception->throw( message =>
+                          qq/Unsupported mod_perl version: $ENV{MOD_PERL}/ );
+                }
+
+            }
+
+            # install the correct mod_perl handler
+            if ( $version >= 1.9901 ) {
+                *handler = sub  : method {
+                    shift->handle_request(@_);
+                };
+            }
+            else {
+                *handler = sub ($$) { shift->handle_request(@_) };
+            }
+
+        }
+
+        elsif ( $software eq 'Zeus-Perl' ) {
+            $engine = 'Catalyst::Engine::Zeus';
+        }
+
+        else {
+            Catalyst::Exception->throw(
+                message => qq/Unsupported mod_perl: $ENV{MOD_PERL}/ );
+        }
+    }
+
+    unless ($engine) {
+        $engine = $class->engine_class;
+    }
+
     Class::MOP::load_class($engine);
 
-    if ($ENV{MOD_PERL}) {
-        my $apache = $class->engine_loader->auto;
-        # FIXME - Immutable
-        $class->meta->add_method(handler => sub {
-            my $r = shift;
-            my $psgi_app = $class->psgi_app;
-            $apache->call_app($r, $psgi_app);
-        });
+    # check for old engines that are no longer compatible
+    my $old_engine;
+    if ( $engine->isa('Catalyst::Engine::Apache')
+        && !Catalyst::Engine::Apache->VERSION )
+    {
+        $old_engine = 1;
     }
 
-    $class->engine( $engine->new );
-
-    return;
-}
-
-sub _finalized_psgi_app {
-    my ($app) = @_;
-
-    unless ($app->_psgi_app) {
-        my $psgi_app = $app->_setup_psgi_app;
-        $app->_psgi_app($psgi_app);
+    elsif ( $engine->isa('Catalyst::Engine::Server::Base')
+        && Catalyst::Engine::Server->VERSION le '0.02' )
+    {
+        $old_engine = 1;
     }
 
-    return $app->_psgi_app;
-}
+    elsif ($engine->isa('Catalyst::Engine::HTTP::POE')
+        && $engine->VERSION eq '0.01' )
+    {
+        $old_engine = 1;
+    }
 
-sub _setup_psgi_app {
-    my ($app) = @_;
+    elsif ($engine->isa('Catalyst::Engine::Zeus')
+        && $engine->VERSION eq '0.01' )
+    {
+        $old_engine = 1;
+    }
 
-    if (my $home = Path::Class::Dir->new($app->config->{home})) {
-        my $psgi_file = $home->file(
-            Catalyst::Utils::appprefix($app) . '.psgi',
+    if ($old_engine) {
+        Catalyst::Exception->throw( message =>
+              qq/Engine "$engine" is not supported by this version of Catalyst/
         );
-
-        return Plack::Util::load_psgi($psgi_file)
-            if -e $psgi_file;
     }
 
-    return $app->_wrapped_legacy_psgi_app;
-}
-
-# Note - this is for back compatibility. Catalyst should not know or care about
-#        how it's deployed. The recommended way of configuring this is now to
-#        use the ReverseProxy middleware yourself if you want it in a .psgi
-#        file.
-sub _wrapped_legacy_psgi_app {
-    my ($app) = @_;
-
-    return Plack::Middleware::Conditional->wrap(
-        $app->psgi_app,
-        builder   => sub { Plack::Middleware::ReverseProxy->wrap($_[0]) },
-        condition => sub {
-            my ($env) = @_;
-            return if $app->config->{ignore_frontend_proxy};
-            return $env->{REMOTE_ADDR} eq '127.0.0.1'
-                || $app->config->{using_frontend_proxy};
-        },
-    );
-}
-
-=head2 $c->psgi_app
-
-Returns a PSGI application code reference for the catalyst application
-C<$c>. This is the bare application without any middlewares
-applied. C<${myapp}.psgi> is not taken into account.
-
-This is what you want to be using to retrieve the PSGI application code
-reference of your Catalyst application for use in F<.psgi> files.
-
-=cut
-
-sub psgi_app {
-    my ($app) = @_;
-    return $app->engine->build_psgi_app($app);
+    # engine instance
+    $class->engine( $engine->new );
 }
 
 =head2 $c->setup_home
@@ -2797,7 +2807,7 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
         my $class = ref $proto || $proto;
 
         Class::MOP::load_class( $plugin );
-        $class->log->warn( "$plugin inherits from 'Catalyst::Component' - this is decated and will not work in 5.81" )
+        $class->log->warn( "$plugin inherits from 'Catalyst::Component' - this is deprecated and will not work in 5.81" )
             if $plugin->isa( 'Catalyst::Component' );
         $proto->_plugins->{$plugin} = 1;
         unless ($instant) {
@@ -3220,6 +3230,10 @@ Yuval Kogman, C<nothingmuch@woobling.org>
 rainboxx: Matthias Dietrich, C<perl@rainboxx.de>
 
 dd070: Dhaval Dhanani <dhaval070@gmail.com>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2005, the above named PROJECT FOUNDER and CONTRIBUTORS.
 
 =head1 LICENSE
 

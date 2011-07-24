@@ -166,6 +166,33 @@ sub run_tests {
             'Content is a serialized Catalyst::Request'
         );
     }
+
+    {
+        ok( my $response = request('http://localhost/action_action_eight'),
+            'Request' );
+        ok( $response->is_success, 'Response Successful 2xx' );
+        is( $response->content_type, 'text/plain', 'Response Content-Type' );
+        is( $response->header('X-Catalyst-Action'),
+            'action_action_eight', 'Test Action' );
+        is(
+            $response->header('X-Test-Class'),
+            'TestApp::Controller::Action::Action',
+            'Test Class'
+        );
+        like(
+            $response->content,
+            qr/^bless\( .* 'Catalyst::Action' \)$/s,
+            'Content is a serialized Catalyst::Action'
+        );
+
+        require Catalyst::Action; # when running against a remote server, we
+                                  # need to load the class in the test process
+                                  # to be able to introspect the action instance
+                                  # later.
+        my $action = eval $response->content;
+        is_deeply $action->attributes->{extra_attribute}, [13];
+        is_deeply $action->attributes->{another_extra_attribute}, ['foo'];
+    }
 }
 
 done_testing;

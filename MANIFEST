@@ -33,7 +33,9 @@ lib/Catalyst/DispatchType/Index.pm
 lib/Catalyst/DispatchType/Path.pm
 lib/Catalyst/DispatchType/Regex.pm
 lib/Catalyst/Engine.pm
-lib/Catalyst/EngineLoader.pm
+lib/Catalyst/Engine/CGI.pm
+lib/Catalyst/Engine/FastCGI.pm
+lib/Catalyst/Engine/HTTP.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Exception/Basic.pm
 lib/Catalyst/Exception/Detach.pm
@@ -79,6 +81,7 @@ t/aggregate/live_component_controller_action_chained.t
 t/aggregate/live_component_controller_action_chained2.t
 t/aggregate/live_component_controller_action_default.t
 t/aggregate/live_component_controller_action_detach.t
+t/aggregate/live_component_controller_action_die_in_end.t
 t/aggregate/live_component_controller_action_end.t
 t/aggregate/live_component_controller_action_forward.t
 t/aggregate/live_component_controller_action_global.t
@@ -127,7 +130,6 @@ t/aggregate/live_priorities.t
 t/aggregate/live_recursion.t
 t/aggregate/live_view_warnings.t
 t/aggregate/meta_method_unneeded.t
-t/aggregate/psgi_file.t
 t/aggregate/unit_controller_actions.t
 t/aggregate/unit_controller_config.t
 t/aggregate/unit_controller_namespace.t
@@ -141,7 +143,7 @@ t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_component_loading.t
 t/aggregate/unit_core_component_mro.t
 t/aggregate/unit_core_ctx_attr.t
-t/aggregate/unit_core_engine-prepare_path.t
+t/aggregate/unit_core_engine_cgi-prepare_path.t
 t/aggregate/unit_core_engine_fixenv-iis6.t
 t/aggregate/unit_core_engine_fixenv-lighttpd.t
 t/aggregate/unit_core_log.t
@@ -220,6 +222,7 @@ t/lib/TestApp/Controller/Action/Auto.pm
 t/lib/TestApp/Controller/Action/Auto/Abort.pm
 t/lib/TestApp/Controller/Action/Auto/Deep.pm
 t/lib/TestApp/Controller/Action/Auto/Default.pm
+t/lib/TestApp/Controller/Action/Auto/Detach.pm
 t/lib/TestApp/Controller/Action/Begin.pm
 t/lib/TestApp/Controller/Action/Chained.pm
 t/lib/TestApp/Controller/Action/Chained/ArgsOrder.pm
@@ -238,6 +241,7 @@ t/lib/TestApp/Controller/Action/Chained/PathPrefix.pm
 t/lib/TestApp/Controller/Action/Chained/Root.pm
 t/lib/TestApp/Controller/Action/Default.pm
 t/lib/TestApp/Controller/Action/Detach.pm
+t/lib/TestApp/Controller/Action/DieInEnd.pm
 t/lib/TestApp/Controller/Action/End.pm
 t/lib/TestApp/Controller/Action/Forward.pm
 t/lib/TestApp/Controller/Action/ForwardTo.pm
@@ -295,6 +299,7 @@ t/lib/TestApp/Plugin/ParameterizedRole.pm
 t/lib/TestApp/RequestBaseBug.pm
 t/lib/TestApp/Role.pm
 t/lib/TestApp/View/Dump.pm
+t/lib/TestApp/View/Dump/Action.pm
 t/lib/TestApp/View/Dump/Body.pm
 t/lib/TestApp/View/Dump/Env.pm
 t/lib/TestApp/View/Dump/Request.pm

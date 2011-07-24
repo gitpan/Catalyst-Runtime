@@ -4,12 +4,10 @@ use strict;
 use warnings;
 use Test::More ();
 
-use Plack::Test;
 use Catalyst::Exception;
 use Catalyst::Utils;
 use Class::MOP;
 use Sub::Exporter;
-use Carp;
 
 my $build_exports = sub {
     my ($self, $meth, $args, $defaults) = @_;
@@ -19,8 +17,8 @@ my $build_exports = sub {
 
     if ( $ENV{CATALYST_SERVER} ) {
         $request = sub { remote_request(@_) };
-    } elsif (!$class) {
-        $request = sub { croak "Must specify a test app: use Catalyst::Test 'TestApp'"; }
+    } elsif (! $class) {
+        $request = sub { Catalyst::Exception->throw("Must specify a test app: use Catalyst::Test 'TestApp'") };
     } else {
         unless (Class::MOP::is_class_loaded($class)) {
             Class::MOP::load_class($class);
@@ -86,15 +84,21 @@ my $build_exports = sub {
         },
         action_ok => sub {
             my $action = shift;
-            return Test::More->builder->ok($request->($action)->is_success, @_);
+            my $meth = $request->($action)->request->method;
+            my @args = @_ ? @_ : ("$meth $action returns successfully");
+            return Test::More->builder->ok($request->($action)->is_success,@args);
         },
         action_redirect => sub {
             my $action = shift;
-            return Test::More->builder->ok($request->($action)->is_redirect,@_);
+            my $meth = $request->($action)->request->method;
+            my @args = @_ ? @_ : ("$meth $action returns a redirect");
+            return Test::More->builder->ok($request->($action)->is_redirect,@args);
         },
         action_notfound => sub {
             my $action = shift;
-            return Test::More->builder->is_eq($request->($action)->code,404,@_);
+            my $meth = $request->($action)->request->method;
+            my @args = @_ ? @_ : ("$meth $action returns a 404");
+            return Test::More->builder->is_eq($request->($action)->code,404,@args);
         },
         contenttype_is => sub {
             my $action = shift;
@@ -241,43 +245,32 @@ Simulate a request using L<HTTP::Request::AsCGI>.
 sub local_request {
     my $class = shift;
 
-    my $app = ref($class) eq "CODE" ? $class : $class->_finalized_psgi_app;
+    require HTTP::Request::AsCGI;
 
-    my $request = Catalyst::Utils::request(shift);
-    my %extra_env;
-    _customize_request($request, \%extra_env, @_);
+    my $request = Catalyst::Utils::request( shift(@_) );
+    _customize_request($request, @_);
+    my $cgi     = HTTP::Request::AsCGI->new( $request, %ENV )->setup;
 
-    my $ret;
-    test_psgi
-        app    => sub { $app->({ %{ $_[0] }, %extra_env }) },
-        client => sub {
-            my $psgi_app = shift;
+    $class->handle_request( env => \%ENV );
 
-            my $resp = $psgi_app->($request);
+    my $response = $cgi->restore->response;
+    $response->request( $request );
 
-            # HTML head parsing based on LWP::UserAgent
-            #
-            # This is not just horrible and possibly broken, but also really
-            # doesn't belong here. Whoever wants this should be working on
-            # getting it into Plack::Test, or make a middleware out of it, or
-            # whatever. Seriously - horrible.
+    # HTML head parsing based on LWP::UserAgent
 
-            require HTML::HeadParser;
+    require HTML::HeadParser;
 
-            my $parser = HTML::HeadParser->new();
-            $parser->xml_mode(1) if $resp->content_is_xhtml;
-            $parser->utf8_mode(1) if $] >= 5.008 && $HTML::Parser::VERSION >= 3.40;
+    my $parser = HTML::HeadParser->new();
+    $parser->xml_mode(1) if $response->content_is_xhtml;
+    $parser->utf8_mode(1) if $] >= 5.008 && $HTML::Parser::VERSION >= 3.40;
 
-            $parser->parse( $resp->content );
-            my $h = $parser->header;
-            for my $f ( $h->header_field_names ) {
-                $resp->init_header( $f, [ $h->header($f) ] );
-            }
+    $parser->parse( $response->content );
+    my $h = $parser->header;
+    for my $f ( $h->header_field_names ) {
+        $response->init_header( $f, [ $h->header($f) ] );
+    }
 
-            $ret = $resp;
-        };
-
-    return $ret;
+    return $response;
 }
 
 my $agent;
@@ -350,37 +343,36 @@ sub remote_request {
 
 sub _customize_request {
     my $request = shift;
-    my $extra_env = shift;
     my $opts = pop(@_) || {};
     $opts = {} unless ref($opts) eq 'HASH';
     if ( my $host = exists $opts->{host} ? $opts->{host} : $default_host  ) {
         $request->header( 'Host' => $host );
     }
-
-    if (my $extra = $opts->{extra_env}) {
-        @{ $extra_env }{keys %{ $extra }} = values %{ $extra };
-    }
 }
 
-=head2 action_ok
+=head2 action_ok($url [, $test_name ])
 
-Fetches the given URL and checks that the request was successful.
+Fetches the given URL and checks that the request was successful. An optional
+second argument can be given to specify the name of the test.
 
-=head2 action_redirect
+=head2 action_redirect($url [, $test_name ])
 
-Fetches the given URL and checks that the request was a redirect.
+Fetches the given URL and checks that the request was a redirect. An optional
+second argument can be given to specify the name of the test.
 
-=head2 action_notfound
+=head2 action_notfound($url [, $test_name ])
 
-Fetches the given URL and checks that the request was not found.
+Fetches the given URL and checks that the request was not found. An optional
+second argument can be given to specify the name of the test.
 
-=head2 content_like( $url, $regexp [, $test_name] )
+=head2 content_like( $url, $regexp [, $test_name ] )
 
-Fetches the given URL and returns whether the content matches the regexp.
+Fetches the given URL and returns whether the content matches the regexp. An
+optional third argument can be given to specify the name of the test.
 
-=head2 contenttype_is
+=head2 contenttype_is($url, $type [, $test_name ])
 
-Check for given MIME type.
+Verify the given URL has a content type of $type and optionally specify a test name.
 
 =head1 SEE ALSO
 
