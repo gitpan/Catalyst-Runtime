@@ -33,9 +33,7 @@ lib/Catalyst/DispatchType/Index.pm
 lib/Catalyst/DispatchType/Path.pm
 lib/Catalyst/DispatchType/Regex.pm
 lib/Catalyst/Engine.pm
-lib/Catalyst/Engine/CGI.pm
-lib/Catalyst/Engine/FastCGI.pm
-lib/Catalyst/Engine/HTTP.pm
+lib/Catalyst/EngineLoader.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Exception/Basic.pm
 lib/Catalyst/Exception/Detach.pm
@@ -43,6 +41,7 @@ lib/Catalyst/Exception/Go.pm
 lib/Catalyst/Exception/Interface.pm
 lib/Catalyst/Log.pm
 lib/Catalyst/Model.pm
+lib/Catalyst/PSGI.pod
 lib/Catalyst/Request.pm
 lib/Catalyst/Request/Upload.pm
 lib/Catalyst/Response.pm
@@ -73,6 +72,7 @@ t/aggregate/catalyst_test_utf8.t
 t/aggregate/custom_live_component_controller_action_auto_doublebug.t
 t/aggregate/custom_live_path_bug.t
 t/aggregate/deprecated_test_import.t
+t/aggregate/deprecated_test_unimported.t
 t/aggregate/error_page_dump.t
 t/aggregate/live_component_controller_action_action.t
 t/aggregate/live_component_controller_action_auto.t
@@ -130,6 +130,7 @@ t/aggregate/live_priorities.t
 t/aggregate/live_recursion.t
 t/aggregate/live_view_warnings.t
 t/aggregate/meta_method_unneeded.t
+t/aggregate/psgi_file.t
 t/aggregate/unit_controller_actions.t
 t/aggregate/unit_controller_config.t
 t/aggregate/unit_controller_namespace.t
@@ -143,7 +144,7 @@ t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_component_loading.t
 t/aggregate/unit_core_component_mro.t
 t/aggregate/unit_core_ctx_attr.t
-t/aggregate/unit_core_engine_cgi-prepare_path.t
+t/aggregate/unit_core_engine-prepare_path.t
 t/aggregate/unit_core_engine_fixenv-iis6.t
 t/aggregate/unit_core_engine_fixenv-lighttpd.t
 t/aggregate/unit_core_log.t
@@ -155,6 +156,7 @@ t/aggregate/unit_core_script_cgi.t
 t/aggregate/unit_core_script_create.t
 t/aggregate/unit_core_script_fastcgi.t
 t/aggregate/unit_core_script_help.t
+t/aggregate/unit_core_script_server-without_modules.t
 t/aggregate/unit_core_script_server.t
 t/aggregate/unit_core_script_test.t
 t/aggregate/unit_core_scriptrunner.t
@@ -166,6 +168,7 @@ t/aggregate/unit_core_uri_for_action.t
 t/aggregate/unit_core_uri_for_multibytechar.t
 t/aggregate/unit_core_uri_with.t
 t/aggregate/unit_dispatcher_requestargs_restore.t
+t/aggregate/unit_engineloader.t
 t/aggregate/unit_load_catalyst_test.t
 t/aggregate/unit_metaclass_compat_extend_non_moose_controller.t
 t/aggregate/unit_metaclass_compat_non_moose.t
@@ -363,6 +366,9 @@ t/optional_stress.t
 t/optional_stress.yml
 t/optional_threads.t
 t/plugin_new_method_backcompat.t
+t/psgi_file_testapp.t
+t/psgi_file_testapp_engine_plackup_compat.t
+t/psgi_file_testapp_engine_psgi_compat.t
 t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
 t/unit_core_methodattributes_method_metaclass_on_subclasses.t

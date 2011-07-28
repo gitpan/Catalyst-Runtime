@@ -19,9 +19,11 @@ requires 'namespace::clean' => '0.13';
 requires 'B::Hooks::EndOfScope' => '0.08';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00903';
 requires 'Class::MOP' => '0.95';
+requires 'Data::OptList';
 requires 'Moose' => '1.03';
 requires 'MooseX::MethodAttributes::Inheritable' => '0.24';
 requires 'MooseX::Role::WithOverloading' => '0.09';
+requires 'MooseX::Types::LoadableClass' => '0.003';
 requires 'Carp';
 requires 'Class::C3::Adopt::NEXT' => '0.07';
 requires 'CGI::Simple::Cookie' => '1.109';
@@ -43,6 +45,7 @@ requires 'Text::SimpleTable' => '0.03';
 requires 'Time::HiRes';
 requires 'Tree::Simple' => '1.15';
 requires 'Tree::Simple::Visitor::FindByPath';
+requires 'Try::Tiny';
 requires 'URI' => '1.35';
 requires 'Task::Weaken';
 requires 'Text::Balanced'; # core in 5.8.x but mentioned for completeness
@@ -51,10 +54,15 @@ requires 'MooseX::Getopt' => '0.30';
 requires 'MooseX::Types';
 requires 'MooseX::Types::Common::Numeric';
 requires 'String::RewritePrefix' => '0.004'; # Catalyst::Utils::resolve_namespace
+requires 'Plack' => '0.9974'; # IIS6 fix middleware
+requires 'Plack::Middleware::ReverseProxy' => '0.04';
+requires 'Plack::Test::ExternalServer';
 
 test_requires 'Class::Data::Inheritable';
 test_requires 'Test::Exception';
 test_requires 'Test::More' => '0.88';
+test_requires 'Data::Dump';
+test_requires 'HTTP::Request::Common';
 
 # aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate and a Test::Simple it works with is available
 if ($ENV{AGGREGATE_TESTS} && can_use('Test::Simple', '0.88') && can_use('Test::Aggregate', '0.364')) {
@@ -70,13 +78,17 @@ else {
 author_requires 'CatalystX::LeakChecker', '0.05';
 author_requires 'File::Copy::Recursive'; # For http server test
 author_requires 'Catalyst::Devel', '1.0'; # For http server test
+author_requires 'Catalyst::Engine::PSGI';
+author_requires 'Test::Without::Module';
+author_requires 'Starman';
+author_requires 'MooseX::Daemonize';
 
 author_tests 't/author';
 author_requires(map {; $_ => 0 } qw(
   Test::NoTabs
   Test::Pod
   Test::Pod::Coverage
-  Pod::Coverage
+  Pod::Coverage::TrustPod
 ));
 
 if ($Module::Install::AUTHOR) {
@@ -158,8 +170,8 @@ sub darwin_check_no_resource_forks {
 
         # TAR on 10.4 wants COPY_EXTENDED_ATTRIBUTES_DISABLE
         # On 10.5 (Leopard) it wants COPYFILE_DISABLE
-         die("Oh, you got Ceiling Cat, snazzy. Please read the man page for tar or Google to find out if Apple renamed COPYFILE_DISABLE (it was COPY_EXTENDED_ATTRIBUTES_DISABLE originally) again and fix this Makefile.PL please?\n") if $osx_ver =~ /^10.7/;
-        my $attr = $osx_ver =~ /^10.(5|6)/  ? 'COPYFILE_DISABLE' : 'COPY_EXTENDED_ATTRIBUTES_DISABLE';
+         die("Oh, you got Ceiling Cat, snazzy. Please read the man page for tar or Google to find out if Apple renamed COPYFILE_DISABLE (it was COPY_EXTENDED_ATTRIBUTES_DISABLE originally) again and fix this Makefile.PL please?\n") if $osx_ver =~ /^10.8/;
+        my $attr = $osx_ver =~ /^10.(5|6|7)/  ? 'COPYFILE_DISABLE' : 'COPY_EXTENDED_ATTRIBUTES_DISABLE';
 
         makemaker_args(dist => { PREOP => qq{\@if [ "\$\$$attr" != "true" ]; then}.
                                           qq{ echo "You must set the ENV variable $attr to 'true',"; }.
