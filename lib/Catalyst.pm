@@ -84,7 +84,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.89003';
+our $VERSION = '5.9000';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -2603,25 +2603,28 @@ Sets up engine.
 =cut
 
 sub engine_class {
-    my $class = shift;
-    $class->engine_loader->catalyst_engine_class(@_);
+    my ($class, $requested_engine) = @_;
+
+    if (!$class->engine_loader || $requested_engine) {
+        $class->engine_loader(
+            Catalyst::EngineLoader->new({
+                application_name => $class,
+                (defined $requested_engine
+                     ? (requested_engine => $requested_engine) : ()),
+            }),
+        );
+    }
+    $class->engine_loader->catalyst_engine_class;
 }
 
 sub setup_engine {
     my ($class, $requested_engine) = @_;
 
-    $class->engine_loader(
-        Catalyst::EngineLoader->new({
-            application_name => $class,
-            (defined $requested_engine
-                 ? (requested_engine => $requested_engine) : ()),
-        }),
-    );
+    my $engine = $class->engine_class($requested_engine);
 
     # Don't really setup_engine -- see _setup_psgi_app for explanation.
     return if $class->loading_psgi_file;
 
-    my $engine = $class->engine_class;
     Class::MOP::load_class($engine);
 
     if ($ENV{MOD_PERL}) {
@@ -2736,20 +2739,6 @@ sub apply_default_middlewares {
     # If we're running under Lighttpd, swap PATH_INFO and SCRIPT_NAME
     # http://lists.scsys.co.uk/pipermail/catalyst/2006-June/008361.html
     $psgi_app = Plack::Middleware::LighttpdScriptNameFix->wrap($psgi_app);
-
-    $psgi_app = Plack::Middleware::Conditional->wrap(
-        $psgi_app,
-        condition => $server_matches->(qr/^nginx/),
-        builder   => sub {
-            my ($to_wrap) = @_;
-            return sub {
-                my ($env) = @_;
-                my $script_name = $env->{SCRIPT_NAME};
-                $env->{PATH_INFO} =~ s/^$script_name//g;
-                return $to_wrap->($env);
-            };
-        },
-    );
 
     # we're applying this unconditionally as the middleware itself already makes
     # sure it doesn't fuck things up if it's not running under one of the right
@@ -3058,8 +3047,46 @@ to be shown in hit debug tables in the test server.
 =item *
 
 C<use_request_uri_for_path> - Controlls if the C<REQUEST_URI> or C<PATH_INFO> environment
-variable should be used for determining the request path. See L<Catalyst::Engine::CGI/PATH DECODING>
-for more information.
+variable should be used for determining the request path. 
+
+Most web server environments pass the requested path to the application using environment variables,
+from which Catalyst has to reconstruct the request base (i.e. the top level path to / in the application,
+exposed as C<< $c->request->base >>) and the request path below that base.
+
+There are two methods of doing this, both of which have advantages and disadvantages. Which method is used
+is determined by the C<< $c->config(use_request_uri_for_path) >> setting (which can either be true or false).
+
+=over
+
+=item use_request_uri_for_path => 0
+
+This is the default (and the) traditional method that Catalyst has used for determining the path information.
+The path is synthesised from a combination of the C<PATH_INFO> and C<SCRIPT_NAME> environment variables.
+The allows the application to behave correctly when C<mod_rewrite> is being used to redirect requests
+into the application, as these variables are adjusted by mod_rewrite to take account for the redirect.
+
+However this method has the major disadvantage that it is impossible to correctly decode some elements
+of the path, as RFC 3875 says: "C<< Unlike a URI path, the PATH_INFO is not URL-encoded, and cannot
+contain path-segment parameters. >>" This means PATH_INFO is B<always> decoded, and therefore Catalyst
+can't distinguish / vs %2F in paths (in addition to other encoded values).
+
+=item use_request_uri_for_path => 1
+
+This method uses the C<REQUEST_URI> and C<SCRIPT_NAME> environment variables. As C<REQUEST_URI> is never
+decoded, this means that applications using this mode can correctly handle URIs including the %2F character
+(i.e. with C<AllowEncodedSlashes> set to C<On> in Apache).
+
+Given that this method of path resolution is provably more correct, it is recommended that you use
+this unless you have a specific need to deploy your application in a non-standard environment, and you are
+aware of the implications of not being able to handle encoded URI paths correctly.
+
+However it also means that in a number of cases when the app isn't installed directly at a path, but instead
+is having paths rewritten into it (e.g. as a .cgi/fcgi in a public_html directory, with mod_rewrite in a
+.htaccess file, or when SSI is used to rewrite pages into the app, or when sub-paths of the app are exposed
+at other URIs than that which the app is 'normally' based at with C<mod_rewrite>), the resolution of
+C<< $c->request->base >> will be incorrect.
+
+=back
 
 =item *
 

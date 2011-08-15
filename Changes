@@ -1,5 +1,30 @@
 # This file documents the revision history for Perl extension Catalyst.
 
+5.9000 - 2011-08-15 22:18
+
+ See Catalyst::Delta for the major changes in this release.
+
+ Changelog since the last TRIAL release:
+
+   Backward compatibility fixes:
+
+    - Fix calling MyApp->engine_class to set the engine class manually.
+
+    - Re-add a $res->headers->{status} field to Catalyst::Test responses.
+      This _should_ be accessed with $c->res->code instead, but is here
+      for backward compatibility.
+
+   Documentation:
+
+    - Documentation which was in the now removed Catalyst::Engine::* classes
+      has been moved to Catalyst::Manual::Deployment
+
+   Changes:
+
+    - nginx specific behaviour is removed as it is not needed with any
+      web server configuration I can come up with (recommended config is
+      documented in Catalst::Manual::Deployment::nginx::FastCGI)
+
 5.89003 2011-07-28 20:11:50 (TRIAL release)
 
  Backward compatibility fixes:
