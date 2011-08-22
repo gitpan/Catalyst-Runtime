@@ -141,7 +141,6 @@ In the simplest case:
 
 becomes
 
-    MyCatalystApp->setup_engine('PSGI');
     my $app = MyCatalystApp->psgi_app(@_);
 
 B<NOT>:
@@ -156,6 +155,10 @@ B<NOTE:> If you rename your .psgi file without these modifications, then
 any tests run via L<Catalyst::Test> will not be compatible with the new
 release, and will result in the development server starting, rather than
 the expected test running.
+
+B<NOTE:> If you are directly accessing C<< $c->req->env >> to get the PSGI
+environment then this accessor is moved to C<< $c->engine->env >>,
+you will need to update your code.
 
 =head2 Engines which are known to be broken
 

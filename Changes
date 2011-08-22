@@ -1,5 +1,19 @@
 # This file documents the revision history for Perl extension Catalyst.
 
+5.90002 - 2011-08-22 21:44:00
+  Backward compatibility fixes:
+
+    - Deploying via mod_perl in some cases is fixed by making
+      Catalyst::EngineLoader detect mod_perl in more generic
+      circumstances.
+      https://github.com/miyagawa/Plack/issues/239
+
+  Documentation fixes:
+
+    - Fix incorrect example in Catalyst::PSGI.
+    - Add note that if you are using the PSGI engine, then $c->req->env
+      needs to become $c->engine->env when you upgrade.
+
 5.90001 - 2011-08-15 22:42
 
  Realise that we accidentally chopped a digit off the versioning scheme
