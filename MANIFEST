@@ -33,6 +33,7 @@ lib/Catalyst/DispatchType/Index.pm
 lib/Catalyst/DispatchType/Path.pm
 lib/Catalyst/DispatchType/Regex.pm
 lib/Catalyst/Engine.pm
+lib/Catalyst/Engine/HTTP.pm
 lib/Catalyst/EngineLoader.pm
 lib/Catalyst/Exception.pm
 lib/Catalyst/Exception/Basic.pm
@@ -143,6 +144,7 @@ t/aggregate/unit_core_component_generating.t
 t/aggregate/unit_core_component_layers.t
 t/aggregate/unit_core_component_loading.t
 t/aggregate/unit_core_component_mro.t
+t/aggregate/unit_core_controller_actions_config.t
 t/aggregate/unit_core_ctx_attr.t
 t/aggregate/unit_core_engine-prepare_path.t
 t/aggregate/unit_core_engine_fixenv-iis6.t
@@ -242,6 +244,7 @@ t/lib/TestApp/Controller/Action/Chained/ParentChain/Relative.pm
 t/lib/TestApp/Controller/Action/Chained/PassedArgs.pm
 t/lib/TestApp/Controller/Action/Chained/PathPrefix.pm
 t/lib/TestApp/Controller/Action/Chained/Root.pm
+t/lib/TestApp/Controller/Action/ConfigSmashArrayRefs.pm
 t/lib/TestApp/Controller/Action/Default.pm
 t/lib/TestApp/Controller/Action/Detach.pm
 t/lib/TestApp/Controller/Action/DieInEnd.pm
@@ -352,6 +355,7 @@ t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
 t/live_component_controller_context_closure.t
 t/live_fork.t
+t/live_redirect_body.t
 t/live_show_internal_actions_warnings.t
 t/live_stats.t
 t/optional_apache-cgi-rewrite.pl

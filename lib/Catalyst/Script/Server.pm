@@ -48,8 +48,8 @@ has port => (
 use Moose::Util::TypeConstraints;
 class_type 'MooseX::Daemonize::Pid::File';
 subtype 'Catalyst::Script::Server::Types::Pidfile',
-    as 'MooseX::Daemonize::Pid::File',
-    where { 1 };
+    as 'MooseX::Daemonize::Pid::File';
+
 coerce 'Catalyst::Script::Server::Types::Pidfile', from Str, via {
     try { Class::MOP::load_class("MooseX::Daemonize::Pid::File") }
     catch {
@@ -163,7 +163,7 @@ has follow_symlinks => (
 
 sub _plack_engine_name {
     my $self = shift;
-    return $self->fork ? 'Starman' : $self->keepalive ? 'Starman' : 'Standalone';
+    return $self->fork || $self->keepalive ? 'Starman' : 'Standalone';
 }
 
 sub _restarter_args {
