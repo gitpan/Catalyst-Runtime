@@ -158,6 +158,7 @@ t/aggregate/unit_core_script_cgi.t
 t/aggregate/unit_core_script_create.t
 t/aggregate/unit_core_script_fastcgi.t
 t/aggregate/unit_core_script_help.t
+t/aggregate/unit_core_script_run_options.t
 t/aggregate/unit_core_script_server-without_modules.t
 t/aggregate/unit_core_script_server.t
 t/aggregate/unit_core_script_test.t
@@ -215,6 +216,8 @@ t/lib/DeprecatedTestApp/C/Root.pm
 t/lib/NullPackage.pm
 t/lib/PluginTestApp.pm
 t/lib/PluginTestApp/Controller/Root.pm
+t/lib/ScriptTestApp.pm
+t/lib/ScriptTestApp/Controller/Root.pm
 t/lib/ScriptTestApp/Script/Bar.pm
 t/lib/ScriptTestApp/Script/CompileTest.pm
 t/lib/ScriptTestApp/Script/Foo.pm

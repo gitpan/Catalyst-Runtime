@@ -75,7 +75,7 @@ our $GO        = Catalyst::Exception::Go->new;
 __PACKAGE__->mk_classdata($_)
   for qw/components arguments dispatcher engine log dispatcher_class
   engine_loader context_class request_class response_class stats_class
-  setup_finished _psgi_app loading_psgi_file/;
+  setup_finished _psgi_app loading_psgi_file run_options/;
 
 __PACKAGE__->dispatcher_class('Catalyst::Dispatcher');
 __PACKAGE__->request_class('Catalyst::Request');
@@ -84,7 +84,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90005';
+our $VERSION = '5.90006';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1393,11 +1393,12 @@ to interpolate all the parameters in the URI.
 
 =item @args?
 
-Optional list of extra arguments - can be supplied in the C<< \@captures_and_args? >>
-array ref, or here - whichever is easier for your code..
+Optional list of extra arguments - can be supplied in the
+C<< \@captures_and_args? >> array ref, or here - whichever is easier for your
+code.
 
-If your action may have a zero, a fixed or a variable number of args (e.g. C<< Args(1) >>
-for a fixed number or C<< Args() >> for a variable number)..
+Your action can have zero, a fixed or a variable number of args (e.g.
+C<< Args(1) >> for a fixed number or C<< Args() >> for a variable number)..
 
 =item \%query_values?
 
@@ -1571,6 +1572,16 @@ sub welcome_message {
 </html>
 EOF
 }
+
+=head2 run_options
+
+Contains a hash of options passed from the application script, including
+the original ARGV the script received, the processed values from that
+ARGV and any extra arguments to the script which were not processed.
+
+This can be used to add custom options to your application's scripts
+and setup your application differently depending on the values of these
+options.
 
 =head1 INTERNAL METHODS
 
@@ -2641,7 +2652,7 @@ sub setup_engine {
 
         $meta->add_method(handler => sub {
             my $r = shift;
-            my $psgi_app = $class->psgi_app;
+            my $psgi_app = $class->_finalized_psgi_app;
             $apache->call_app($r, $psgi_app);
         });
 
@@ -3146,7 +3157,26 @@ headers.
 
 If you do not wish to use the proxy support at all, you may set:
 
-    MyApp->config(ignore_frontend_proxy => 1);
+    MyApp->config(ignore_frontend_proxy => 0);
+
+=head2 Note about psgi files
+
+Note that if you supply your own .psgi file, calling
+C<< MyApp->psgi_app(@_); >>, then B<this will not happen automatically>.
+
+You either need to apply L<Plack::Middleware::ReverseProxy> yourself
+in your psgi, for example:
+
+    builder {
+        enable "Plack::Middleware::ReverseProxy";
+        MyApp->psgi_app
+    };
+
+This will unconditionally add the ReverseProxy support, or you need to call
+C<< $app = MyApp->apply_default_middlewares($app) >> (to conditionally
+apply the support depending upon your config).
+
+See L<Catalyst::PSGI> for more information.
 
 =head1 THREAD SAFETY
 
