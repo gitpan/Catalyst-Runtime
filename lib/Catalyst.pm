@@ -84,7 +84,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90006';
+our $VERSION = '5.90007';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -2025,6 +2025,7 @@ sub prepare {
                 $c->prepare_body;
             }
         }
+        $c->prepare_action;
     }
     # VERY ugly and probably shouldn't rely on ->finalize actually working
     catch {
@@ -2032,18 +2033,18 @@ sub prepare {
         $c->response->status(400);
         $c->response->content_type('text/plain');
         $c->response->body('Bad Request');
+        # Note we call finalize and then die here, which escapes
+        # finalize being called in the enclosing block..
+        # It in fact couldn't be called, as we don't return $c..
+        # This is a mess - but I'm unsure you can fix this without
+        # breaking compat for people doing crazy things (we should set
+        # the 400 and just return the ctx here IMO, letting finalize get called
+        # above...
         $c->finalize;
         die $_;
     };
 
-    my $method  = $c->req->method  || '';
-    my $path    = $c->req->path;
-    $path       = '/' unless length $path;
-    my $address = $c->req->address || '';
-
     $c->log_request;
-
-    $c->prepare_action;
 
     return $c;
 }
@@ -2743,7 +2744,16 @@ sub apply_default_middlewares {
 
     # If we're running under Lighttpd, swap PATH_INFO and SCRIPT_NAME
     # http://lists.scsys.co.uk/pipermail/catalyst/2006-June/008361.html
-    $psgi_app = Plack::Middleware::LighttpdScriptNameFix->wrap($psgi_app);
+    $psgi_app = Plack::Middleware::Conditional->wrap(
+        $psgi_app,
+        builder   => sub { Plack::Middleware::LighttpdScriptNameFix->wrap($_[0]) },
+        condition => sub {
+            my ($env) = @_;
+            return unless $env->{SERVER_SOFTWARE} && $env->{SERVER_SOFTWARE} =~ m!lighttpd[-/]1\.(\d+\.\d+)!;
+            return unless $1 < 4.23;
+            1;
+        },
+    );
 
     # we're applying this unconditionally as the middleware itself already makes
     # sure it doesn't fuck things up if it's not running under one of the right

@@ -227,6 +227,7 @@ t/lib/ScriptTestApp/TraitFor/Script/Foo.pm
 t/lib/TestApp.pm
 t/lib/TestApp/Action/TestBefore.pm
 t/lib/TestApp/Action/TestExtraArgsAction.pm
+t/lib/TestApp/Action/TestMatchCaptures.pm
 t/lib/TestApp/Action/TestMyAction.pm
 t/lib/TestApp/Controller/Action.pm
 t/lib/TestApp/Controller/Action/Action.pm
