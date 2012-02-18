@@ -7,7 +7,7 @@ use ExtUtils::MakeMaker ();
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '1.03';
+	$VERSION = '1.04';
 }
 
 # special map on pre-defined feature sets
@@ -716,6 +716,15 @@ sub _load {
     return eval { require $file; $mod->VERSION } || ( $@ ? undef: 0 );
 }
 
+# report version without loading a module
+sub _version_of {
+    my $mod  = pop;    # class/instance doesn't matter
+    require Module::Metadata;
+    my $meta = Module::Metadata->new_from_module($mod);
+    return $meta ? $meta->version($mod) : undef;
+}
+
+
 # Load CPAN.pm and it's configuration
 sub _load_cpan {
     return if $CPAN::VERSION and $CPAN::Config and not @_;
@@ -912,4 +921,4 @@ END_MAKE
 
 __END__
 
-#line 1178
+#line 1187

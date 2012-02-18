@@ -14,6 +14,7 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Scripts.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
+inc/Module/Metadata.pm
 lib/Catalyst.pm
 lib/Catalyst/Action.pm
 lib/Catalyst/ActionChain.pm
@@ -163,6 +164,7 @@ t/aggregate/unit_core_script_server-without_modules.t
 t/aggregate/unit_core_script_server.t
 t/aggregate/unit_core_script_test.t
 t/aggregate/unit_core_scriptrunner.t
+t/aggregate/unit_core_scriptrunner_home.t
 t/aggregate/unit_core_setup.t
 t/aggregate/unit_core_setup_log.t
 t/aggregate/unit_core_setup_stats.t
@@ -178,6 +180,7 @@ t/aggregate/unit_metaclass_compat_non_moose.t
 t/aggregate/unit_metaclass_compat_non_moose_controller.t
 t/aggregate/unit_response.t
 t/aggregate/unit_utils_env_value.t
+t/aggregate/unit_utils_home.t
 t/aggregate/unit_utils_prefix.t
 t/aggregate/unit_utils_request.t
 t/aggregate/utf8_content_length.t

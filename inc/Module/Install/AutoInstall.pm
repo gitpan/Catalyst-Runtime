@@ -6,7 +6,7 @@ use Module::Install::Base ();
 
 use vars qw{$VERSION @ISA $ISCORE};
 BEGIN {
-	$VERSION = '1.02';
+	$VERSION = '1.04';
 	@ISA     = 'Module::Install::Base';
 	$ISCORE  = 1;
 }
@@ -35,6 +35,7 @@ sub auto_install {
 
     # We'll need Module::AutoInstall
     $self->include('Module::AutoInstall');
+    $self->include('Module::Metadata');
     require Module::AutoInstall;
 
     my @features_require = Module::AutoInstall->import(
