@@ -23,13 +23,15 @@ has user => (is => 'rw');
 sub snippets        { shift->captures(@_) }
 
 has _read_position => (
-    init_arg => undef,
+    # FIXME: work around Moose bug RT#75367
+    # init_arg => undef,
     is => 'ro',
     writer => '_set_read_position',
     default => 0,
 );
 has _read_length => (
-    init_arg => undef,
+    # FIXME: work around Moose bug RT#75367
+    # init_arg => undef,
     is => 'ro',
     default => sub {
         my $self = shift;
@@ -127,7 +129,7 @@ has body_parameters => (
   is => 'rw',
   required => 1,
   lazy => 1,
-  default => sub { {} },
+  builder => 'prepare_body_parameters',
 );
 
 has uploads => (
@@ -152,8 +154,6 @@ has parameters => (
 
 sub prepare_parameters {
     my ( $self ) = @_;
-
-    $self->prepare_body;
     my $parameters = {};
     my $body_parameters = $self->body_parameters;
     my $query_parameters = $self->query_parameters;
@@ -174,12 +174,6 @@ sub prepare_parameters {
     }
     $parameters;
 }
-
-before body_parameters => sub {
-    my ($self) = @_;
-    $self->prepare_body;
-    $self->prepare_body_parameters;
-};
 
 has _uploadtmp => (
     is => 'ro',
@@ -225,9 +219,10 @@ sub prepare_body_chunk {
 sub prepare_body_parameters {
     my ( $self ) = @_;
 
+    $self->prepare_body if ! $self->_has_body;
     return unless $self->_body;
 
-    $self->{body_parameters} = $self->_body->param; # FIXME!! Recursion here.
+    return $self->_body->param;
 }
 
 sub prepare_connection {
@@ -277,7 +272,7 @@ has _body => (
 #             and provide a custom reader..
 sub body {
   my $self = shift;
-  $self->prepare_body();
+  $self->prepare_body unless ! $self->_has_body;
   croak 'body is a reader' if scalar @_;
   return blessed $self->_body ? $self->_body->body : $self->_body;
 }
@@ -649,9 +644,8 @@ Shortcut for $req->headers->referer. Returns the referring page.
 Returns true or false, indicating whether the connection is secure
 (https). Note that the URI scheme (e.g., http vs. https) must be determined
 through heuristics, and therefore the reliability of $req->secure will depend
-on your server configuration. If you are serving secure pages on the standard
-SSL port (443) and/or setting the HTTPS environment variable, $req->secure
-should be valid.
+on your server configuration. If you are setting the HTTPS environment variable, 
+$req->secure should be valid.
 
 =head2 $req->captures
 

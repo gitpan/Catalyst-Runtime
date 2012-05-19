@@ -1,5 +1,35 @@
 # This file documents the revision history for Perl extension Catalyst.
 
+5.90012 - 2012-05-16 09:59:00
+
+ Distribution META.yml changes:
+  - author key is now correct, rather than what Module::Install
+    mis-parses from the documentation.
+  - x_authority key added.
+
+ Bug fixes:
+  - Fix request body parameters being multiply rebuilt. Fixes both
+    RT#75607 and CatalystX::DebugFilter
+
+  - Make plugin de-duplication work as intended originally, as whilst
+    duplicate plugins are totally unwise, the C3 error given to the user
+    is less than helpful.
+
+  - Remove dependence on obscure behaviour in B::Hooks::EndOfScope
+    for backward compatibility. This fixes issues with behaviour changes
+    in bleadperl. RT#76437
+
+  - Work around Moose bug RT#7536 which breaks
+    Catalyst::Controller::DBIC::API.
+
+ Documentation:
+  - Fix documentation in Catalyst::Component to show attributes and
+    calling readers, rather than accessing elements in the $self->{} hash
+    directly.
+  - Add note in Catalyst::Component to strongly disrecommend $self->config
+  - Fix vague 'checkout' wording in Catalyst::Utils. RT#77000
+  - Fix documentation for the 'secure' method in Catalyst:Request. RT#76710
+
 5.90011 - 2012-03-08 16:43:00
 
  Bug fixes:

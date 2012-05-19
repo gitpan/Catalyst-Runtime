@@ -7,16 +7,18 @@ use inc::Module::Install 0.91;
 use Module::Install::AuthorRequires;
 use Module::Install::CheckConflicts;
 use Module::Install::AuthorTests;
+use Module::Install::Authority;
 
 perl_version '5.008003';
 
 name 'Catalyst-Runtime';
+author 'Sebastian Riedel <sri@cpan.org>';
+authority 'MSTROUT';
 all_from 'lib/Catalyst/Runtime.pm';
 
 requires 'List::MoreUtils';
 requires 'namespace::autoclean' => '0.09';
-requires 'namespace::clean' => '0.13';
-requires 'B::Hooks::EndOfScope' => '0.10';
+requires 'namespace::clean' => '0.23';
 requires 'MooseX::Emulate::Class::Accessor::Fast' => '0.00903';
 requires 'Class::Load' => '0.12';
 requires 'Class::MOP' => '0.95';

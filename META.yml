@@ -1,7 +1,7 @@
 ---
 abstract: 'The Catalyst Framework Runtime'
 author:
-  - '& COPYRIGHT'
+  - 'Sebastian Riedel <sri@cpan.org>'
 build_requires:
   Class::Data::Inheritable: 0
   Data::Dump: 0
@@ -24,7 +24,6 @@ no_index:
     - inc
     - t
 requires:
-  B::Hooks::EndOfScope: 0.10
   CGI::Simple::Cookie: 1.109
   Carp: 0
   Class::C3::Adopt::NEXT: 0.07
@@ -67,7 +66,7 @@ requires:
   Try::Tiny: 0
   URI: 1.35
   namespace::autoclean: 0.09
-  namespace::clean: 0.13
+  namespace::clean: 0.23
   perl: 5.8.3
 resources:
   IRC: irc://irc.perl.org/#catalyst
@@ -75,4 +74,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90011
+version: 5.90012
+x_authority: MSTROUT

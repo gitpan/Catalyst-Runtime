@@ -1,6 +1,7 @@
 Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
+inc/Module/Install/Authority.pm
 inc/Module/Install/AuthorRequires.pm
 inc/Module/Install/AuthorTests.pm
 inc/Module/Install/AutoInstall.pm
@@ -275,6 +276,7 @@ t/lib/TestApp/Controller/Action/Visit.pm
 t/lib/TestApp/Controller/Anon.pm
 t/lib/TestApp/Controller/Args.pm
 t/lib/TestApp/Controller/Attributes.pm
+t/lib/TestApp/Controller/BodyParams.pm
 t/lib/TestApp/Controller/ContextClosure.pm
 t/lib/TestApp/Controller/Dump.pm
 t/lib/TestApp/Controller/Engine/Request/Uploads.pm
