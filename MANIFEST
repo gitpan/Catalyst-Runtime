@@ -99,6 +99,7 @@ t/aggregate/live_component_controller_action_private.t
 t/aggregate/live_component_controller_action_regexp.t
 t/aggregate/live_component_controller_action_streaming.t
 t/aggregate/live_component_controller_action_visit.t
+t/aggregate/live_component_controller_actionroles.t
 t/aggregate/live_component_controller_anon.t
 t/aggregate/live_component_controller_args.t
 t/aggregate/live_component_controller_attributes.t
@@ -162,7 +163,6 @@ t/aggregate/unit_core_script_help.t
 t/aggregate/unit_core_script_run_options.t
 t/aggregate/unit_core_script_server-without_modules.t
 t/aggregate/unit_core_script_server.t
-t/aggregate/unit_core_script_test.t
 t/aggregate/unit_core_scriptrunner.t
 t/aggregate/unit_core_setup.t
 t/aggregate/unit_core_setup_log.t
@@ -201,6 +201,8 @@ t/lib/ACLTestApp.pm
 t/lib/ACLTestApp/Controller/Root.pm
 t/lib/Catalyst/Action/TestAfter.pm
 t/lib/Catalyst/Action/TestBefore.pm
+t/lib/Catalyst/ActionRole/Moo.pm
+t/lib/Catalyst/ActionRole/Zoo.pm
 t/lib/Catalyst/Plugin/Test/Deprecated.pm
 t/lib/Catalyst/Plugin/Test/Errors.pm
 t/lib/Catalyst/Plugin/Test/Headers.pm
@@ -215,6 +217,7 @@ t/lib/ChainedActionsApp/Controller/Root.pm
 t/lib/DeprecatedActionsInAppClassTestApp.pm
 t/lib/DeprecatedTestApp.pm
 t/lib/DeprecatedTestApp/C/Root.pm
+t/lib/Moo.pm
 t/lib/NullPackage.pm
 t/lib/PluginTestApp.pm
 t/lib/PluginTestApp/Controller/Root.pm
@@ -227,10 +230,14 @@ t/lib/ScriptTestApp/TraitFor/Script.pm
 t/lib/ScriptTestApp/TraitFor/Script/Bar.pm
 t/lib/ScriptTestApp/TraitFor/Script/Foo.pm
 t/lib/TestApp.pm
+t/lib/TestApp/Action/TestActionArgsFromConstructor.pm
 t/lib/TestApp/Action/TestBefore.pm
 t/lib/TestApp/Action/TestExtraArgsAction.pm
 t/lib/TestApp/Action/TestMatchCaptures.pm
 t/lib/TestApp/Action/TestMyAction.pm
+t/lib/TestApp/ActionRole/Boo.pm
+t/lib/TestApp/ActionRole/Kooh.pm
+t/lib/TestApp/ActionRole/Moo.pm
 t/lib/TestApp/Controller/Action.pm
 t/lib/TestApp/Controller/Action/Action.pm
 t/lib/TestApp/Controller/Action/Auto.pm
@@ -273,6 +280,7 @@ t/lib/TestApp/Controller/Action/Streaming.pm
 t/lib/TestApp/Controller/Action/TestMultipath.pm
 t/lib/TestApp/Controller/Action/TestRelative.pm
 t/lib/TestApp/Controller/Action/Visit.pm
+t/lib/TestApp/Controller/ActionRoles.pm
 t/lib/TestApp/Controller/Anon.pm
 t/lib/TestApp/Controller/Args.pm
 t/lib/TestApp/Controller/Attributes.pm
@@ -387,6 +395,7 @@ t/psgi_file_testapp_engine_psgi_compat.t
 t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
 t/unit_core_methodattributes_method_metaclass_on_subclasses.t
+t/unit_core_script_test.t
 t/unit_stats.t
 t/unit_utils_load_class.t
 t/unit_utils_subdir.t
