@@ -100,7 +100,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90013';
+our $VERSION = '5.90014';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1999,6 +1999,8 @@ sub prepare {
 
     my $uploadtmp = $class->config->{uploadtmp};
     my $c = $class->context_class->new({ $uploadtmp ? (_uploadtmp => $uploadtmp) : ()});
+
+    $c->response->_context($c);
 
     #surely this is not the most efficient way to do things...
     $c->stats($class->stats_class->new)->enable($c->use_stats);
