@@ -100,7 +100,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90014';
+our $VERSION = '5.90015';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1788,7 +1788,7 @@ sub finalize {
             $c->finalize_error;
         }
 
-        $c->finalize_headers;
+        $c->finalize_headers unless $c->response->finalized_headers;
 
         # HEAD request
         if ( $c->request->method eq 'HEAD' ) {
@@ -1898,7 +1898,7 @@ EOF
 
     $c->finalize_cookies;
 
-    $c->engine->finalize_headers( $c, @_ );
+    $c->response->finalize_headers();
 
     # Done
     $response->finalized_headers(1);
