@@ -51,9 +51,10 @@ requires:
   MooseX::Types::Common::Numeric: 0
   MooseX::Types::LoadableClass: 0.003
   Path::Class: 0.09
-  Plack: 0.9974
+  Plack: 0.9991
   Plack::Middleware::ReverseProxy: 0.04
   Plack::Test::ExternalServer: 0
+  Safe::Isa: 0
   Scalar::Util: 0
   String::RewritePrefix: 0.004
   Sub::Exporter: 0
@@ -74,5 +75,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90015
+version: 5.90016
 x_authority: MSTROUT

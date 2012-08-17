@@ -33,9 +33,11 @@ use Catalyst::EngineLoader;
 use utf8;
 use Carp qw/croak carp shortmess/;
 use Try::Tiny;
+use Safe::Isa;
 use Plack::Middleware::Conditional;
 use Plack::Middleware::ReverseProxy;
 use Plack::Middleware::IIS6ScriptNameFix;
+use Plack::Middleware::IIS7KeepAliveFix;
 use Plack::Middleware::LighttpdScriptNameFix;
 
 BEGIN { require 5.008003; }
@@ -100,7 +102,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90015';
+our $VERSION = '5.90016';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -134,6 +136,8 @@ sub import {
 }
 
 sub _application { $_[0] }
+
+=encoding UTF-8
 
 =head1 NAME
 
@@ -544,13 +548,13 @@ sub _comp_names_search_prefixes {
     # undef for a name will return all
     return keys %eligible if !defined $name;
 
-    my $query  = ref $name ? $name : qr/^$name$/i;
+    my $query  = $name->$_isa('Regexp') ? $name : qr/^$name$/i;
     my @result = grep { $eligible{$_} =~ m{$query} } keys %eligible;
 
     return @result if @result;
 
     # if we were given a regexp to search against, we're done.
-    return if ref $name;
+    return if $name->$_isa('Regexp');
 
     # skip regexp fallback if configured
     return
@@ -641,7 +645,7 @@ sub controller {
 
     my $appclass = ref($c) || $c;
     if( $name ) {
-        unless ( ref($name) ) { # Direct component hash lookup to avoid costly regexps
+        unless ( $name->$_isa('Regexp') ) { # Direct component hash lookup to avoid costly regexps
             my $comps = $c->components;
             my $check = $appclass."::Controller::".$name;
             return $c->_filter_component( $comps->{$check}, @args ) if exists $comps->{$check};
@@ -679,7 +683,7 @@ sub model {
     my ( $c, $name, @args ) = @_;
     my $appclass = ref($c) || $c;
     if( $name ) {
-        unless ( ref($name) ) { # Direct component hash lookup to avoid costly regexps
+        unless ( $name->$_isa('Regexp') ) { # Direct component hash lookup to avoid costly regexps
             my $comps = $c->components;
             my $check = $appclass."::Model::".$name;
             return $c->_filter_component( $comps->{$check}, @args ) if exists $comps->{$check};
@@ -738,7 +742,7 @@ sub view {
 
     my $appclass = ref($c) || $c;
     if( $name ) {
-        unless ( ref($name) ) { # Direct component hash lookup to avoid costly regexps
+        unless ( $name->$_isa('Regexp') ) { # Direct component hash lookup to avoid costly regexps
             my $comps = $c->components;
             my $check = $appclass."::View::".$name;
             if( exists $comps->{$check} ) {
@@ -1266,7 +1270,7 @@ path, use C<< $c->uri_for_action >> instead.
 sub uri_for {
     my ( $c, $path, @args ) = @_;
 
-    if (blessed($path) && $path->isa('Catalyst::Controller')) {
+    if ( $path->$_isa('Catalyst::Controller') ) {
         $path = $path->path_prefix;
         $path =~ s{/+\z}{};
         $path .= '/';
@@ -1283,7 +1287,7 @@ sub uri_for {
         $arg =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
     }
 
-    if ( blessed($path) ) { # action object
+    if ( $path->$_isa('Catalyst::Action') ) { # action object
         s|/|%2F|g for @args;
         my $captures = [ map { s|/|%2F|g; $_; }
                         ( scalar @args && ref $args[0] eq 'ARRAY'
@@ -2792,6 +2796,16 @@ sub apply_default_middlewares {
     # sure it doesn't fuck things up if it's not running under one of the right
     # IIS versions
     $psgi_app = Plack::Middleware::IIS6ScriptNameFix->wrap($psgi_app);
+
+    # And another IIS issue, this time with IIS7.
+    $psgi_app = Plack::Middleware::Conditional->wrap(
+        $psgi_app,
+        builder => sub { Plack::Middleware::IIS7KeepAliveFix->wrap($_[0]) },
+        condition => sub {
+            my ($env) = @_;
+            return $env->{SERVER_SOFTWARE} && $env->{SERVER_SOFTWARE} =~ m!IIS/7\.[0-9]!;
+        },
+    );
 
     return $psgi_app;
 }

@@ -113,6 +113,7 @@ t/aggregate/live_engine_request_env.t
 t/aggregate/live_engine_request_escaped_path.t
 t/aggregate/live_engine_request_headers.t
 t/aggregate/live_engine_request_parameters.t
+t/aggregate/live_engine_request_prepare_parameters.t
 t/aggregate/live_engine_request_remote_user.t
 t/aggregate/live_engine_request_uploads.t
 t/aggregate/live_engine_request_uri.t
