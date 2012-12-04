@@ -47,9 +47,6 @@ requires:
   MooseX::Getopt: 0.30
   MooseX::MethodAttributes::Inheritable: 0.24
   MooseX::Role::WithOverloading: 0.09
-  MooseX::Types: 0
-  MooseX::Types::Common::Numeric: 0
-  MooseX::Types::LoadableClass: 0.003
   Path::Class: 0.09
   Plack: 0.9991
   Plack::Middleware::ReverseProxy: 0.04
@@ -75,5 +72,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90018
+version: 5.90019
 x_authority: MSTROUT
