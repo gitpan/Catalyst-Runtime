@@ -76,6 +76,8 @@ sub match {
     return scalar( @{ $c->req->args } ) == $args;
 }
 
+sub match_captures { 1 }
+
 sub compare {
     my ($a1, $a2) = @_;
 
@@ -100,6 +102,14 @@ sub number_of_captures {
     return 0 unless exists $self->attributes->{CaptureArgs};
     return $self->attributes->{CaptureArgs}[0] || 0;
 }
+
+sub list_extra_info {
+  my $self = shift;
+  return {
+    Args => $self->attributes->{Args}[0],
+    CaptureArgs => $self->number_of_captures,
+  }
+} 
 
 __PACKAGE__->meta->make_immutable;
 
@@ -138,6 +148,16 @@ context and arguments
 Check Args attribute, and makes sure number of args matches the setting.
 Always returns true if Args is omitted.
 
+=head2 match_captures ($c, $captures)
+
+Can be implemented by action class and action role authors. If the method
+exists, then it will be called with the request context and an array reference
+of the captures for this action.
+
+Returning true from this method causes the chain match to continue, returning
+makes the chain not match (and alternate, less preferred chains will be attempted).
+
+
 =head2 compare
 
 Compares 2 actions based on the value of the C<Args> attribute, with no C<Args>
@@ -168,20 +188,13 @@ Returns the number of args this action expects. This is 0 if the action doesn't 
 
 Returns the number of captures this action expects for L<Chained|Catalyst::DispatchType::Chained> actions.
 
+=head2 list_extra_info
+
+A HashRef of key-values that an action can provide to a debugging screen
+
 =head2 meta
 
 Provided by Moose.
-
-=head1 OPTIONAL METHODS
-
-=head2 match_captures
-
-Can be implemented by action class and action role authors. If the method
-exists, then it will be called with the request context and an array reference
-of the captures for this action.
-
-Returning true from this method causes the chain match to continue, returning
-makes the chain not match (and alternate, less preferred chains will be attempted).
 
 =head1 AUTHORS
 

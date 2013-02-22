@@ -19,6 +19,7 @@ lib/Catalyst.pm
 lib/Catalyst/Action.pm
 lib/Catalyst/ActionChain.pm
 lib/Catalyst/ActionContainer.pm
+lib/Catalyst/ActionRole/HTTPMethods.pm
 lib/Catalyst/Base.pm
 lib/Catalyst/ClassData.pm
 lib/Catalyst/Component.pm
@@ -103,6 +104,7 @@ t/aggregate/live_component_controller_actionroles.t
 t/aggregate/live_component_controller_anon.t
 t/aggregate/live_component_controller_args.t
 t/aggregate/live_component_controller_attributes.t
+t/aggregate/live_component_controller_httpmethods.t
 t/aggregate/live_component_controller_moose.t
 t/aggregate/live_component_view_single.t
 t/aggregate/live_engine_request_auth.t
@@ -298,6 +300,7 @@ t/lib/TestApp/Controller/Engine/Response/Print.pm
 t/lib/TestApp/Controller/Engine/Response/Redirect.pm
 t/lib/TestApp/Controller/Engine/Response/Status.pm
 t/lib/TestApp/Controller/Fork.pm
+t/lib/TestApp/Controller/HTTPMethods.pm
 t/lib/TestApp/Controller/Immutable.pm
 t/lib/TestApp/Controller/Immutable/HardToReload.pm
 t/lib/TestApp/Controller/Index.pm

@@ -17,6 +17,8 @@ add_stopwords(qw(
     filename tempname request's subdirectory ini uninstalled uppercased
     wiki bitmask uri url urls dir hostname proxied http https IP SSL
     inline INLINE plugins
+    FastCGI Stringifies Rethrows DispatchType Wishlist Refactor ROADMAP HTTPS Unescapes Restarter Nginx Refactored
+    ActionClass LocalRegex LocalRegexp MyAction metadata
     Andreas
     Ashton
     Axel

@@ -14,10 +14,11 @@ coerce 'Catalyst::ScriptRole::LoadableClass',
   via { ensure_class_loaded($_); 1 };
 
 with 'MooseX::Getopt' => {
+    -version => 0.48,
     -excludes => [qw/
         _getopt_spec_warnings
         _getopt_spec_exception
-        _getopt_full_usage
+        print_usage_text
     /],
 };
 
@@ -56,7 +57,7 @@ sub _getopt_spec_warnings {
     warn @_;
 }
 
-sub _getopt_full_usage {
+sub print_usage_text {
     my $self = shift;
     pod2usage();
     exit 0;
@@ -122,6 +123,10 @@ Role with the common functionality of Catalyst scripts.
 =head2 run
 
 The method invoked to run the application.
+
+=head2 print_usage_text
+
+Prints out the usage text for the script you tried to invoke.
 
 =head1 ATTRIBUTES
 

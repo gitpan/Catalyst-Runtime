@@ -333,6 +333,8 @@ sub create_action {
 
     unless ($args{name} =~ /^_(DISPATCH|BEGIN|AUTO|ACTION|END)$/) {
        my @roles = $self->gather_action_roles(%args);
+       push @roles, $self->gather_default_action_roles(%args);
+
        $class = $self->_apply_action_class_roles($class, @roles) if @roles;
     }
 
@@ -352,11 +354,18 @@ sub create_action {
 
 sub gather_action_roles {
    my ($self, %args) = @_;
-
    return (
       (blessed $self ? $self->_action_roles : ()),
       @{ $args{attributes}->{Does} || [] },
    );
+}
+
+sub gather_default_action_roles {
+  my ($self, %args) = @_;
+  my @roles = ();
+  push @roles, 'Catalyst::ActionRole::HTTPMethods'
+    if $args{attributes}->{Method};
+  return @roles;
 }
 
 sub _parse_attrs {
@@ -545,6 +554,13 @@ sub _parse_Does_attr {
     return Does => $self->_expand_role_shortname($value);
 }
 
+sub _parse_GET_attr    { Method => 'GET'    }
+sub _parse_POST_attr   { Method => 'POST'   }
+sub _parse_PUT_attr    { Method => 'PUT'    }
+sub _parse_DELETE_attr { Method => 'DELETE' }
+sub _parse_OPTION_attr { Method => 'OPTION' }
+sub _parse_HEAD_attr   { Method => 'HEAD'   }
+
 sub _expand_role_shortname {
     my ($self, @shortnames) = @_;
     my $app = $self->_application;
@@ -687,11 +703,166 @@ Catalyst::Action (or appropriate sub/alternative class) object.
 
 Gathers the list of roles to apply to an action with the given %action_args.
 
+=head2 $self->gather_default_action_roles(\%action_args)
+
+returns a list of action roles to be applied based on core, builtin rules.
+Currently only the L<Catalyst::ActionRole::HTTPMethods> role is applied
+this way.
+
 =head2 $self->_application
 
 =head2 $self->_app
 
 Returns the application instance stored by C<new()>
+
+=head1 ACTION SUBROUTINE ATTRIBUTES
+
+Please see L<Catalyst::Manual::Intro> for more details
+
+Think of action attributes as a sort of way to record metadata about an action,
+similar to how annotations work in other languages you might have heard of.
+Generally L<Catalyst> uses these to influence how the dispatcher sees your
+action and when it will run it in response to an incoming request.  They can
+also be used for other things.  Here's a summary, but you should refer to the
+liked manual page for additional help.
+
+=head2 Global
+
+  sub homepage :Global { ... }
+
+A global action defined in any controller always runs relative to your root.
+So the above is the same as:
+
+  sub myaction :Path("/homepage") { ... }
+
+=head2 Absolute
+
+Status: Deprecated alias to L</Global>.
+
+=head2 Local
+
+Alias to "Path("$action_name").  The following two actions are the same:
+
+  sub myaction :Local { ... }
+  sub myaction :Path('myaction') { ... }
+
+=head2 Relative
+
+Status: Deprecated alias to L</Local>
+
+=head2 Path
+
+Handle various types of paths:
+
+  package MyApp::Controller::Baz {
+
+    ...
+
+    sub myaction1 :Path { ... }  # -> /baz
+    sub myaction2 :Path('foo') { ... } # -> /baz/bar
+    sub myaction2 :Path('/bar') { ... } # -> /bar
+  }
+
+This is a general toolbox for attaching your action to a give path.
+
+
+=head2 Regex
+
+=head2 Regexp
+
+Status: Deprecated.  Use Chained methods or other techniques
+
+A global way to match a give regular expression in the incoming request path.
+
+=head2 LocalRegex
+
+=head2 LocalRegexp
+
+Like L</Regex> but scoped under the namespace of the containing controller
+
+=head2 Chained 
+
+=head2 ChainedParent
+
+=head2 PathPrefix
+
+=head2 PathPart
+
+=head2 CaptureArgs
+
+Please see L<Catalyst::DispatchType::Chained>
+
+=head2 ActionClass
+
+Set the base class for the action, defaults to L</Catalyst::Action>.  It is now
+preferred to use L</Does>.
+
+=head2 MyAction
+
+Set the ActionClass using a custom Action in your project namespace.
+
+The following is exactly the same:
+
+    sub foo_action1 : Local ActionClass('+MyApp::Action::Bar') { ... }
+    sub foo_action2 : Local MyAction('Bar') { ... }
+
+=head2 Does
+
+    package MyApp::Controller::Zoo;
+
+    sub foo  : Local Does('Moo')  { ... } # Catalyst::ActionRole::
+    sub bar  : Local Does('~Moo') { ... } # MyApp::ActionRole::Moo
+    sub baz  : Local Does('+MyApp::ActionRole::Moo') { ... }
+
+=head2 GET
+
+=head2 POST
+
+=head2 PUT
+
+=head2 DELETE
+
+=head2 OPTION
+
+=head2 HEAD
+
+=head2 PATCH
+
+=head2 Method('...')
+
+Sets the give action path to match the specified HTTP method, or via one of the
+broadly accepted methods of overriding the 'true' method (see
+L<Catalyst::ActionRole::HTTPMethods>).
+
+=head2 Args
+
+When used with L</Path> indicates the number of arguments expected in
+the path.  However if no Args value is set, assumed to 'slurp' all
+remaining path pars under this namespace.
+
+=head1 OPTIONAL METHODS
+
+=head2 _parse_[$name]_attr
+
+Allows you to customize parsing of subroutine attributes.
+
+    sub myaction1 :Path TwoArgs { ... }
+
+    sub _parse_TwoArgs_attr {
+      my ( $self, $c, $name, $value ) = @_;
+      # $self -> controller instance
+      #
+      return(Args => 2);
+    }
+
+Please note that this feature does not let you actually assign new functions
+to actions via subroutine attributes, but is really more for creating useful
+aliases to existing core and extended attributes, and transforms based on 
+existing information (like from configuration).  Code for actually doing
+something meaningful with the subroutine attributes will be located in the
+L<Catalyst::Action> classes (or your subclasses), L<Catalyst::Dispatcher> and
+in subclasses of L<Catalyst::DispatchType>.  Remember these methods only get
+called basically once when the application is starting, not per request!
 
 =head1 AUTHORS
 

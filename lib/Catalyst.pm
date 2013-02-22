@@ -23,6 +23,7 @@ use Path::Class::File ();
 use URI ();
 use URI::http;
 use URI::https;
+use HTML::Entities;
 use Tree::Simple qw/use_weak_refs/;
 use Tree::Simple::Visitor::FindByUID;
 use Class::C3::Adopt::NEXT;
@@ -112,7 +113,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90019';
+our $VERSION = '5.90020';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1869,6 +1870,7 @@ sub finalize_headers {
 
         if ( !$response->has_body ) {
             # Add a default body if none is already present
+            my $encoded_location = encode_entities($location);
             $response->body(<<"EOF");
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"> 
@@ -1876,7 +1878,7 @@ sub finalize_headers {
     <title>Moved</title>
   </head>
   <body>
-     <p>This item has moved <a href="$location">here</a>.</p>
+     <p>This item has moved <a href="$encoded_location">here</a>.</p>
   </body>
 </html>
 EOF
