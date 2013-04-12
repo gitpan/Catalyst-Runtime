@@ -1,6 +1,21 @@
 # This file documents the revision history for Perl extension Catalyst.
 
-5.90020 - TBA
+5.90030 - 2013-04-12
+  ! POSSIBLE BREAKING CHANGE: Removed Regexp dispatch type from core, and put
+    it in an external package.  If you need Regexp dispatch types you should
+    add "Catalyst-DispatchType-Regex" as a distribution to your build system.
+  - make $app->uri_for and related methods return something sane, when called
+    as an application method, instead of a context method.  Now if you call
+    MyApp::Web->uri_for(...) you will get a generic URI object that you need to
+    resolve manually.
+  - documentation updates around forwarding to chained actions.
+  - Fixed bug when a PSGI engine need to use psgix logger.
+  - Added cpanfile as a way to notice we are a dev checkout.
+  - Added 'x-tunneled-method' HTTP Header method override to match features in
+    Catalyst::Action::REST and in other similar systems on CPAN.
+  - smarter valiation around action attributes.
+
+5.90020 - 2013-02-22
   ! Catalyst::Action now defines 'match_captures' so it is no long considered
     an optional method.  This might break you code if you have made custom
     action roles/classes where you define 'match_captures'.  You must change

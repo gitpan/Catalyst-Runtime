@@ -212,16 +212,16 @@ sub recurse_match {
         my @try_actions = @{$children->{$try_part}};
         TRY_ACTION: foreach my $action (@try_actions) {
             if (my $capture_attr = $action->attributes->{CaptureArgs}) {
-                $capture_attr ||= 0;
+                my $capture_count = $capture_attr->[0] || 0;
 
                 # Short-circuit if not enough remaining parts
-                next TRY_ACTION unless @parts >= $capture_attr->[0];
+                next TRY_ACTION unless @parts >= $capture_count;
 
                 my @captures;
                 my @parts = @parts; # localise
 
                 # strip CaptureArgs into list
-                push(@captures, splice(@parts, 0, $capture_attr->[0]));
+                push(@captures, splice(@parts, 0, $capture_count));
 
                 # check if the action may fit, depending on a given test by the app
                 if ($action->can('match_captures')) { next TRY_ACTION unless $action->match_captures($c, \@captures) }
@@ -341,7 +341,7 @@ sub register {
             $args = Data::Dumper::Dumper($args);
             Catalyst::Exception->throw(
               "Invalid Args($args) for action " . $action->reverse() .
-              " (use 'Args' or 'Args(<number>)'"
+              " (use 'Args' or 'Args(<number>)')"
             );
         }
     }
@@ -685,9 +685,11 @@ of the endpoint of the chain, not on the chained actions way. The
 C<auto> actions will be run before the chain dispatching begins. In
 every other aspect, C<auto> actions behave as documented.
 
-The C<forward>ing to other actions does just what you would expect. But if
-you C<detach> out of a chain, the rest of the chain will not get called
-after the C<detach>.
+The C<forward>ing to other actions does just what you would expect. i.e.
+only the target action is run. The actions that that action is chained
+to are not run.
+If you C<detach> out of a chain, the rest of the chain will not get
+called after the C<detach>.
 
 =head2 match_captures
 

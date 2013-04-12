@@ -113,7 +113,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90020';
+our $VERSION = '5.90030';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -267,9 +267,9 @@ MYAPP_WEB_HOME. If both variables are set, the MYAPP_HOME one will be used.
 
 If none of these are set, Catalyst will attempt to automatically detect the
 home directory. If you are working in a development environment, Catalyst
-will try and find the directory containing either Makefile.PL, Build.PL or
-dist.ini. If the application has been installed into the system (i.e.
-you have done C<make install>), then Catalyst will use the path to your
+will try and find the directory containing either Makefile.PL, Build.PL,
+dist.ini, or cpanfile. If the application has been installed into the system
+(i.e. you have done C<make install>), then Catalyst will use the path to your
 application module, without the .pm extension (e.g., /foo/MyApp if your
 application was installed at /foo/MyApp.pm)
 
@@ -1342,9 +1342,13 @@ sub uri_for {
     my $args = join('/', grep { defined($_) } @args);
     $args =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
     $args =~ s!^/+!!;
-    my $base = $c->req->base;
-    my $class = ref($base);
-    $base =~ s{(?<!/)$}{/};
+
+    my ($base, $class) = ('/', 'URI::_generic');
+    if(blessed($c)) {
+      $base = $c->req->base;
+      $class = ref($base);
+      $base =~ s{(?<!/)$}{/};
+    }
 
     my $query = '';
 
@@ -3388,6 +3392,8 @@ konobi: Scott McWhirter <konobi@cpan.org>
 marcus: Marcus Ramberg <mramberg@cpan.org>
 
 miyagawa: Tatsuhiko Miyagawa <miyagawa@bulknews.net>
+
+mgrimes: Mark Grimes <mgrimes@cpan.org>
 
 mst: Matt S. Trout <mst@shadowcatsystems.co.uk>
 

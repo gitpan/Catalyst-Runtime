@@ -477,25 +477,6 @@ sub _parse_Path_attr {
     }
 }
 
-sub _parse_Regex_attr {
-    my ( $self, $c, $name, $value ) = @_;
-    return ( 'Regex', $value );
-}
-
-sub _parse_Regexp_attr { shift->_parse_Regex_attr(@_); }
-
-sub _parse_LocalRegex_attr {
-    my ( $self, $c, $name, $value ) = @_;
-    unless ( $value =~ s/^\^// ) { $value = "(?:.*?)$value"; }
-
-    my $prefix = $self->path_prefix( $c );
-    $prefix .= '/' if length( $prefix );
-
-    return ( 'Regex', "^${prefix}${value}" );
-}
-
-sub _parse_LocalRegexp_attr { shift->_parse_LocalRegex_attr(@_); }
-
 sub _parse_Chained_attr {
     my ($self, $c, $name, $value) = @_;
 
@@ -668,7 +649,7 @@ overridden from the "namespace" config key.
 
 =head2 $self->path_prefix($c)
 
-Returns the default path prefix for :PathPrefix, :Local, :LocalRegex and
+Returns the default path prefix for :PathPrefix, :Local and
 relative :Path actions in this component. Defaults to the action_namespace or
 can be overridden from the "path" config key.
 
@@ -770,13 +751,19 @@ This is a general toolbox for attaching your action to a give path.
 
 =head2 Regexp
 
-Status: Deprecated.  Use Chained methods or other techniques
+B<Status: Deprecated.>  Use Chained methods or other techniques.
+If you really depend on this, install the standalone 
+L<Catalyst::DispatchType::Regex> distribution.
 
 A global way to match a give regular expression in the incoming request path.
 
 =head2 LocalRegex
 
 =head2 LocalRegexp
+
+B<Status: Deprecated.>  Use Chained methods or other techniques.
+If you really depend on this, install the standalone 
+L<Catalyst::DispatchType::Regex> distribution.
 
 Like L</Regex> but scoped under the namespace of the containing controller
 

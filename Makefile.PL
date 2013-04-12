@@ -23,7 +23,7 @@ perl_version '5.008003';
 
 name 'Catalyst-Runtime';
 author 'Sebastian Riedel <sri@cpan.org>';
-authority('MSTROUT');
+authority('cpan:MSTROUT');
 all_from 'lib/Catalyst/Runtime.pm';
 
 requires 'List::MoreUtils';
@@ -68,6 +68,10 @@ requires 'String::RewritePrefix' => '0.004'; # Catalyst::Utils::resolve_namespac
 requires 'Plack' => '0.9991'; # IIS6+7 fix middleware
 requires 'Plack::Middleware::ReverseProxy' => '0.04';
 requires 'Plack::Test::ExternalServer';
+
+# Install the standalone Regex dispatch modules in order to ease the
+# depreciation transition
+requires 'Catalyst::DispatchType::Regex' => '5.90021';
 
 test_requires 'Class::Data::Inheritable';
 test_requires 'Test::Exception';
