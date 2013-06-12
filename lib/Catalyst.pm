@@ -113,7 +113,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90030';
+our $VERSION = '5.90040';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1793,6 +1793,14 @@ sub finalize {
         $c->log->error($error);
     }
 
+    # Support skipping finalize for psgix.io style 'jailbreak'.  Used to support
+    # stuff like cometd and websockets
+    
+    if($c->request->has_io_fh) {
+      $c->log_response;
+      return;
+    }
+
     # Allow engine to handle finalize flow (for POE)
     my $engine = $c->engine;
     if ( my $code = $engine->can('finalize') ) {
@@ -2974,10 +2982,26 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
         return $class;
     }
 
+    sub _default_plugins { return qw(Unicode::Encoding) }
+
     sub setup_plugins {
         my ( $class, $plugins ) = @_;
 
         $class->_plugins( {} ) unless $class->_plugins;
+        $plugins = [ grep {
+            m/Unicode::Encoding/ ? do {
+                $class->log->warn(
+                    'Unicode::Encoding plugin is auto-applied,'
+                    . ' please remove this from your appclass'
+                    . ' and make sure to define "encoding" config'
+                );
+                unless (exists $class->config->{'encoding'}) {
+                  $class->config->{'encoding'} = 'UTF-8';
+                }
+                () }
+                : $_
+        } @$plugins ];
+        unshift @$plugins, $class->_default_plugins;
         $plugins = Data::OptList::mkopt($plugins || []);
 
         my @plugins = map {
@@ -3169,11 +3193,32 @@ is having paths rewritten into it (e.g. as a .cgi/fcgi in a public_html director
 at other URIs than that which the app is 'normally' based at with C<mod_rewrite>), the resolution of
 C<< $c->request->base >> will be incorrect.
 
-=back
+=back 
 
 =item *
 
 C<using_frontend_proxy> - See L</PROXY SUPPORT>.
+
+=item *
+
+C<encoding> - See L</ENCODING>
+
+=item *
+
+C<abort_chain_on_error_fix>
+
+When there is an error in an action chain, the default behavior is to continue
+processing the remaining actions and then catch the error upon chain end.  This
+can lead to running actions when the application is in an unexpected state.  If
+you have this issue, setting this config value to true will promptly exit a
+chain when there is an error raised in any action (thus terminating the chain 
+early.)
+
+use like:
+
+    __PACKAGE__->config(abort_chain_on_error_fix => 1);
+
+In the future this might become the default behavior.
 
 =back
 
@@ -3265,6 +3310,53 @@ believe the Catalyst core to be thread-safe.
 If you plan to operate in a threaded environment, remember that all other
 modules you are using must also be thread-safe. Some modules, most notably
 L<DBD::SQLite>, are not thread-safe.
+
+=head1 ENCODING
+
+On request, decodes all params from encoding into a sequence of
+logical characters. On response, encodes body into encoding.
+
+=head2 Methods
+
+=over 4
+
+=item encoding
+
+Returns an instance of an C<Encode> encoding
+
+    print $c->encoding->name
+
+=item handle_unicode_encoding_exception ($exception_context)
+
+Method called when decoding process for a request fails.
+
+An C<$exception_context> hashref is provided to allow you to override the
+behaviour of your application when given data with incorrect encodings.
+
+The default method throws exceptions in the case of invalid request parameters
+(resulting in a 500 error), but ignores errors in upload filenames.
+
+The keys passed in the C<$exception_context> hash are:
+
+=over
+
+=item param_value
+
+The value which was not able to be decoded.
+
+=item error_msg
+
+The exception received from L<Encode>.
+
+=item encoding_step
+
+What type of data was being decoded. Valid values are (currently)
+C<params> - for request parameters / arguments / captures
+and C<uploads> - for request upload filenames.
+
+=back
+
+=back
 
 =head1 SUPPORT
 
@@ -3439,7 +3531,7 @@ Will Hawes C<info@whawes.co.uk>
 
 willert: Sebastian Willert <willert@cpan.org>
 
-wreis: Wallace Reis <wallace@reis.org.br>
+wreis: Wallace Reis <wreis@cpan.org>
 
 Yuval Kogman, C<nothingmuch@woobling.org>
 

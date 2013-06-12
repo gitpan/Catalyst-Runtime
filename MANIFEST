@@ -43,6 +43,7 @@ lib/Catalyst/Exception/Go.pm
 lib/Catalyst/Exception/Interface.pm
 lib/Catalyst/Log.pm
 lib/Catalyst/Model.pm
+lib/Catalyst/Plugin/Unicode/Encoding.pm
 lib/Catalyst/PSGI.pod
 lib/Catalyst/Request.pm
 lib/Catalyst/Request/Upload.pm
@@ -329,6 +330,8 @@ t/lib/TestApp/View/Dump/Body.pm
 t/lib/TestApp/View/Dump/Env.pm
 t/lib/TestApp/View/Dump/Request.pm
 t/lib/TestApp/View/Dump/Response.pm
+t/lib/TestApp2.pm
+t/lib/TestApp2/Controller/Root.pm
 t/lib/TestAppBadlyImmutable.pm
 t/lib/TestAppChainedAbsolutePathPart.pm
 t/lib/TestAppChainedAbsolutePathPart/Controller/Foo.pm
@@ -365,11 +368,16 @@ t/lib/TestAppShowInternalActions/Controller/Root.pm
 t/lib/TestAppStats.pm
 t/lib/TestAppStats/Controller/Root.pm
 t/lib/TestAppToTestScripts.pm
+t/lib/TestAppUnicode.pm
+t/lib/TestAppUnicode/Controller/Root.pm
 t/lib/TestAppUnknownError.pm
 t/lib/TestAppViewWarnings.pm
 t/lib/TestAppViewWarnings/Controller/Root.pm
 t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm
+t/lib/TestAppWithoutUnicode.pm
+t/lib/TestAppWithoutUnicode/Controller/Root.pm
+t/lib/TestLogger.pm
 t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
 t/live_component_controller_context_closure.t
@@ -395,6 +403,12 @@ t/psgi_file_testapp_engine_plackup_compat.t
 t/psgi_file_testapp_engine_psgi_compat.t
 t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
+t/unicode_plugin_charset_utf8.t
+t/unicode_plugin_config.t
+t/unicode_plugin_live.t
+t/unicode_plugin_nested_params.t
+t/unicode_plugin_no_encoding.t
+t/unicode_plugin_request_decode.t
 t/unit_core_methodattributes_method_metaclass_on_subclasses.t
 t/unit_core_script_test.t
 t/unit_stats.t
