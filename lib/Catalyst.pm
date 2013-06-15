@@ -113,7 +113,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90040';
+our $VERSION = '5.90041';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1828,7 +1828,7 @@ sub finalize {
     $c->log_response;
 
     if ($c->use_stats) {
-        my $elapsed = sprintf '%f', $c->stats->elapsed;
+        my $elapsed = $c->stats->elapsed;
         my $av = $elapsed == 0 ? '??' : sprintf '%.3f', 1 / $elapsed;
         $c->log->info(
             "Request took ${elapsed}s ($av/s)\n" . $c->stats->report . "\n" );
@@ -3001,7 +3001,7 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
                 () }
                 : $_
         } @$plugins ];
-        unshift @$plugins, $class->_default_plugins;
+        push @$plugins, $class->_default_plugins;
         $plugins = Data::OptList::mkopt($plugins || []);
 
         my @plugins = map {

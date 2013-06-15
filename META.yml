@@ -3,7 +3,6 @@ abstract: 'The Catalyst Framework Runtime'
 author:
   - 'Sebastian Riedel <sri@cpan.org>'
 build_requires:
-  Catalyst::Plugin::Params::Nested: 0
   Data::Dump: 0
   ExtUtils::MakeMaker: 6.59
   HTTP::Request::Common: 0
@@ -78,5 +77,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90040
+version: 5.90041
 x_authority: cpan:MSTROUT
