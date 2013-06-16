@@ -81,6 +81,7 @@ sub prepare_uploads {
     $c->next::method(@_);
 
     my $enc = $c->encoding;
+    return unless $enc;
 
     for my $key (qw/ parameters query_parameters body_parameters /) {
         for my $value ( values %{ $c->request->{$key} } ) {
@@ -95,15 +96,17 @@ sub prepare_uploads {
     for my $value ( values %{ $c->request->uploads } ) {
         # skip if it fails for uploads, as we don't usually want uploads touched
         # in any way
-        $_->{filename} = try {
-        $enc->decode( $_->{filename}, $CHECK )
-    } catch {
-        $c->handle_unicode_encoding_exception({
-            param_value => $_->{filename},
-            error_msg => $_,
-            encoding_step => 'uploads',
-        });
-    } for ( ref($value) eq 'ARRAY' ? @{$value} : $value );
+        for my $inner_value ( ref($value) eq 'ARRAY' ? @{$value} : $value ) {
+            $inner_value->{filename} = try {
+                $enc->decode( $inner_value->{filename}, $CHECK )
+            } catch {
+                $c->handle_unicode_encoding_exception({
+                    param_value => $inner_value->{filename},
+                    error_msg => $_,
+                    encoding_step => 'uploads',
+                });
+            };
+        }
     }
 }
 
@@ -111,6 +114,9 @@ sub prepare_action {
     my $c = shift;
 
     my $ret = $c->next::method(@_);
+
+    my $enc = $c->encoding;
+    return $ret unless $enc;
 
     foreach (@{$c->req->arguments}, @{$c->req->captures}) {
       $_ = $c->_handle_param_unicode_decoding($_);
@@ -173,8 +179,7 @@ sub _handle_param_unicode_decoding {
 
 sub handle_unicode_encoding_exception {
     my ( $self, $exception_ctx ) = @_;
-    $self->log->warn($exception_ctx->{error_msg});
-    return $exception_ctx->{'param_value'};
+    die $exception_ctx->{error_msg};
 }
 
 1;

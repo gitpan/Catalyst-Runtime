@@ -347,8 +347,8 @@ t/lib/TestAppEncoding.pm
 t/lib/TestAppEncoding/Controller/Root.pm
 t/lib/TestAppEncodingSetInApp.pm
 t/lib/TestAppEncodingSetInApp/Controller/Root.pm
-t/lib/TestAppEncodingSetInConfig.pm
 t/lib/TestAppEncodingSetInConfig/testappencodingsetinconfig.json
+t/lib/TestAppEncodingSetInConfig.pm
 t/lib/TestAppEncodingSetInConfig/Controller/Root.pm
 t/lib/TestAppIndexDefault.pm
 t/lib/TestAppIndexDefault/Controller/Default.pm
