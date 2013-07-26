@@ -48,7 +48,7 @@ requires 'HTTP::Headers' => '1.64';
 requires 'HTTP::Request' => '5.814';
 requires 'HTTP::Response' => '5.813';
 requires 'HTTP::Request::AsCGI' => '1.0';
-requires 'Module::Pluggable' => '3.9';
+requires 'Module::Pluggable' => '4.7';
 requires 'Path::Class' => '0.09';
 requires 'Scalar::Util';
 requires 'Sub::Exporter';
@@ -98,7 +98,7 @@ else {
 push(@author_requires, 'CatalystX::LeakChecker', '0.05');
 push(@author_requires, 'Catalyst::Devel', '1.0'); # For http server test
 push(@author_requires, 'Test::WWW::Mechanize::Catalyst', '0.51');
-push(@author_requires, 'Test::TCP', '1.27'); # ditto, ships Net::EmptyPort
+push(@author_requires, 'Test::TCP', '2.00'); # ditto, ships Net::EmptyPort
 
 author_tests('t/author');
 author_requires(

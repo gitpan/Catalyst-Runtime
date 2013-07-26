@@ -40,6 +40,7 @@ use Plack::Middleware::ReverseProxy;
 use Plack::Middleware::IIS6ScriptNameFix;
 use Plack::Middleware::IIS7KeepAliveFix;
 use Plack::Middleware::LighttpdScriptNameFix;
+use Plack::Util;
 
 BEGIN { require 5.008003; }
 
@@ -104,7 +105,7 @@ our $GO        = Catalyst::Exception::Go->new;
 __PACKAGE__->mk_classdata($_)
   for qw/components arguments dispatcher engine log dispatcher_class
   engine_loader context_class request_class response_class stats_class
-  setup_finished _psgi_app loading_psgi_file run_options/;
+  setup_finished _psgi_app loading_psgi_file run_options _psgi_middleware/;
 
 __PACKAGE__->dispatcher_class('Catalyst::Dispatcher');
 __PACKAGE__->request_class('Catalyst::Request');
@@ -113,7 +114,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90042';
+our $VERSION = '5.90049_001';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1108,6 +1109,7 @@ sub setup {
 
     $class->setup_log( delete $flags->{log} );
     $class->setup_plugins( delete $flags->{plugins} );
+    $class->setup_middleware();
     $class->setup_dispatcher( delete $flags->{dispatcher} );
     if (my $engine = delete $flags->{engine}) {
         $class->log->warn("Specifying the engine in ->setup is no longer supported, see Catalyst::Upgrading");
@@ -1147,6 +1149,16 @@ EOF
             my $t = Text::SimpleTable->new($column_width);
             $t->row($_) for @plugins;
             $class->log->debug( "Loaded plugins:\n" . $t->draw . "\n" );
+        }
+
+        my @middleware = map { ref $_ eq 'CODE' ? "Inline Coderef" : (ref($_) .'  '. $_->VERSION || '')  }
+          $class->registered_middlewares;
+
+        if (@middleware) {
+            my $column_width = Catalyst::Utils::term_width() - 6;
+            my $t = Text::SimpleTable->new($column_width);
+            $t->row($_) for @middleware;
+            $class->log->debug( "Loaded PSGI Middleware:\n" . $t->draw . "\n" );
         }
 
         my $dispatcher = $class->dispatcher;
@@ -2726,6 +2738,11 @@ sub setup_engine {
     return;
 }
 
+## This exists just to supply a prebuild psgi app for mod_perl and for the 
+## build in server support (back compat support for pre psgi port behavior).
+## This is so that we don't build a new psgi app for each request when using
+## the mod_perl handler or the built in servers (http and fcgi, etc).
+
 sub _finalized_psgi_app {
     my ($app) = @_;
 
@@ -2736,6 +2753,12 @@ sub _finalized_psgi_app {
 
     return $app->_psgi_app;
 }
+
+## Look for a psgi file like 'myapp_web.psgi' (if the app is MyApp::Web) in the
+## home directory and load that and return it (just assume it is doing the 
+## right thing :) ).  If that does not exist, call $app->psgi_app, wrap that
+## in default_middleware and return it ( this is for backward compatibility
+## with pre psgi port behavior ).
 
 sub _setup_psgi_app {
     my ($app) = @_;
@@ -2847,7 +2870,8 @@ reference of your Catalyst application for use in F<.psgi> files.
 
 sub psgi_app {
     my ($app) = @_;
-    return $app->engine->build_psgi_app($app);
+    my $psgi = $app->engine->build_psgi_app($app);
+    return $app->Catalyst::Utils::apply_registered_middleware($psgi);
 }
 
 =head2 $c->setup_home
@@ -3031,6 +3055,71 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
             $class => @roles
         ) if @roles;
     }
+}    
+
+=head2 registered_middlewares
+
+Read only accessor that returns an array of all the middleware in the order
+that they were added (which is the REVERSE of the order they will be applied).
+
+The values returned will be either instances of L<Plack::Middleware> or of a
+compatible interface, or a coderef, which is assumed to be inlined middleware
+
+=head2 setup_middleware (?@middleware)
+
+Read configuration information stored in configuration key 'psgi_middleware'
+and invoke L</register_middleware> for each middleware prototype found.  See
+under L</CONFIGURATION> information regarding L</psgi_middleware> and how to
+use it to enable L<Plack::Middleware>
+
+This method is automatically called during 'setup' of your application, so
+you really don't need to invoke it.
+
+When we read middleware definitions from configuration, we reverse the list
+which sounds odd but is likely how you expect it to work if you have prior
+experience with L<Plack::Builder> or if you previously used the plugin
+L<Catalyst::Plugin::EnableMiddleware> (which is now considered deprecated)
+
+You can pass middleware definitions to this as well, from the application
+class if you like.
+
+=cut
+
+sub registered_middlewares {
+    my $class = shift;
+    if(my $middleware = $class->_psgi_middleware) {
+        return @$middleware;
+    } else {
+        die "You cannot call ->registered_middlewares until middleware has been setup";
+    }
+}
+
+sub setup_middleware {
+    my ($class, @middleware_definitions) = @_;
+    push @middleware_definitions, reverse(
+      @{$class->config->{'psgi_middleware'}||[]});
+
+    my @middleware = ();
+    while(my $next = shift(@middleware_definitions)) {
+        if(ref $next) {
+            if(Scalar::Util::blessed $next && $next->can('wrap')) {
+                push @middleware, $next;
+            } elsif(ref $next eq 'CODE') {
+                push @middleware, $next;
+            } elsif(ref $next eq 'HASH') {
+                my $namespace = shift @middleware_definitions;
+                my $mw = $class->Catalyst::Utils::build_middleware($namespace, %$next);
+                push @middleware, $mw;
+            } else {
+              die "I can't handle middleware definition ${\ref $next}";
+            }
+        } else {
+          my $mw = $class->Catalyst::Utils::build_middleware($next);
+          push @middleware, $mw;
+        }
+    }
+
+    $class->_psgi_middleware(\@middleware);
 }
 
 =head2 $c->stack
@@ -3220,6 +3309,10 @@ use like:
 
 In the future this might become the default behavior.
 
+=item *
+
+C<psgi_middleware> - See L<PSGI MIDDLEWARE>.
+
 =back
 
 =head1 INTERNAL ACTIONS
@@ -3310,6 +3403,131 @@ believe the Catalyst core to be thread-safe.
 If you plan to operate in a threaded environment, remember that all other
 modules you are using must also be thread-safe. Some modules, most notably
 L<DBD::SQLite>, are not thread-safe.
+
+=head1 PSGI MIDDLEWARE
+
+You can define middleware, defined as L<Plack::Middleware> or a compatible
+interface in configuration.  Your middleware definitions are in the form of an
+arrayref under the configuration key C<psgi_middleware>.  Here's an example
+with details to follow:
+
+    package MyApp::Web;
+ 
+    use Catalyst;
+    use Plack::Middleware::StackTrace;
+ 
+    my $stacktrace_middleware = Plack::Middleware::StackTrace->new;
+ 
+    __PACKAGE__->config(
+      'psgi_middleware', [
+        'Debug',
+        '+MyApp::Custom',
+        $stacktrace_middleware,
+        'Session' => {store => 'File'},
+        sub {
+          my $app = shift;
+          return sub {
+            my $env = shift;
+            $env->{myapp.customkey} = 'helloworld';
+            $app->($env);
+          },
+        },
+      ],
+    );
+ 
+    __PACKAGE__->setup;
+
+So the general form is:
+
+    __PACKAGE__->config(psgi_middleware => \@middleware_definitions);
+
+Where C<@middleware> is one or more of the following, applied in the REVERSE of
+the order listed (to make it function similarly to L<Plack::Builder>:
+ 
+=over 4
+ 
+=item Middleware Object
+ 
+An already initialized object that conforms to the L<Plack::Middleware>
+specification:
+ 
+    my $stacktrace_middleware = Plack::Middleware::StackTrace->new;
+ 
+    __PACKAGE__->config(
+      'psgi_middleware', [
+        $stacktrace_middleware,
+      ]);
+ 
+ 
+=item coderef
+ 
+A coderef that is an inlined middleware:
+ 
+    __PACKAGE__->config(
+      'psgi_middleware', [
+        sub {
+          my $app = shift;
+          return sub {
+            my $env = shift;
+            if($env->{PATH_INFO} =~m/forced/) {
+              Plack::App::File
+                ->new(file=>TestApp->path_to(qw/share static forced.txt/))
+                ->call($env);
+            } else {
+              return $app->($env);
+            }
+         },
+      },
+    ]);
+ 
+ 
+ 
+=item a scalar
+ 
+We assume the scalar refers to a namespace after normalizing it using the
+following rules:
+
+(1) If the scalar is prefixed with a "+" (as in C<+MyApp::Foo>) then the full string
+is assumed to be 'as is', and we just install and use the middleware.
+
+(2) If the scalar begins with "Plack::Middleware" or your application namespace
+(the package name of your Catalyst application subclass), we also assume then
+that it is a full namespace, and use it.
+
+(3) Lastly, we then assume that the scalar is a partial namespace, and attempt to
+resolve it first by looking for it under your application namespace (for example
+if you application is "MyApp::Web" and the scalar is "MyMiddleware", we'd look
+under "MyApp::Web::Middleware::MyMiddleware") and if we don't find it there, we
+will then look under the regular L<Plack::Middleware> namespace (i.e. for the
+previous we'd try "Plack::Middleware::MyMiddleware").  We look under your application
+namespace first to let you 'override' common L<Plack::Middleware> locally, should
+you find that a good idea.
+
+Examples:
+
+    package MyApp::Web;
+
+    __PACKAGE__->config(
+      'psgi_middleware', [
+        'Debug',  ## MyAppWeb::Middleware::Debug->wrap or Plack::Middleware::Debug->wrap
+        'Plack::Middleware::Stacktrace', ## Plack::Middleware::Stacktrace->wrap
+        '+MyApp::Custom',  ## MyApp::Custom->wrap
+      ],
+    );
+ 
+=item a scalar followed by a hashref
+ 
+Just like the previous, except the following C<HashRef> is used as arguments
+to initialize the middleware object.
+ 
+    __PACKAGE__->config(
+      'psgi_middleware', [
+         'Session' => {store => 'File'},
+    ]);
+
+=back
+
+Please see L<PSGI> for more on middleware.
 
 =head1 ENCODING
 

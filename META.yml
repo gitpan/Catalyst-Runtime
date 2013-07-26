@@ -46,7 +46,7 @@ requires:
   LWP: 5.837
   List::MoreUtils: 0
   MRO::Compat: 0
-  Module::Pluggable: 3.9
+  Module::Pluggable: 4.7
   Moose: 1.03
   MooseX::Emulate::Class::Accessor::Fast: 0.00903
   MooseX::Getopt: 0.48
@@ -77,5 +77,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90042
+version: 5.90049_001
 x_authority: cpan:MSTROUT

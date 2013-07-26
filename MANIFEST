@@ -347,9 +347,9 @@ t/lib/TestAppEncoding.pm
 t/lib/TestAppEncoding/Controller/Root.pm
 t/lib/TestAppEncodingSetInApp.pm
 t/lib/TestAppEncodingSetInApp/Controller/Root.pm
-t/lib/TestAppEncodingSetInConfig/testappencodingsetinconfig.json
 t/lib/TestAppEncodingSetInConfig.pm
 t/lib/TestAppEncodingSetInConfig/Controller/Root.pm
+t/lib/TestAppEncodingSetInConfig/testappencodingsetinconfig.json
 t/lib/TestAppIndexDefault.pm
 t/lib/TestAppIndexDefault/Controller/Default.pm
 t/lib/TestAppIndexDefault/Controller/IndexChained.pm
@@ -386,6 +386,13 @@ t/lib/TestAppWithMeta/Controller/Root.pm
 t/lib/TestAppWithoutUnicode.pm
 t/lib/TestAppWithoutUnicode/Controller/Root.pm
 t/lib/TestLogger.pm
+t/lib/TestMiddleware.pm
+t/lib/TestMiddleware/Controller/Root.pm
+t/lib/TestMiddleware/Custom.pm
+t/lib/TestMiddleware/share/static/forced.txt
+t/lib/TestMiddleware/share/static/message.txt
+t/lib/TestMiddleware/share/static2/message2.txt
+t/lib/TestMiddleware/share/static3/message3.txt
 t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
 t/live_component_controller_context_closure.t
@@ -404,6 +411,7 @@ t/optional_memleak.t
 t/optional_stress.t
 t/optional_stress.yml
 t/optional_threads.t
+t/plack-middleware.t
 t/plugin_new_method_backcompat.t
 t/psgi-log.t
 t/psgi_file_testapp.t
