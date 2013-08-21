@@ -8,6 +8,7 @@ build_requires:
   HTTP::Request::Common: 0
   HTTP::Status: 0
   IO::Scalar: 0
+  JSON::MaybeXS: 0
   Test::Exception: 0
   Test::More: 0.88
 configure_requires:
@@ -43,6 +44,7 @@ requires:
   HTTP::Request: 5.814
   HTTP::Request::AsCGI: 1.0
   HTTP::Response: 5.813
+  JSON::MaybeXS: 1.000000
   LWP: 5.837
   List::MoreUtils: 0
   MRO::Compat: 0
@@ -77,5 +79,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90049_001
+version: 5.90049_002
 x_authority: cpan:MSTROUT

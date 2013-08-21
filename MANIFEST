@@ -193,6 +193,7 @@ t/author/unicode_plugin_nested_params.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
 t/custom_exception_class_simple.t
+t/data_handler.t
 t/dead_load_bad_args.t
 t/dead_load_multiple_chained_attributes.t
 t/dead_no_unknown_error.t
@@ -385,6 +386,8 @@ t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm
 t/lib/TestAppWithoutUnicode.pm
 t/lib/TestAppWithoutUnicode/Controller/Root.pm
+t/lib/TestDataHandlers.pm
+t/lib/TestDataHandlers/Controller/Root.pm
 t/lib/TestLogger.pm
 t/lib/TestMiddleware.pm
 t/lib/TestMiddleware/Controller/Root.pm

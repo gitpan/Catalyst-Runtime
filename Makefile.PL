@@ -71,6 +71,7 @@ requires 'Class::Data::Inheritable';
 requires 'Encode' => '2.49';
 requires 'LWP' => '5.837'; # LWP had unicode fail in 5.8.26
 requires 'URI' => '1.36';
+requires 'JSON::MaybeXS' => '1.000000',
 
 # Install the standalone Regex dispatch modules in order to ease the
 # depreciation transition
@@ -82,6 +83,7 @@ test_requires 'Data::Dump';
 test_requires 'HTTP::Request::Common';
 test_requires 'IO::Scalar';
 test_requires 'HTTP::Status';
+test_requires 'JSON::MaybeXS';
 
 # aggregate tests if AGGREGATE_TESTS is set and a recent Test::Aggregate and a Test::Simple it works with is available
 my @author_requires;
