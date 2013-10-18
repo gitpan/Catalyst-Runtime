@@ -13,6 +13,8 @@ use URI::QueryParam;
 use Plack::Loader;
 use Catalyst::EngineLoader;
 use Encode ();
+use Plack::Request::Upload;
+use Hash::MultiValue;
 use utf8;
 
 use namespace::clean -except => 'meta';
@@ -487,8 +489,16 @@ process the query string and extract query parameters.
 
 sub prepare_query_parameters {
     my ($self, $c) = @_;
-
     my $env = $c->request->env;
+
+    if(my $query_obj = $env->{'plack.request.query'}) {
+         $c->request->query_parameters(
+           $c->request->_use_hash_multivalue ?
+              $query_obj->clone :
+              $query_obj->as_hashref_mixed);
+         return;
+    }
+
     my $query_string = exists $env->{QUERY_STRING}
         ? $env->{QUERY_STRING}
         : '';
@@ -496,7 +506,11 @@ sub prepare_query_parameters {
     # Check for keywords (no = signs)
     # (yes, index() is faster than a regex :))
     if ( index( $query_string, '=' ) < 0 ) {
-        $c->request->query_keywords( $self->unescape_uri($query_string) );
+        $c->request->query_keywords($self->unescape_uri($query_string));
+        $env->{'plack.request.query'} ||= Hash::MultiValue->new(
+          map { (URI::Escape::uri_unescape($_), '') }
+            split(/\+/, $query_string, -1));
+
         return;
     }
 
@@ -527,7 +541,12 @@ sub prepare_query_parameters {
             $query{$param} = $value;
         }
     }
-    $c->request->query_parameters( \%query );
+
+    $env->{'plack.request.query'} ||= Hash::MultiValue->from_mixed(\%query);
+    $c->request->query_parameters( 
+      $c->request->_use_hash_multivalue ?
+        $env->{'plack.request.query'}->clone :
+        \%query);
 }
 
 =head2 $self->prepare_read($c)
@@ -569,6 +588,7 @@ sub prepare_uploads {
 
     my $uploads = $request->_body->upload;
     my $parameters = $request->parameters;
+    my @plack_uploads;
     foreach my $name (keys %$uploads) {
         my $files = $uploads->{$name};
         my @uploads;
@@ -583,8 +603,13 @@ sub prepare_uploads {
                filename => $upload->{filename},
               );
             push @uploads, $u;
+
+            # Plack compatibility.
+            my %copy = (%$upload, headers=>$headers);
+            push @plack_uploads, $name, Plack::Request::Upload->new(%copy);
         }
         $request->uploads->{$name} = @uploads > 1 ? \@uploads : $uploads[0];
+
 
         # support access to the filename as a normal param
         my @filenames = map { $_->{filename} } @uploads;
@@ -601,6 +626,8 @@ sub prepare_uploads {
             $parameters->{$name} = @filenames > 1 ? \@filenames : $filenames[0];
         }
     }
+
+    $self->env->{'plack.request.upload'} ||= Hash::MultiValue->new(@plack_uploads);
 }
 
 =head2 $self->write($c, $buffer)

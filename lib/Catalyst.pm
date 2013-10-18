@@ -65,6 +65,8 @@ sub _build_request_constructor_args {
     my %p = ( _log => $self->log );
     $p{_uploadtmp} = $self->_uploadtmp if $self->_has_uploadtmp;
     $p{data_handlers} = {$self->registered_data_handlers};
+    $p{_use_hash_multivalue} = $self->config->{use_hash_multivalue_in_request}
+      if $self->config->{use_hash_multivalue_in_request};
     \%p;
 }
 
@@ -118,7 +120,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90049_003';
+our $VERSION = '5.90049_004';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -3165,15 +3167,17 @@ you really don't need to invoke it.
 
 =head2 default_data_handlers
 
-Default Data Handler that come bundled with L<Catalyst>.  Currently there is
-only one default data handler, for 'application/json'.  This uses L<JSON::MaybeXS>
-which uses the dependency free L<JSON::PP> OR L<Cpanel::JSON::XS> if you have
-installed it.  If you don't mind the XS dependency, you should add the faster
-L<Cpanel::JSON::XS> to you dependency list (in your Makefile.PL or dist.ini, or
-cpanfile, etc.)
+Default Data Handlers that come bundled with L<Catalyst>.  Currently there is
+only one default data handler, for 'application/json'.  This is used to parse
+incoming JSON into a Perl data structure.  It used either L<JSON::MaybeXS> or
+L<JSON>, depending on which is installed.  This allows you to fail back to
+L<JSON:PP>, which is a Pure Perl JSON decoder, and has the smallest dependency
+impact.
 
-L<JSON::MaybeXS> is loaded the first time you ask for it (so if you never ask
-for it, its never used).
+Because we don't wish to add more dependencies to L<Catalyst>, if you wish to
+use this new feature we recommend installing L<JSON> or L<JSON::MaybeXS> in
+order to get the best performance.  You should add either to your dependency
+list (Makefile.PL, dist.ini, cpanfile, etc.)
 
 =cut
 
@@ -3200,9 +3204,9 @@ sub default_data_handlers {
     my ($class) = @_;
     return +{
       'application/json' => sub {
-          local $/;
-          Class::Load::load_class("JSON::MaybeXS");
-          JSON::MaybeXS::decode_json $_->getline },
+          Class::Load::load_first_existing_class('JSON::MaybeXS', 'JSON')
+            ->can('decode_json')->(do { local $/; $_->getline });
+      },
     };
 }
 
@@ -3392,6 +3396,26 @@ use like:
     __PACKAGE__->config(abort_chain_on_error_fix => 1);
 
 In the future this might become the default behavior.
+
+=item *
+
+C<use_hash_multivalue_in_request>
+
+In L<Catalyst::Request> the methods C<query_parameters>, C<body_parametes>
+and C<parameters> return a hashref where values might be scalar or an arrayref
+depending on the incoming data.  In many cases this can be undesirable as it
+leads one to writing defensive code like the following:
+
+    my ($val) = ref($c->req->parameters->{a}) ?
+      @{$c->req->parameters->{a}} :
+        $c->req->parameters->{a};
+
+Setting this configuration item to true will make L<Catalyst> populate the
+attributes underlying these methods with an instance of L<Hash::MultiValue>
+which is used by L<Plack::Request> and others to solve this very issue.  You
+may prefer this behavior to the default, if so enable this option (be warned
+if you enable it in a legacy application we are not sure if it is completely
+backwardly compatible).
 
 =item *
 

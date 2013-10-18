@@ -388,6 +388,8 @@ t/lib/TestAppWithoutUnicode.pm
 t/lib/TestAppWithoutUnicode/Controller/Root.pm
 t/lib/TestDataHandlers.pm
 t/lib/TestDataHandlers/Controller/Root.pm
+t/lib/TestFromPSGI.pm
+t/lib/TestFromPSGI/Controller/Root.pm
 t/lib/TestLogger.pm
 t/lib/TestMiddleware.pm
 t/lib/TestMiddleware/Controller/Root.pm
@@ -403,6 +405,7 @@ t/live_fork.t
 t/live_redirect_body.t
 t/live_show_internal_actions_warnings.t
 t/live_stats.t
+t/more-psgi-compat.t
 t/optional_apache-cgi-rewrite.pl
 t/optional_apache-cgi.pl
 t/optional_apache-fastcgi-non-root.pl

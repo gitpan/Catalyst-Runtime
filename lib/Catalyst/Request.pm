@@ -7,6 +7,9 @@ use URI::http;
 use URI::https;
 use URI::QueryParam;
 use HTTP::Headers;
+use Stream::Buffered;
+use Hash::MultiValue;
+use Scalar::Util;
 
 use Moose;
 
@@ -14,7 +17,7 @@ use namespace::clean -except => 'meta';
 
 with 'MooseX::Emulate::Class::Accessor::Fast';
 
-has env => (is => 'ro', writer => '_set_env');
+has env => (is => 'ro', writer => '_set_env', predicate => 'has_env');
 # XXX Deprecated crap here - warn?
 has action => (is => 'rw');
 # XXX: Deprecated in docs ages ago (2006), deprecated with warning in 5.8000 due
@@ -100,6 +103,9 @@ has io_fh => (
 sub _build_io_fh {
     my $self = shift;
     return $self->env->{'psgix.io'}
+      || (
+        $self->env->{'net.async.http.server.req'} &&
+        $self->env->{'net.async.http.server.req'}->stream)   ## Until I can make ioasync cabal see the value of supportin psgix.io (jnap)
       || die "Your Server does not support psgix.io";
 };
 
@@ -124,6 +130,11 @@ sub _build_body_data {
       return undef;
     }
 }
+
+has _use_hash_multivalue => (
+    is=>'ro', 
+    required=>1, 
+    default=> sub {0});
 
 # Amount of data to read from input on each pass
 our $CHUNKSIZE = 64 * 1024;
@@ -198,6 +209,18 @@ sub _build_parameters {
     my $parameters = {};
     my $body_parameters = $self->body_parameters;
     my $query_parameters = $self->query_parameters;
+
+    ## setup for downstream plack
+    $self->env->{'plack.request.merged'} ||= do {
+        my $query = $self->env->{'plack.request.query'} || Hash::MultiValue->new;
+        my $body  = $self->env->{'plack.request.body'} || Hash::MultiValue->new;
+        Hash::MultiValue->new($query->flatten, $body->flatten);
+    };
+
+    if($self->_use_hash_multivalue) {
+        return $self->env->{'plack.request.merged'}->clone; # We want a copy, in case your App is evil
+    }
+
     # We copy, no references
     foreach my $name (keys %$query_parameters) {
         my $param = $query_parameters->{$name};
@@ -224,30 +247,78 @@ has _uploadtmp => (
 sub prepare_body {
     my ( $self ) = @_;
 
-    if ( my $length = $self->_read_length ) {
-        unless ( $self->_body ) {
-            my $type = $self->header('Content-Type');
-            $self->_body(HTTP::Body->new( $type, $length ));
-            $self->_body->cleanup(1); # Make extra sure!
-            $self->_body->tmpdir( $self->_uploadtmp )
-              if $self->_has_uploadtmp;
-        }
+    # If previously applied middleware created the HTTP::Body object, then we
+    # just use that one.  
 
-        # Check for definedness as you could read '0'
-        while ( defined ( my $buffer = $self->read() ) ) {
-            $self->prepare_body_chunk($buffer);
-        }
-
-        # paranoia against wrong Content-Length header
-        my $remaining = $length - $self->_read_position;
-        if ( $remaining > 0 ) {
-            Catalyst::Exception->throw(
-                "Wrong Content-Length value: $length" );
-        }
+    if(my $plack_body = $self->env->{'plack.request.http.body'}) {
+        $self->_body($plack_body);
+        $self->_body->cleanup(1);
+        return;
     }
-    else {
-        # Defined but will cause all body code to be skipped
-        $self->_body(0);
+
+    # Define PSGI ENV placeholders, or for empty should there be no content
+    # body (typical in HEAD or GET).  Looks like from Plack::Request that
+    # middleware would probably expect to see this, even if empty
+
+    $self->env->{'plack.request.body'}   = Hash::MultiValue->new;
+    $self->env->{'plack.request.upload'} = Hash::MultiValue->new;
+
+    # If there is nothing to read, set body to naught and return.  This
+    # will cause all body code to be skipped
+
+    return $self->_body(0) unless my $length = $self->_read_length;
+
+    # Unless the body has already been set, create it.  Not sure about this
+    # code, how else might it be set, but this was existing logic.
+
+    unless ($self->_body) {
+        my $type = $self->header('Content-Type');
+        $self->_body(HTTP::Body->new( $type, $length ));
+        $self->_body->cleanup(1);
+
+        # JNAP: I'm not sure this is doing what we expect, but it also doesn't
+        # seem to be hurting (seems ->_has_uploadtmp is true more than I would
+        # expect.
+
+        $self->_body->tmpdir( $self->_uploadtmp )
+          if $self->_has_uploadtmp;
+    }
+
+    # Ok if we get this far, we have to read psgi.input into the new body
+    # object.  Lets play nice with any plack app or other downstream, so
+    # we create a buffer unless one exists.
+     
+    my $stream_buffer;
+    if ($self->env->{'psgix.input.buffered'}) {
+        # Be paranoid about previous psgi middleware or apps that read the
+        # input but didn't return the buffer to the start.
+        $self->env->{'psgi.input'}->seek(0, 0);
+    } else {
+        $stream_buffer = Stream::Buffered->new($length);
+    }
+
+    # Check for definedness as you could read '0'
+    while ( defined ( my $chunk = $self->read() ) ) {
+        $self->prepare_body_chunk($chunk);
+        $stream_buffer->print($chunk) if $stream_buffer;
+    }
+
+    # Ok, we read the body.  Lets play nice for any PSGI app down the pipe
+
+    if ($stream_buffer) {
+        $self->env->{'psgix.input.buffered'} = 1;
+        $self->env->{'psgi.input'} = $stream_buffer->rewind;
+    } else {
+        $self->env->{'psgi.input'}->seek(0, 0); # Reset the buffer for downstream middleware or apps
+    }
+
+    $self->env->{'plack.request.http.body'} = $self->_body;
+    $self->env->{'plack.request.body'} = Hash::MultiValue->from_mixed($self->_body->param);
+
+    # paranoia against wrong Content-Length header
+    my $remaining = $length - $self->_read_position;
+    if ( $remaining > 0 ) {
+        Catalyst::Exception->throw("Wrong Content-Length value: $length" );
     }
 }
 
@@ -263,7 +334,9 @@ sub prepare_body_parameters {
     $self->prepare_body if ! $self->_has_body;
     return {} unless $self->_body;
 
-    return $self->_body->param;
+    return $self->_use_hash_multivalue ?
+        $self->env->{'plack.request.body'}->clone :
+        $self->_body->param;
 }
 
 sub prepare_connection {
@@ -313,7 +386,7 @@ has _body => (
 #             and provide a custom reader..
 sub body {
   my $self = shift;
-  $self->prepare_body unless ! $self->_has_body;
+  $self->prepare_body unless $self->_has_body;
   croak 'body is a reader' if scalar @_;
   return blessed $self->_body ? $self->_body->body : $self->_body;
 }
