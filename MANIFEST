@@ -19,6 +19,7 @@ lib/Catalyst.pm
 lib/Catalyst/Action.pm
 lib/Catalyst/ActionChain.pm
 lib/Catalyst/ActionContainer.pm
+lib/Catalyst/ActionRole/ConsumesContent.pm
 lib/Catalyst/ActionRole/HTTPMethods.pm
 lib/Catalyst/Base.pm
 lib/Catalyst/ClassData.pm
@@ -192,6 +193,7 @@ t/author/spelling.t
 t/author/unicode_plugin_nested_params.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
+t/content_negotiation.t
 t/custom_exception_class_simple.t
 t/data_handler.t
 t/dead_load_bad_args.t
@@ -386,6 +388,9 @@ t/lib/TestAppWithMeta.pm
 t/lib/TestAppWithMeta/Controller/Root.pm
 t/lib/TestAppWithoutUnicode.pm
 t/lib/TestAppWithoutUnicode/Controller/Root.pm
+t/lib/TestContentNegotiation.pm
+t/lib/TestContentNegotiation/Controller/Root.pm
+t/lib/TestContentNegotiation/share/file.txt
 t/lib/TestDataHandlers.pm
 t/lib/TestDataHandlers/Controller/Root.pm
 t/lib/TestFromPSGI.pm

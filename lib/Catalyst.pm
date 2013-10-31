@@ -120,7 +120,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90049_004';
+our $VERSION = '5.90049_005';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -3167,12 +3167,15 @@ you really don't need to invoke it.
 
 =head2 default_data_handlers
 
-Default Data Handlers that come bundled with L<Catalyst>.  Currently there is
-only one default data handler, for 'application/json'.  This is used to parse
-incoming JSON into a Perl data structure.  It used either L<JSON::MaybeXS> or
-L<JSON>, depending on which is installed.  This allows you to fail back to
-L<JSON:PP>, which is a Pure Perl JSON decoder, and has the smallest dependency
-impact.
+Default Data Handlers that come bundled with L<Catalyst>.  Currently there are
+only two default data handlers, for 'application/json' and an alternative to
+'application/x-www-form-urlencoded' which supposed nested form parameters via
+L<CGI::Struct> or via L<CGI::Struct::XS> IF you've installed it.
+
+The 'application/json' data handler is used to parse incoming JSON into a Perl
+data structure.  It used either L<JSON::MaybeXS> or L<JSON>, depending on which
+is installed.  This allows you to fail back to L<JSON:PP>, which is a Pure Perl
+JSON decoder, and has the smallest dependency impact.
 
 Because we don't wish to add more dependencies to L<Catalyst>, if you wish to
 use this new feature we recommend installing L<JSON> or L<JSON::MaybeXS> in
@@ -3203,6 +3206,12 @@ sub setup_data_handlers {
 sub default_data_handlers {
     my ($class) = @_;
     return +{
+      'application/x-www-form-urlencoded' => sub {
+          my ($fh, $req) = @_;
+          my $params = $req->_use_hash_multivalue ? $req->body_parameters->mixed : $req->body_parameters;
+          Class::Load::load_first_existing_class('CGI::Struct::XS', 'CGI::Struct')
+            ->can('build_cgi_struct')->($params);
+      },
       'application/json' => sub {
           Class::Load::load_first_existing_class('JSON::MaybeXS', 'JSON')
             ->can('decode_json')->(do { local $/; $_->getline });
