@@ -120,7 +120,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90049_006';
+our $VERSION = '5.90050';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1837,7 +1837,7 @@ sub finalize {
     # Support skipping finalize for psgix.io style 'jailbreak'.  Used to support
     # stuff like cometd and websockets
     
-    if($c->request->has_io_fh) {
+    if($c->request->_has_io_fh) {
       $c->log_response;
       return;
     }
