@@ -191,6 +191,7 @@ t/author/pod.t
 t/author/podcoverage.t
 t/author/spelling.t
 t/author/unicode_plugin_nested_params.t
+t/bad_middleware_error.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
 t/content_negotiation.t
@@ -403,6 +404,14 @@ t/lib/TestMiddleware/share/static/forced.txt
 t/lib/TestMiddleware/share/static/message.txt
 t/lib/TestMiddleware/share/static2/message2.txt
 t/lib/TestMiddleware/share/static3/message3.txt
+t/lib/TestMiddlewareFromConfig.pm
+t/lib/TestMiddlewareFromConfig/Controller/Root.pm
+t/lib/TestMiddlewareFromConfig/Custom.pm
+t/lib/TestMiddlewareFromConfig/share/static/forced.txt
+t/lib/TestMiddlewareFromConfig/share/static/message.txt
+t/lib/TestMiddlewareFromConfig/share/static2/message2.txt
+t/lib/TestMiddlewareFromConfig/share/static3/message3.txt
+t/lib/TestMiddlewareFromConfig/testmiddlewarefromconfig.pl
 t/lib/TestPluginWithConstructor.pm
 t/live_catalyst_test.t
 t/live_component_controller_context_closure.t
@@ -422,6 +431,7 @@ t/optional_memleak.t
 t/optional_stress.t
 t/optional_stress.yml
 t/optional_threads.t
+t/plack-middleware-config.t
 t/plack-middleware.t
 t/plugin_new_method_backcompat.t
 t/psgi-log.t
