@@ -192,6 +192,7 @@ t/author/podcoverage.t
 t/author/spelling.t
 t/author/unicode_plugin_nested_params.t
 t/bad_middleware_error.t
+t/body_fh.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
 t/content_negotiation.t

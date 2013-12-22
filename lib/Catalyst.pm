@@ -41,6 +41,8 @@ use Plack::Middleware::ReverseProxy;
 use Plack::Middleware::IIS6ScriptNameFix;
 use Plack::Middleware::IIS7KeepAliveFix;
 use Plack::Middleware::LighttpdScriptNameFix;
+use Plack::Middleware::ContentLength;
+use Plack::Middleware::Head;
 use Plack::Util;
 use Class::Load 'load_class';
 
@@ -120,7 +122,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90053';
+our $VERSION = '5.90059_002';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1857,11 +1859,6 @@ sub finalize {
 
         $c->finalize_headers unless $c->response->finalized_headers;
 
-        # HEAD request
-        if ( $c->request->method eq 'HEAD' ) {
-            $c->response->body('');
-        }
-
         $c->finalize_body;
     }
 
@@ -1938,30 +1935,15 @@ EOF
         }
     }
 
-    # Content-Length
-    if ( defined $response->body && length $response->body && !$response->content_length ) {
+    # Remove incorrectly added body and content related meta data when returning
+    # an information response, or a response the is required to not include a body
 
-        # get the length from a filehandle
-        if ( blessed( $response->body ) && $response->body->can('read') || ref( $response->body ) eq 'GLOB' )
-        {
-            my $size = -s $response->body;
-            if ( $size ) {
-                $response->content_length( $size );
-            }
-            else {
-                $c->log->warn('Serving filehandle without a content-length');
-            }
-        }
-        else {
-            # everything should be bytes at this point, but just in case
-            $response->content_length( length( $response->body ) );
-        }
-    }
-
-    # Errors
     if ( $response->status =~ /^(1\d\d|[23]04)$/ ) {
-        $response->headers->remove_header("Content-Length");
-        $response->body('');
+        if($response->has_body) {
+          $c->log->debug('Removing body for informational or no content http responses');
+          $response->body('');
+          $response->headers->remove_header("Content-Length");
+        }
     }
 
     $c->finalize_cookies;
@@ -3122,7 +3104,10 @@ L<Catalyst::Plugin::EnableMiddleware> (which is now considered deprecated)
 sub registered_middlewares {
     my $class = shift;
     if(my $middleware = $class->_psgi_middleware) {
-        return @$middleware;
+        return (
+          Plack::Middleware::ContentLength->new,
+          Plack::Middleware::Head->new,
+          @$middleware);
     } else {
         die "You cannot call ->registered_middlewares until middleware has been setup";
     }
