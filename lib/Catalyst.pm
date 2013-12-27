@@ -43,6 +43,7 @@ use Plack::Middleware::IIS7KeepAliveFix;
 use Plack::Middleware::LighttpdScriptNameFix;
 use Plack::Middleware::ContentLength;
 use Plack::Middleware::Head;
+use Plack::Middleware::HTTPExceptions;
 use Plack::Util;
 use Class::Load 'load_class';
 
@@ -122,7 +123,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90059_002';
+our $VERSION = '5.90059_003';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1896,7 +1897,25 @@ Finalizes error.
 
 =cut
 
-sub finalize_error { my $c = shift; $c->engine->finalize_error( $c, @_ ) }
+sub finalize_error {
+    my $c = shift;
+    if($#{$c->error} > 0) {
+        $c->engine->finalize_error( $c, @_ );
+    } else {
+        my ($error) = @{$c->error};
+        if(
+          blessed $error &&
+          ($error->can('as_psgi') || $error->can('code'))
+        ) {
+            # In the case where the error 'knows what it wants', becauses its PSGI
+            # aware, just rethow and let middleware catch it
+            $error->can('rethrow') ? $error->rethrow : croak $error;
+            croak $error;
+        } else {
+            $c->engine->finalize_error( $c, @_ )
+        }
+    }
+}
 
 =head2 $c->finalize_headers
 
@@ -2013,10 +2032,13 @@ sub handle_request {
         my $c = $class->prepare(@arguments);
         $c->dispatch;
         $status = $c->finalize;
-    }
-    catch {
+    } catch {
         chomp(my $error = $_);
         $class->log->error(qq/Caught exception in engine "$error"/);
+        #rethow if this can be handled by middleware
+        if(blessed $error && ($error->can('as_psgi') || $error->can('code'))) {
+            $error->can('rethrow') ? $error->rethrow : croak $error;
+        }
     };
 
     $COUNT++;
@@ -3105,6 +3127,7 @@ sub registered_middlewares {
     my $class = shift;
     if(my $middleware = $class->_psgi_middleware) {
         return (
+          Plack::Middleware::HTTPExceptions->new,
           Plack::Middleware::ContentLength->new,
           Plack::Middleware::Head->new,
           @$middleware);
@@ -3597,6 +3620,23 @@ So the general form is:
 
 Where C<@middleware> is one or more of the following, applied in the REVERSE of
 the order listed (to make it function similarly to L<Plack::Builder>:
+
+Alternatively, you may also define middleware by calling the L</setup_middleware>
+package method:
+
+    package MyApp::Web;
+
+    use Catalyst;
+
+    __PACKAGE__->setup_middleware( \@middleware_definitions);
+    __PACKAGE__->setup;
+
+In the case where you do both (use 'setup_middleware' and configuration) the
+package call to setup_middleware will be applied earlier (in other words its
+middleware will wrap closer to the application).  Keep this in mind since in
+some cases the order of middleware is important.
+
+The two approaches are not exclusive.
  
 =over 4
  

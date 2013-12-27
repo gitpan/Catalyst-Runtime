@@ -206,6 +206,7 @@ t/deprecated.t
 t/deprecated_appclass_action_warnings.t
 t/encoding_set_in_app.t
 t/encoding_set_in_config.t
+t/http_exceptions.t
 t/lib/ACLTestApp.pm
 t/lib/ACLTestApp/Controller/Root.pm
 t/lib/Catalyst/Action/TestAfter.pm
