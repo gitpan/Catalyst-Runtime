@@ -75,6 +75,7 @@ sub finalize_body {
     ## doing something custom and is expected to close the response
     return if $res->_has_write_fh;
 
+    my $body = $res->body; # save some typing
     if($res->_has_response_cb) {
         ## we have not called the response callback yet, so we are safe to send
         ## the whole body to PSGI
@@ -82,20 +83,55 @@ sub finalize_body {
         my @headers;
         $res->headers->scan(sub { push @headers, @_ });
 
-        ## We need to figure out what kind of body we have...
-        my $body = $res->body;
+        # We need to figure out what kind of body we have and normalize it to something
+        # PSGI can deal with
         if(defined $body) {
-            if(blessed($body) && $body->can('read') or ref($body) eq 'GLOB') {
-              # Body is a filehandle like thingy.  We can jusrt send this along
-              # to plack without changing it.
+            # Handle objects first
+            if(blessed($body)) {
+                if($body->can('getline')) {
+                    # Body is an IO handle that meets the PSGI spec.  Nothing to normalize
+                } elsif($body->can('read')) {
+
+                    # In the past, Catalyst only looked for ->read not ->getline.  It is very possible
+                    # that one might have an object that respected read but did not have getline.
+                    # As a result, we need to handle this case for backcompat.
+                
+                    # We will just do the old loop for now.  In a future version of Catalyst this support
+                    # will be removed and one will have to rewrite their custom object or use 
+                    # Plack::Middleware::AdaptFilehandleRead.  In anycase support for this is officially
+                    # deprecated and described as such as of 5.90060
+                   
+                    my $got;
+                    do {
+                        $got = read $body, my ($buffer), $CHUNKSIZE;
+                        $got = 0 unless $self->write($c, $buffer );
+                    } while $got > 0;
+
+                    close $body;
+                    return;
+                } else {
+                    # Looks like for  backcompat reasons we need to be able to deal
+                    # with stringyfiable objects.
+                    $body = ["$body"]; 
+                }
+            } elsif(ref $body) {
+                if( (ref($body) eq 'GLOB') or (ref($body) eq 'ARRAY')) {
+                  # Again, PSGI can just accept this, no transform needed.  We don't officially
+                  # document the body as arrayref at this time (and there's not specific test
+                  # cases.  we support it because it simplifies some plack compatibility logic
+                  # and we might make it official at some point.
+                } else {
+                   $c->log->error("${\ref($body)} is not a valid value for Response->body");
+                   return;
+                }
             } else {
-              # Looks like for  backcompat reasons we need to be able to deal
-              # with stringyfiable objects.
-              $body = "$body" if blessed($body); # Assume there's some sort of overloading..
-              $body = [$body];  
+                # Body is defined and not an object or reference.  We assume a simple value
+                # and wrap it in an array for PSGI
+                $body = [$body];
             }
         } else {
-          $body = [undef];
+            # There's no body...
+            $body = [];
         }
 
         $res->_response_cb->([ $res->status, \@headers, $body]);
@@ -111,11 +147,11 @@ sub finalize_body {
         ## We'll just use the old, existing code for this (or most of it)
 
         if(my $body = $res->body) {
-          no warnings 'uninitialized';
+
           if ( blessed($body) && $body->can('read') or ref($body) eq 'GLOB' ) {
 
               ## In this case we have no choice and will fall back on the old
-              ## manual streaming stuff.
+              ## manual streaming stuff.  Not optimal.  This is deprecated as of 5.900560+
 
               my $got;
               do {
@@ -126,6 +162,11 @@ sub finalize_body {
               close $body;
           }
           else {
+              
+              # Case where body was set afgter calling ->write.  We'd prefer not to
+              # support this, but I can see some use cases with the way most of the
+              # views work.
+
               $self->write($c, $body );
           }
         }

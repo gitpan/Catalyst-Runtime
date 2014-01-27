@@ -44,6 +44,9 @@ use Plack::Middleware::LighttpdScriptNameFix;
 use Plack::Middleware::ContentLength;
 use Plack::Middleware::Head;
 use Plack::Middleware::HTTPExceptions;
+use Plack::Middleware::FixMissingBodyInRedirect;
+use Plack::Middleware::MethodOverride;
+use Plack::Middleware::RemoveRedundantBody;
 use Plack::Util;
 use Class::Load 'load_class';
 
@@ -123,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90059_003';
+our $VERSION = '5.90059_004';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1893,7 +1896,10 @@ sub finalize_cookies { my $c = shift; $c->engine->finalize_cookies( $c, @_ ) }
 
 =head2 $c->finalize_error
 
-Finalizes error.
+Finalizes error.  If there is only one error in L</error> and it is an object that
+does C<as_psgi> or C<code> we rethrow the error and presume it caught by middleware
+up the ladder.  Otherwise we return the debugging error page (in debug mode) or we
+return the default error page (production mode).
 
 =cut
 
@@ -1935,35 +1941,10 @@ sub finalize_headers {
     if ( my $location = $response->redirect ) {
         $c->log->debug(qq/Redirecting to "$location"/) if $c->debug;
         $response->header( Location => $location );
-
-        if ( !$response->has_body ) {
-            # Add a default body if none is already present
-            my $encoded_location = encode_entities($location);
-            $response->body(<<"EOF");
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"> 
-  <head>
-    <title>Moved</title>
-  </head>
-  <body>
-     <p>This item has moved <a href="$encoded_location">here</a>.</p>
-  </body>
-</html>
-EOF
-            $response->content_type('text/html; charset=utf-8');
-        }
     }
 
     # Remove incorrectly added body and content related meta data when returning
     # an information response, or a response the is required to not include a body
-
-    if ( $response->status =~ /^(1\d\d|[23]04)$/ ) {
-        if($response->has_body) {
-          $c->log->debug('Removing body for informational or no content http responses');
-          $response->body('');
-          $response->headers->remove_header("Content-Length");
-        }
-    }
 
     $c->finalize_cookies;
 
@@ -3128,7 +3109,10 @@ sub registered_middlewares {
     if(my $middleware = $class->_psgi_middleware) {
         return (
           Plack::Middleware::HTTPExceptions->new,
+          Plack::Middleware::RemoveRedundantBody->new,
+          Plack::Middleware::FixMissingBodyInRedirect->new,
           Plack::Middleware::ContentLength->new,
+          Plack::Middleware::MethodOverride->new,
           Plack::Middleware::Head->new,
           @$middleware);
     } else {
@@ -3451,6 +3435,28 @@ C<psgi_middleware> - See L<PSGI MIDDLEWARE>.
 C<data_handlers> - See L<DATA HANDLERS>.
 
 =back
+
+=head1 EXCEPTIONS
+
+Generally when you throw an exception inside an Action (or somewhere in
+your stack, such as in a model that an Action is calling) that exception
+is caught by Catalyst and unless you either catch it yourself (via eval
+or something like L<Try::Tiny> or by reviewing the L</error> stack, it
+will eventually reach L</finalize_errors> and return either the debugging
+error stack page, or the default error page.  However, if your exception 
+can be caught by L<Plack::Middleware::HTTPExceptions>, L<Catalyst> will
+instead rethrow it so that it can be handled by that middleware (which
+is part of the default middleware).  For example this would allow
+
+    use HTTP::Throwable::Factory 'http_throw';
+
+    sub throws_exception :Local {
+      my ($self, $c) = @_;
+
+      http_throw(SeeOther => { location => 
+        $c->uri_for($self->action_for('redirect')) });
+
+    }
 
 =head1 INTERNAL ACTIONS
 
@@ -3951,9 +3957,11 @@ rainboxx: Matthias Dietrich, C<perl@rainboxx.de>
 
 dd070: Dhaval Dhanani <dhaval070@gmail.com>
 
+Upasana <me@upasana.me>
+
 =head1 COPYRIGHT
 
-Copyright (c) 2005, the above named PROJECT FOUNDER and CONTRIBUTORS.
+Copyright (c) 2005-2014, the above named PROJECT FOUNDER and CONTRIBUTORS.
 
 =head1 LICENSE
 
