@@ -58,14 +58,14 @@ requires:
   Plack: 0.9991
   Plack::Middleware::Conditional: 0
   Plack::Middleware::ContentLength: 0
-  Plack::Middleware::FixMissingBodyInRedirect: 0
+  Plack::Middleware::FixMissingBodyInRedirect: 0.09
   Plack::Middleware::HTTPExceptions: 0
   Plack::Middleware::Head: 0
   Plack::Middleware::IIS6ScriptNameFix: 0
   Plack::Middleware::IIS7KeepAliveFix: 0
   Plack::Middleware::LighttpdScriptNameFix: 0
   Plack::Middleware::MethodOverride: 0
-  Plack::Middleware::RemoveRedundantBody: 0
+  Plack::Middleware::RemoveRedundantBody: 0.03
   Plack::Middleware::ReverseProxy: 0.04
   Plack::Request::Upload: 0
   Plack::Test::ExternalServer: 0
@@ -91,5 +91,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: 5.90059_004
+version: 5.90059_005
 x_authority: cpan:MSTROUT
