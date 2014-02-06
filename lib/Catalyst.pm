@@ -126,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90059_005';
+our $VERSION = '5.90059_006';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1254,7 +1254,7 @@ EOF
     # Should be the last thing we do so that user things hooking
     # setup_finalize can log..
     $class->log->_flush() if $class->log->can('_flush');
-    return 1; # Explicit return true as people have __PACKAGE__->setup as the last thing in their class. HATE.
+    return $class || 1; # Just in case someone named their Application 0...
 }
 
 =head2 $app->setup_finalize

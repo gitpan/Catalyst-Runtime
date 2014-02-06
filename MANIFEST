@@ -207,6 +207,7 @@ t/deprecated_appclass_action_warnings.t
 t/encoding_set_in_app.t
 t/encoding_set_in_config.t
 t/http_exceptions.t
+t/http_method.t
 t/lib/ACLTestApp.pm
 t/lib/ACLTestApp/Controller/Root.pm
 t/lib/Catalyst/Action/TestAfter.pm
@@ -440,6 +441,7 @@ t/psgi-log.t
 t/psgi_file_testapp.t
 t/psgi_file_testapp_engine_plackup_compat.t
 t/psgi_file_testapp_engine_psgi_compat.t
+t/psgi_utils.t
 t/remove_redundant_body.t
 t/something/Makefile.PL
 t/something/script/foo/bar/for_dist
