@@ -126,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90060';
+our $VERSION = '5.90061';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1133,15 +1133,6 @@ sub setup {
     $class->setup_log( delete $flags->{log} );
     $class->setup_plugins( delete $flags->{plugins} );
 
-    # Call plugins setup, this is stupid and evil.
-    # Also screws C3 badly on 5.10, hack to avoid.
-    {
-        no warnings qw/redefine/;
-        local *setup = sub { };
-        $class->setup unless $Catalyst::__AM_RESTARTING;
-    }
-
-    $class->setup_middleware();
     $class->setup_data_handlers();
     $class->setup_dispatcher( delete $flags->{dispatcher} );
     if (my $engine = delete $flags->{engine}) {
@@ -1173,6 +1164,16 @@ You are running an old script!
 
 EOF
     }
+
+    # Call plugins setup, this is stupid and evil.
+    # Also screws C3 badly on 5.10, hack to avoid.
+    {
+        no warnings qw/redefine/;
+        local *setup = sub { };
+        $class->setup unless $Catalyst::__AM_RESTARTING;
+    }
+
+    $class->setup_middleware();
 
     # Initialize our data structure
     $class->components( {} );
