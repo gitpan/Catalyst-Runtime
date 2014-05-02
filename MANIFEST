@@ -1,13 +1,3 @@
-Catalyst-Runtime-5.90061/t/lib/TestAppEncodingSetInConfig/testappencodingsetinconfig.json
-Catalyst-Runtime-5.90061/t/lib/TestContentNegotiation/share/file.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddleware/share/static/forced.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddleware/share/static/message.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddleware/share/static2/message2.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddleware/share/static3/message3.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddlewareFromConfig/share/static/forced.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddlewareFromConfig/share/static/message.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddlewareFromConfig/share/static2/message2.txt
-Catalyst-Runtime-5.90061/t/lib/TestMiddlewareFromConfig/share/static3/message3.txt
 Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
@@ -216,6 +206,7 @@ t/deprecated.t
 t/deprecated_appclass_action_warnings.t
 t/encoding_set_in_app.t
 t/encoding_set_in_config.t
+t/head_middleware.t
 t/http_exceptions.t
 t/http_method.t
 t/lib/ACLTestApp.pm

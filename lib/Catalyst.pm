@@ -126,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90062';
+our $VERSION = '5.90063';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1738,6 +1738,10 @@ sub execute {
     my $last = pop( @{ $c->stack } );
 
     if ( my $error = $@ ) {
+        #rethow if this can be handled by middleware
+        if(blessed $error && ($error->can('as_psgi') || $error->can('code'))) {
+            $error->can('rethrow') ? $error->rethrow : croak $error;
+        }
         if ( blessed($error) and $error->isa('Catalyst::Exception::Detach') ) {
             $error->rethrow if $c->depth > 1;
         }
@@ -3103,6 +3107,10 @@ which sounds odd but is likely how you expect it to work if you have prior
 experience with L<Plack::Builder> or if you previously used the plugin
 L<Catalyst::Plugin::EnableMiddleware> (which is now considered deprecated)
 
+So basically your middleware handles an incoming request from the first
+registered middleware, down and handles the response from the last middleware
+up.
+
 =cut
 
 sub registered_middlewares {
@@ -3124,7 +3132,7 @@ sub registered_middlewares {
 sub setup_middleware {
     my $class = shift;
     my @middleware_definitions = @_ ? 
-      @_ : reverse(@{$class->config->{'psgi_middleware'}||[]});
+      reverse(@_) : reverse(@{$class->config->{'psgi_middleware'}||[]});
 
     my @middleware = ();
     while(my $next = shift(@middleware_definitions)) {
