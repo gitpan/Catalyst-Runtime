@@ -126,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90064';
+our $VERSION = '5.90069_001';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -1252,9 +1252,10 @@ EOF
     }
 
     $class->setup_finalize;
-    # Should be the last thing we do so that user things hooking
-    # setup_finalize can log..
+
+    # Flush the log for good measure (in case something turned off 'autoflush' early)
     $class->log->_flush() if $class->log->can('_flush');
+
     return $class || 1; # Just in case someone named their Application 0...
 }
 
@@ -2593,18 +2594,15 @@ sub locate_components {
     my $class  = shift;
     my $config = shift;
 
-    my @paths   = qw( ::Controller ::C ::Model ::M ::View ::V );
+    my @paths   = qw( ::M ::Model ::V ::View ::C ::Controller );
     my $extra   = delete $config->{ search_extra } || [];
 
-    push @paths, @$extra;
+    unshift @paths, @$extra;
 
-    my $locator = Module::Pluggable::Object->new(
-        search_path => [ map { s/^(?=::)/$class/; $_; } @paths ],
-        %$config
-    );
-
-    # XXX think about ditching this sort entirely
-    my @comps = sort { length $a <=> length $b } $locator->plugins;
+    my @comps = map { sort { length($a) <=> length($b) } Module::Pluggable::Object->new(
+      search_path => [ map { s/^(?=::)/$class/; $_; } ($_) ],
+      %$config
+    )->plugins } @paths;
 
     return @comps;
 }
@@ -3587,7 +3585,7 @@ example given above, which uses L<JSON::Maybe> to provide either L<JSON::PP>
 it installed (if you want the faster XS parser, add it to you project Makefile.PL
 or dist.ini, cpanfile, etc.)
 
-The C<data_handlers> configuation is a hashref whose keys are HTTP Content-Types
+The C<data_handlers> configuration is a hashref whose keys are HTTP Content-Types
 (matched against the incoming request type using a regexp such as to be case
 insensitive) and whose values are coderefs that receive a localized version of
 C<$_> which is a filehandle object pointing to received body.
@@ -3951,6 +3949,8 @@ szbalint: Balint Szilakszi <szbalint@cpan.org>
 t0m: Tomas Doran <bobtfish@bobtfish.net>
 
 Ulf Edvinsson
+
+vanstyn: Henry Van Styn <vanstyn@cpan.org>
 
 Viljo Marrandi C<vilts@yahoo.com>
 

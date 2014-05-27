@@ -154,6 +154,7 @@ t/aggregate/unit_core_engine-prepare_path.t
 t/aggregate/unit_core_engine_fixenv-iis6.t
 t/aggregate/unit_core_engine_fixenv-lighttpd.t
 t/aggregate/unit_core_log.t
+t/aggregate/unit_core_log_autoflush.t
 t/aggregate/unit_core_merge_config_hashes.t
 t/aggregate/unit_core_mvc.t
 t/aggregate/unit_core_path_to.t

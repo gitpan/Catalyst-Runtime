@@ -37,20 +37,11 @@ foreach my $method (qw(HEAD GET)) {
             'HEAD method content is empty' );
     }
     elsif ( $method eq 'GET' ) {
-        # method name is echo'd back in content-body, which
-        # accounts for difference in content length.  In normal
-        # cases the Content-Length should be the same regardless
-        # of whether it's a GET or HEAD request.
-        SKIP:
-        {
-            if ( $ENV{CATALYST_SERVER} ) {
-                skip "Using remote server", 2;
-            }
-            is( $response->header('Content-Length'),
-                $content_length - 1, 'Response Header Content-Length' );
-            is( length($response->content),
-                $response->header('Content-Length'),
-                'GET method content' );
-        }
+        is( $response->header('Content-Length'),
+            $content_length, 'Response Header Content-Length' )
+            or diag $response->content;
+        is( length($response->content),
+            $response->header('Content-Length'),
+            'GET method content' );
     }
 }
