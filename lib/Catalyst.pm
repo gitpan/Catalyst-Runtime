@@ -126,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90069_001';
+our $VERSION = '5.90065';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -2594,15 +2594,18 @@ sub locate_components {
     my $class  = shift;
     my $config = shift;
 
-    my @paths   = qw( ::M ::Model ::V ::View ::C ::Controller );
+    my @paths   = qw( ::Controller ::C ::Model ::M ::View ::V );
     my $extra   = delete $config->{ search_extra } || [];
 
-    unshift @paths, @$extra;
+    push @paths, @$extra;
 
-    my @comps = map { sort { length($a) <=> length($b) } Module::Pluggable::Object->new(
-      search_path => [ map { s/^(?=::)/$class/; $_; } ($_) ],
-      %$config
-    )->plugins } @paths;
+    my $locator = Module::Pluggable::Object->new(
+        search_path => [ map { s/^(?=::)/$class/; $_; } @paths ],
+        %$config
+    );
+
+    # XXX think about ditching this sort entirely
+    my @comps = sort { length $a <=> length $b } $locator->plugins;
 
     return @comps;
 }
