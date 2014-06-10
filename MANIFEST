@@ -43,6 +43,7 @@ lib/Catalyst/Exception/Detach.pm
 lib/Catalyst/Exception/Go.pm
 lib/Catalyst/Exception/Interface.pm
 lib/Catalyst/Log.pm
+lib/Catalyst/Middleware/Stash.pm
 lib/Catalyst/Model.pm
 lib/Catalyst/Plugin/Unicode/Encoding.pm
 lib/Catalyst/PSGI.pod

@@ -47,13 +47,13 @@ use Plack::Middleware::HTTPExceptions;
 use Plack::Middleware::FixMissingBodyInRedirect;
 use Plack::Middleware::MethodOverride;
 use Plack::Middleware::RemoveRedundantBody;
+use Catalyst::Middleware::Stash;
 use Plack::Util;
 use Class::Load 'load_class';
 
 BEGIN { require 5.008003; }
 
 has stack => (is => 'ro', default => sub { [] });
-has stash => (is => 'rw', default => sub { {} });
 has state => (is => 'rw', default => 0);
 has stats => (is => 'rw');
 has action => (is => 'rw');
@@ -126,7 +126,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 
 # Remember to update this in Catalyst::Runtime as well!
 
-our $VERSION = '5.90065';
+our $VERSION = '5.90069_002';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -496,21 +496,18 @@ Catalyst).
 
 =cut
 
-around stash => sub {
-    my $orig = shift;
-    my $c = shift;
-    my $stash = $orig->($c);
-    if (@_) {
-        my $new_stash = @_ > 1 ? {@_} : $_[0];
-        croak('stash takes a hash or hashref') unless ref $new_stash;
-        foreach my $key ( keys %$new_stash ) {
-          $stash->{$key} = $new_stash->{$key};
-        }
+sub stash {
+  my $c = shift;
+  my $stash = Catalyst::Middleware::Stash->get($c->req->env);
+  if(@_) {
+    my $new_stash = @_ > 1 ? {@_} : $_[0];
+    croak('stash takes a hash or hashref') unless ref $new_stash;
+    foreach my $key ( keys %$new_stash ) {
+      $stash->{$key} = $new_stash->{$key};
     }
-
-    return $stash;
-};
-
+  }
+  return $stash;
+}
 
 =head2 $c->error
 
@@ -563,6 +560,14 @@ sub clear_errors {
     my $c = shift;
     $c->error(0);
 }
+
+=head2 $c->has_errors
+
+Returns true if you have errors
+
+=cut
+
+sub has_errors { scalar(@{shift->error}) ? 1:0 }
 
 sub _comp_search_prefixes {
     my $c = shift;
@@ -1741,6 +1746,12 @@ sub execute {
     if ( my $error = $@ ) {
         #rethow if this can be handled by middleware
         if(blessed $error && ($error->can('as_psgi') || $error->can('code'))) {
+            foreach my $err (@{$c->error}) {
+                $c->log->error($err);
+            }
+            $c->clear_errors;
+            $c->log->_flush if $c->log->can('_flush');
+
             $error->can('rethrow') ? $error->rethrow : croak $error;
         }
         if ( blessed($error) and $error->isa('Catalyst::Exception::Detach') ) {
@@ -1922,7 +1933,6 @@ sub finalize_error {
             # In the case where the error 'knows what it wants', becauses its PSGI
             # aware, just rethow and let middleware catch it
             $error->can('rethrow') ? $error->rethrow : croak $error;
-            croak $error;
         } else {
             $c->engine->finalize_error( $c, @_ )
         }
@@ -2594,18 +2604,15 @@ sub locate_components {
     my $class  = shift;
     my $config = shift;
 
-    my @paths   = qw( ::Controller ::C ::Model ::M ::View ::V );
+    my @paths   = qw( ::M ::Model ::V ::View ::C ::Controller );
     my $extra   = delete $config->{ search_extra } || [];
 
-    push @paths, @$extra;
+    unshift @paths, @$extra;
 
-    my $locator = Module::Pluggable::Object->new(
-        search_path => [ map { s/^(?=::)/$class/; $_; } @paths ],
-        %$config
-    );
-
-    # XXX think about ditching this sort entirely
-    my @comps = sort { length $a <=> length $b } $locator->plugins;
+    my @comps = map { sort { length($a) <=> length($b) } Module::Pluggable::Object->new(
+      search_path => [ map { s/^(?=::)/$class/; $_; } ($_) ],
+      %$config
+    )->plugins } @paths;
 
     return @comps;
 }
@@ -3118,6 +3125,7 @@ sub registered_middlewares {
     my $class = shift;
     if(my $middleware = $class->_psgi_middleware) {
         return (
+          Catalyst::Middleware::Stash->new,
           Plack::Middleware::HTTPExceptions->new,
           Plack::Middleware::RemoveRedundantBody->new,
           Plack::Middleware::FixMissingBodyInRedirect->new,
@@ -3199,7 +3207,8 @@ sub registered_data_handlers {
     if(my $data_handlers = $class->_data_handlers) {
         return %$data_handlers;
     } else {
-        die "You cannot call ->registered_data_handlers until data_handers has been setup";
+        $class->setup_data_handlers;
+        return $class->registered_data_handlers;
     }
 }
 
