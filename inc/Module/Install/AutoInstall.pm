@@ -6,7 +6,7 @@ use Module::Install::Base ();
 
 use vars qw{$VERSION @ISA $ISCORE};
 BEGIN {
-	$VERSION = '1.08';
+	$VERSION = '1.10';
 	@ISA     = 'Module::Install::Base';
 	$ISCORE  = 1;
 }
@@ -91,3 +91,7 @@ sub auto_install_now {
 }
 
 1;
+
+__END__
+
+#line 109
