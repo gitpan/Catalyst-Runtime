@@ -8,7 +8,7 @@ use ExtUtils::MakeMaker ();
 
 use vars qw{$VERSION};
 BEGIN {
-	$VERSION = '1.10';
+	$VERSION = '1.08';
 }
 
 # special map on pre-defined feature sets
@@ -115,7 +115,7 @@ sub import {
     print "*** $class version " . $class->VERSION . "\n";
     print "*** Checking for Perl dependencies...\n";
 
-    my $cwd = Cwd::getcwd();
+    my $cwd = Cwd::cwd();
 
     $Config = [];
 
@@ -166,7 +166,7 @@ sub import {
         $modules = [ %{$modules} ] if UNIVERSAL::isa( $modules, 'HASH' );
 
         unshift @$modules, -default => &{ shift(@$modules) }
-          if ( ref( $modules->[0] ) eq 'CODE' );    # XXX: bugward compatibility
+          if ( ref( $modules->[0] ) eq 'CODE' );    # XXX: bugward combatability
 
         while ( my ( $mod, $arg ) = splice( @$modules, 0, 2 ) ) {
             if ( $mod =~ m/^-(\w+)$/ ) {
@@ -345,26 +345,22 @@ sub install {
     my $i;    # used below to strip leading '-' from config keys
     my @config = ( map { s/^-// if ++$i; $_ } @{ +shift } );
 
-	my ( @modules, @installed, @modules_to_upgrade );
-	while (my ($pkg, $ver) = splice(@_, 0, 2)) {
+    my ( @modules, @installed );
+    while ( my ( $pkg, $ver ) = splice( @_, 0, 2 ) ) {
 
-		# grep out those already installed
-		if (_version_cmp(_version_of($pkg), $ver) >= 0) {
-			push @installed, $pkg;
-			if ($UpgradeDeps) {
-				push @modules_to_upgrade, $pkg, $ver;
-			}
-		}
-		else {
-			push @modules, $pkg, $ver;
-		}
-	}
+        # grep out those already installed
+        if ( _version_cmp( _version_of($pkg), $ver ) >= 0 ) {
+            push @installed, $pkg;
+        }
+        else {
+            push @modules, $pkg, $ver;
+        }
+    }
 
-	if ($UpgradeDeps) {
-		push @modules, @modules_to_upgrade;
-		@installed          = ();
-		@modules_to_upgrade = ();
-	}
+    if ($UpgradeDeps) {
+        push @modules, @installed;
+        @installed = ();
+    }
 
     return @installed unless @modules;  # nothing to do
     return @installed if _check_lock(); # defer to the CPAN shell
@@ -615,7 +611,7 @@ sub _under_cpan {
     require Cwd;
     require File::Spec;
 
-    my $cwd  = File::Spec->canonpath( Cwd::getcwd() );
+    my $cwd  = File::Spec->canonpath( Cwd::cwd() );
     my $cpan = File::Spec->canonpath( $CPAN::Config->{cpan_home} );
 
     return ( index( $cwd, $cpan ) > -1 );
@@ -931,4 +927,4 @@ END_MAKE
 
 __END__
 
-#line 1197
+#line 1193

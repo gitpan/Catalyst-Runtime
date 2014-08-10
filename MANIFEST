@@ -442,8 +442,6 @@ t/plack-middleware.t
 t/plugin_new_method_backcompat.t
 t/psgi-log.t
 t/psgi_file_testapp.t
-t/psgi_file_testapp_engine_plackup_compat.t
-t/psgi_file_testapp_engine_psgi_compat.t
 t/psgi_utils.t
 t/remove_redundant_body.t
 t/something/Makefile.PL
