@@ -28,7 +28,7 @@ no_index:
 requires:
   CGI::Simple::Cookie: '1.109'
   CGI::Struct: 0
-  Carp: 0
+  Carp: '1.25'
   Class::C3::Adopt::NEXT: '0.07'
   Class::Data::Inheritable: 0
   Class::Load: '0.12'
@@ -91,5 +91,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: '5.90073'
+version: '5.90074'
 x_authority: cpan:MSTROUT
