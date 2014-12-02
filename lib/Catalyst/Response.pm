@@ -4,6 +4,8 @@ use Moose;
 use HTTP::Headers;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
+use Scalar::Util 'blessed';
+use Catalyst::Response::Writer;
 
 with 'MooseX::Emulate::Class::Accessor::Fast';
 
@@ -51,7 +53,17 @@ has write_fh => (
   builder=>'_build_write_fh',
 );
 
-sub _build_write_fh { shift ->_writer }
+sub _build_write_fh {
+  my $writer = $_[0]->_writer; # We need to get the finalize headers side effect...
+  my $requires_encoding = $_[0]->content_type =~ m/^text|xml$|javascript$/;
+  my %fields = (
+    _writer => $writer,
+    _encoding => $_[0]->encoding,
+    _requires_encoding => $requires_encoding,
+  );
+
+  return bless \%fields, 'Catalyst::Response::Writer';
+}
 
 sub DEMOLISH {
   my $self = shift;
@@ -82,6 +94,8 @@ has _context => (
   clearer => '_clear_context',
 );
 
+has encoding => (is=>'ro');
+
 before [qw(status headers content_encoding content_length content_type header)] => sub {
   my $self = shift;
 
@@ -103,6 +117,9 @@ sub write {
 
     $buffer = q[] unless defined $buffer;
 
+    $buffer = $self->_context->encoding->encode( $buffer, $self->_context->_encode_check )
+      if $self->_context->encoding && $self->content_type =~ /^text|xml$|javascript$/;
+
     my $len = length($buffer);
     $self->_writer->write($buffer);
 
@@ -116,6 +133,9 @@ sub finalize_headers {
 
 sub from_psgi_response {
     my ($self, $psgi_res) = @_;
+    if(blessed($psgi_res) && $psgi_res->can('as_psgi')) {
+      $psgi_res = $psgi_res->as_psgi;
+    }
     if(ref $psgi_res eq 'ARRAY') {
         my ($status, $headers, $body) = @$psgi_res;
         $self->status($status);
@@ -347,6 +367,12 @@ qualified (= C<http://...>, etc.) or that starts with a slash
 thing and is not a standard behaviour. You may opt to use uri_for() or
 uri_for_action() instead.
 
+B<Note:> If $url is an object that does ->as_string (such as L<URI>, which is
+what you get from ->uri_for) we automatically call that to stringify.  This
+should ease the common case usage
+
+    return $c->res->redirect( $c->uri_for(...));
+
 =cut
 
 sub redirect {
@@ -355,6 +381,10 @@ sub redirect {
     if (@_) {
         my $location = shift;
         my $status   = shift || 302;
+
+        if(blessed($location) && $location->can('as_string')) {
+            $location = $location->as_string;
+        }
 
         $self->location($location);
         $self->status($status);
@@ -377,13 +407,39 @@ $res->code is an alias for this, to match HTTP::Response->code.
 
 =head2 $res->write( $data )
 
-Writes $data to the output stream.
+Writes $data to the output stream.  Calling this method will finalize your
+headers and send the headers and status code response to the client (so changing
+them afterwards is a waste... be sure to set your headers correctly first).
+
+You may call this as often as you want throughout your response cycle.  You may
+even set a 'body' afterward.  So for example you might write your HTTP headers
+and the HEAD section of your document and then set the body from a template
+driven from a database.  In some cases this can seem to the client as if you had
+a faster overall response (but note that unless your server support chunked
+body your content is likely to get queued anyway (L<Starman> and most other 
+http 1.1 webservers support this).
+
+If there is an encoding set, we encode each line of the response (the default
+encoding is UTF-8).
 
 =head2 $res->write_fh
 
-Returns a PSGI $writer object that has two methods, write and close.  You can
-close over this object for asynchronous and nonblocking applications.  For
-example (assuming you are using a supporting server, like L<Twiggy>
+Returns an instance of L<Catalyst::Response::Writer>, which is a lightweight
+decorator over the PSGI C<$writer> object (see L<PSGI.pod\Delayed-Response-and-Streaming-Body>).
+
+In addition to proxying the C<write> and C<close> method from the underlying PSGI
+writer, this proxy object knows any application wide encoding, and provides a method
+C<write_encoded> that will properly encode your written lines based upon your
+encoding settings.  By default in L<Catalyst> responses are UTF-8 encoded and this
+is the encoding used if you respond via C<write_encoded>.  If you want to handle
+encoding yourself, you can use the C<write> method directly.
+
+Encoding only applies to content types for which it matters.  Currently the following
+content types are assumed to need encoding: text (including HTML), xml and javascript.
+
+We provide access to this object so that you can properly close over it for use in
+asynchronous and nonblocking applications.  For example (assuming you are using a supporting
+server, like L<Twiggy>:
 
     package AsyncExample::Controller::Root;
 
@@ -413,6 +469,10 @@ example (assuming you are using a supporting server, like L<Twiggy>
         });
     }
 
+Like the 'write' method, calling this will finalize headers. Unlike 'write' when you
+can this it is assumed you are taking control of the response so the body is never
+finalized (there isn't one anyway) and you need to call the close method.
+
 =head2 $res->print( @data )
 
 Prints @data to the output stream, separated by $,.  This lets you pass
@@ -429,6 +489,8 @@ a $responder) set the response from it.
 
 Properly supports streaming and delayed response and / or async IO if running
 under an expected event loop.
+
+If passed an object, will expect that object to do a method C<as_psgi>.
 
 Example:
 

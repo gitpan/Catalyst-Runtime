@@ -50,7 +50,7 @@ use Plack::Middleware::RemoveRedundantBody;
 use Catalyst::Middleware::Stash;
 use Plack::Util;
 use Class::Load 'load_class';
-use Encode 2.21 ();
+use Encode 2.21 'decode_utf8', 'encode_utf8';
 
 BEGIN { require 5.008003; }
 
@@ -86,8 +86,10 @@ has response => (
     lazy => 1,
 );
 sub _build_response_constructor_args {
-    my $self = shift;
-    { _log => $self->log };
+    return +{
+      _log => $_[0]->log,
+      encoding => $_[0]->encoding,
+    };
 }
 
 has namespace => (is => 'rw');
@@ -127,7 +129,8 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 __PACKAGE__->_encode_check(Encode::FB_CROAK | Encode::LEAVE_SRC);
 
 # Remember to update this in Catalyst::Runtime as well!
-our $VERSION = '5.90077';
+our $VERSION = '5.90079_001';
+$VERSION = eval $VERSION if $VERSION =~ /_/; # numify for warning-free dev releases
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -494,6 +497,18 @@ Catalyst).
 
     # stash is automatically passed to the view for use in a template
     $c->forward( 'MyApp::View::TT' );
+
+The stash hash is currently stored in the PSGI C<$env> and is managed by
+L<Catalyst::Middleware::Stash>.  Since it's part of the C<$env> items in
+the stash can be accessed in sub applications mounted under your main
+L<Catalyst> application.  For example if you delegate the response of an
+action to another L<Catalyst> application, that sub application will have
+access to all the stash keys of the main one, and if can of course add
+more keys of its own.  However those new keys will not 'bubble' back up
+to the main application.
+
+For more information the best thing to do is to review the test case:
+t/middleware-stash.t in the distribution /t directory.
 
 =cut
 
@@ -1359,6 +1374,10 @@ path, use C<< $c->uri_for_action >> instead.
   # Path to a static resource
   $c->uri_for('/static/images/logo.png');
 
+In general the scheme of the generated URI object will follow the incoming request
+however if your targeted action or action chain has the Scheme attribute it will
+use that instead.
+
 =cut
 
 sub uri_for {
@@ -1376,30 +1395,38 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
+
+    my @encoded_args = ();
     foreach my $arg (@args) {
-        utf8::encode($arg) if utf8::is_utf8($arg);
-        $arg =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+      if(ref($arg)||'' eq 'ARRAY') {
+        push @encoded_args, [map {
+          my $encoded = encode_utf8 $_;
+          $encoded =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+         $encoded;
+        } @$arg];
+      } else {
+        push @encoded_args, do {
+          my $encoded = encode_utf8 $arg;
+          $encoded =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+          $encoded;
+        }
+      }
     }
 
+    my $target_action = $path->$_isa('Catalyst::Action') ? $path : undef;
     if ( $path->$_isa('Catalyst::Action') ) { # action object
-        s|/|%2F|g for @args;
+        s|/|%2F|g for @encoded_args;
         my $captures = [ map { s|/|%2F|g; $_; }
-                        ( scalar @args && ref $args[0] eq 'ARRAY'
-                         ? @{ shift(@args) }
+                        ( scalar @encoded_args && ref $encoded_args[0] eq 'ARRAY'
+                         ? @{ shift(@encoded_args) }
                          : ()) ];
-
-        foreach my $capture (@$captures) {
-            utf8::encode($capture) if utf8::is_utf8($capture);
-            $capture =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
-        }
 
         my $action = $path;
         # ->uri_for( $action, \@captures_and_args, \%query_values? )
-        if( !@args && $action->number_of_args ) {
+        if( !@encoded_args && $action->number_of_args ) {
             my $expanded_action = $c->dispatcher->expand_action( $action );
-
             my $num_captures = $expanded_action->number_of_captures;
-            unshift @args, splice @$captures, $num_captures;
+            unshift @encoded_args, splice @$captures, $num_captures;
         }
 
        $path = $c->dispatcher->uri_for_action($action, $captures);
@@ -1411,25 +1438,37 @@ sub uri_for {
         $path = '/' if $path eq '';
     }
 
-    unshift(@args, $path);
+    unshift(@encoded_args, $path);
 
     unless (defined $path && $path =~ s!^/!!) { # in-place strip
         my $namespace = $c->namespace;
         if (defined $path) { # cheesy hack to handle path '../foo'
-           $namespace =~ s{(?:^|/)[^/]+$}{} while $args[0] =~ s{^\.\./}{};
+           $namespace =~ s{(?:^|/)[^/]+$}{} while $encoded_args[0] =~ s{^\.\./}{};
         }
-        unshift(@args, $namespace || '');
+        unshift(@encoded_args, $namespace || '');
     }
 
     # join args with '/', or a blank string
-    my $args = join('/', grep { defined($_) } @args);
+    my $args = join('/', grep { defined($_) } @encoded_args);
     $args =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
     $args =~ s!^/+!!;
 
     my ($base, $class) = ('/', 'URI::_generic');
     if(blessed($c)) {
       $base = $c->req->base;
-      $class = ref($base);
+      if($target_action) {
+        $target_action = $c->dispatcher->expand_action($target_action);
+        if(my $s = $target_action->scheme) {
+          $s = lc($s);
+          $class = "URI::$s";
+          $base->scheme($s);
+        } else {
+          $class = ref($base);
+        }
+      } else {
+        $class = ref($base);
+      }
+
       $base =~ s{(?<!/)$}{/};
     }
 
@@ -1439,16 +1478,22 @@ sub uri_for {
       # somewhat lifted from URI::_query's query_form
       $query = '?'.join('&', map {
           my $val = $params->{$_};
-          s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go;
+          #s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go; ## Commented out because seems to lead to double encoding - JNAP
           s/ /+/g;
           my $key = $_;
           $val = '' unless defined $val;
           (map {
               my $param = "$_";
-              utf8::encode( $param ) if utf8::is_utf8($param);
+              $param = encode_utf8($param);
               # using the URI::Escape pattern here so utf8 chars survive
               $param =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
               $param =~ s/ /+/g;
+
+              $key = encode_utf8($key);
+              # using the URI::Escape pattern here so utf8 chars survive
+              $key =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
+              $key =~ s/ /+/g;
+
               "${key}=$param"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
       } @keys);
     }
@@ -2004,13 +2049,33 @@ sub finalize_headers {
 
     $c->response->finalize_headers();
 
+    if(my $enc = $c->encoding) {
+       my ($ct, $ct_enc) = $c->response->content_type;
+
+        # Only touch 'text-like' contents
+        if($c->response->content_type =~ /^text|xml$|javascript$/) {
+          if ($ct_enc && $ct_enc =~ /charset=([^;]*)/) {
+            if (uc($1) ne uc($enc->mime_name)) {
+              $c->log->debug("Catalyst encoding config is set to encode in '" .
+                           $enc->mime_name .
+                           "', content type is '$1', not encoding ");
+            }
+          } else {
+            $c->res->content_type($c->res->content_type . "; charset=" . $enc->mime_name);
+          }
+        }
+    }
+
     # Done
     $response->finalized_headers(1);
 }
 
 =head2 $c->finalize_encoding
 
-Make sure your headers and body are encoded properly IF you set an encoding.
+Make sure your body is encoded properly IF you set an encoding.  By
+default the encoding is UTF-8 but you can disable it by explictly setting the
+encoding configuration value to undef.
+
 See L</ENCODING>.
 
 =cut
@@ -2026,26 +2091,12 @@ sub finalize_encoding {
 
     return unless $enc;
 
-    my ($ct, $ct_enc) = $c->response->content_type;
-
     # Only touch 'text-like' contents
-    return unless $c->response->content_type =~ /^text|xml$|javascript$/;
-
-    if ($ct_enc && $ct_enc =~ /charset=([^;]*)/) {
-        if (uc($1) ne uc($enc->mime_name)) {
-            $c->log->debug("Unicode::Encoding is set to encode in '" .
-                           $enc->mime_name .
-                           "', content type is '$1', not encoding ");
-            return;
-        }
-    } else {
-        $c->res->content_type($c->res->content_type . "; charset=" . $enc->mime_name);
+    if($c->response->content_type =~ /^text|xml$|javascript$/) {
+      if (ref(\$body) eq 'SCALAR') {
+        $c->response->body( $c->encoding->encode( $body, $c->_encode_check ) );
+      }
     }
-
-    # Oh my, I wonder what filehandle responses and streams do... - jnap.
-    # Encode expects plain scalars (IV, NV or PV) and segfaults on ref's
-    $c->response->body( $c->encoding->encode( $body, $c->_encode_check ) )
-        if ref(\$body) eq 'SCALAR';
 }
 
 =head2 $c->finalize_output
@@ -2267,7 +2318,7 @@ Prepares body parameters.
 
 sub prepare_body_parameters {
     my $c = shift;
-    $c->engine->prepare_body_parameters( $c, @_ );
+    $c->request->prepare_body_parameters( $c, @_ );
 }
 
 =head2 $c->prepare_connection
@@ -2361,6 +2412,10 @@ sub log_request {
     $method ||= '';
     $path = '/' unless length $path;
     $address ||= '';
+
+    $path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+    $path = decode_utf8($path);
+
     $c->log->debug(qq/"$method" request for "$path" from "$address"/);
 
     $c->log_request_headers($request->headers);
@@ -2546,37 +2601,6 @@ Prepares uploads.
 sub prepare_uploads {
     my $c = shift;
     $c->engine->prepare_uploads( $c, @_ );
-
-    my $enc = $c->encoding;
-    return unless $enc;
-
-    # Uggg we hook prepare uploads to do the encoding crap on post and query
-    # parameters!  Sorry -jnap
-    for my $key (qw/ parameters query_parameters body_parameters /) {
-        for my $value ( values %{ $c->request->{$key} } ) {
-            # N.B. Check if already a character string and if so do not try to double decode.
-            #      http://www.mail-archive.com/catalyst@lists.scsys.co.uk/msg02350.html
-            #      this avoids exception if we have already decoded content, and is _not_ the
-            #      same as not encoding on output which is bad news (as it does the wrong thing
-            #      for latin1 chars for example)..
-            $value = $c->_handle_unicode_decoding($value);
-        }
-    }
-    for my $value ( values %{ $c->request->uploads } ) {
-        # skip if it fails for uploads, as we don't usually want uploads touched
-        # in any way
-        for my $inner_value ( ref($value) eq 'ARRAY' ? @{$value} : $value ) {
-            $inner_value->{filename} = try {
-                $enc->decode( $inner_value->{filename}, $c->_encode_check )
-            } catch {
-                $c->handle_unicode_encoding_exception({
-                    param_value => $inner_value->{filename},
-                    error_msg => $_,
-                    encoding_step => 'uploads',
-                });
-            };
-        }
-    }
 }
 
 =head2 $c->prepare_write
@@ -3009,7 +3033,9 @@ sub apply_default_middlewares {
     return $psgi_app;
 }
 
-=head2 $c->psgi_app
+=head2 App->psgi_app
+
+=head2 App->to_app
 
 Returns a PSGI application code reference for the catalyst application
 C<$c>. This is the bare application without any middlewares
@@ -3019,6 +3045,8 @@ This is what you want to be using to retrieve the PSGI application code
 reference of your Catalyst application for use in F<.psgi> files.
 
 =cut
+
+*to_app = \&psgi_app;
 
 sub psgi_app {
     my ($app) = @_;
@@ -3056,8 +3084,14 @@ Sets up the input/output encoding.  See L<ENCODING>
 
 sub setup_encoding {
     my $c = shift;
-    my $enc = delete $c->config->{encoding};
-    $c->encoding( $enc ) if defined $enc;
+    if( exists($c->config->{encoding}) && !defined($c->config->{encoding}) ) {
+        # Ok, so the user has explicitly said "I don't want encoding..."
+        return;
+    } else {
+      my $enc = defined($c->config->{encoding}) ?
+        delete $c->config->{encoding} : 'UTF-8'; # not sure why we delete it... (JNAP)
+      $c->encoding($enc);
+    }
 }
 
 =head2 handle_unicode_encoding_exception
@@ -3095,8 +3129,13 @@ sub _handle_unicode_decoding {
         return $value;
     }
     elsif ( ref $value eq 'HASH' ) {
-        foreach ( values %$value ) {
-            $_ = $self->_handle_unicode_decoding($_);
+        foreach (keys %$value) {
+            my $encoded_key = $self->_handle_param_unicode_decoding($_);
+            $value->{$encoded_key} = $self->_handle_unicode_decoding($value->{$_});
+
+            # If the key was encoded we now have two (the original and current so
+            # delete the original.
+            delete $value->{$_} if $_ ne $encoded_key;
         }
         return $value;
     }
@@ -3111,9 +3150,7 @@ sub _handle_param_unicode_decoding {
 
     my $enc = $self->encoding;
     return try {
-        Encode::is_utf8( $value ) ?
-            $value
-        : $enc->decode( $value, $self->_encode_check );
+      $enc->decode( $value, $self->_encode_check );
     }
     catch {
         $self->handle_unicode_encoding_exception({
@@ -3610,6 +3647,9 @@ C<using_frontend_proxy> - See L</PROXY SUPPORT>.
 
 C<encoding> - See L</ENCODING>
 
+This now defaults to 'UTF-8'.  You my turn it off by setting this configuration
+value to undef.
+
 =item *
 
 C<abort_chain_on_error_fix>
@@ -3954,6 +3994,9 @@ Please see L<PSGI> for more on middleware.
 
 On request, decodes all params from encoding into a sequence of
 logical characters. On response, encodes body into encoding.
+
+By default encoding is now 'UTF-8'.  You may turn it off by setting
+the encoding configuration to undef.
 
 =head2 Methods
 

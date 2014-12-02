@@ -81,7 +81,8 @@ requires:
   Tree::Simple: '1.15'
   Tree::Simple::Visitor::FindByPath: 0
   Try::Tiny: '0.17'
-  URI: '1.36'
+  URI: '1.65'
+  URI::ws: '003'
   namespace::autoclean: '0.09'
   namespace::clean: '0.23'
   perl: 5.8.3
@@ -91,5 +92,5 @@ resources:
   homepage: http://dev.catalyst.perl.org/
   license: http://dev.perl.org/licenses/
   repository: git://git.shadowcat.co.uk/catagits/Catalyst-Runtime.git
-version: '5.90077'
+version: 5.90079_001
 x_authority: cpan:MSTROUT
