@@ -129,7 +129,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 __PACKAGE__->_encode_check(Encode::FB_CROAK | Encode::LEAVE_SRC);
 
 # Remember to update this in Catalyst::Runtime as well!
-our $VERSION = '5.90079_003';
+our $VERSION = '5.90079_004';
 $VERSION = eval $VERSION if $VERSION =~ /_/; # numify for warning-free dev releases
 
 sub import {
@@ -1013,11 +1013,30 @@ And later:
 Your log class should implement the methods described in
 L<Catalyst::Log>.
 
+=head2 has_encoding
+
+Returned True if there's a valid encoding
+
+=head2 clear_encoding
+
+Clears the encoding for the current context
+
 =head2 encoding
 
 Sets or gets the application encoding.
 
 =cut
+
+sub has_encoding { shift->encoding ? 1:0 }
+
+sub clear_encoding {
+    my $c = shift;
+    if(blessed $c) {
+        $c->encoding(undef);
+    } else {
+        $c->debug->error("You can't clear encoding on the application");
+    }
+}
 
 sub encoding {
     my $c = shift;
@@ -1334,6 +1353,8 @@ sub setup_finalize {
 =head2 $c->uri_for( $path?, @args?, \%query_values? )
 
 =head2 $c->uri_for( $action, \@captures?, @args?, \%query_values? )
+
+=head2 $c->uri_for( $action, [@captures, @args], \%query_values? )
 
 Constructs an absolute L<URI> object based on the application root, the
 provided path, and the additional arguments and query parameters provided.
@@ -2047,24 +2068,9 @@ sub finalize_headers {
 
     $c->finalize_cookies;
 
+    # This currently is a NOOP but I don't want to remove it since I guess people
+    # might have Response subclasses that use it for something... (JNAP)
     $c->response->finalize_headers();
-
-    if(my $enc = $c->encoding) {
-       my ($ct, $ct_enc) = $c->response->content_type;
-
-        # Only touch 'text-like' contents
-        if($c->response->content_type =~ /^text|xml$|javascript$/) {
-          if ($ct_enc && $ct_enc =~ /charset=([^;]*)/) {
-            if (uc($1) ne uc($enc->mime_name)) {
-              $c->log->debug("Catalyst encoding config is set to encode in '" .
-                           $enc->mime_name .
-                           "', content type is '$1', not encoding ");
-            }
-          } else {
-            $c->res->content_type($c->res->content_type . "; charset=" . $enc->mime_name);
-          }
-        }
-    }
 
     # Done
     $response->finalized_headers(1);
@@ -2076,26 +2082,44 @@ Make sure your body is encoded properly IF you set an encoding.  By
 default the encoding is UTF-8 but you can disable it by explictly setting the
 encoding configuration value to undef.
 
+We can only encode when the body is a scalar.  Methods for encoding via the
+streaming interfaces (such as C<write> and C<write_fh> on L<Catalyst::Response>
+are available).
+
 See L</ENCODING>.
 
 =cut
 
 sub finalize_encoding {
     my $c = shift;
+    my $res = $c->res || return;
 
-    my $body = $c->response->body;
+    # Warn if the set charset is different from the one you put into encoding.  We need
+    # to do this early since encodable_response is false for this condition and we need
+    # to match the debug output for backcompat (there's a test for this...) -JNAP
+    if(
+      $res->content_type_charset and $c->encoding and 
+      (uc($c->encoding->mime_name) ne uc($res->content_type_charset))
+    ) {
+        my $ct = lc($res->content_type_charset);
+        $c->log->debug("Catalyst encoding config is set to encode in '" .
+            $c->encoding->mime_name .
+            "', content type is '$ct', not encoding ");
+    }
 
-    return unless defined($body);
+    if(
+      ($res->encodable_response) and
+      (defined($res->body)) and
+      (ref(\$res->body) eq 'SCALAR')
+    ) {
+        $c->res->body( $c->encoding->encode( $c->res->body, $c->_encode_check ) );
 
-    my $enc = $c->encoding;
-
-    return unless $enc;
-
-    # Only touch 'text-like' contents
-    if($c->response->content_type =~ /^text|xml$|javascript$/) {
-      if (ref(\$body) eq 'SCALAR') {
-        $c->response->body( $c->encoding->encode( $body, $c->_encode_check ) );
-      }
+        # Set the charset if necessary.  This might be a bit bonkers since encodable response
+        # is false when the set charset is not the same as the encoding mimetype (maybe 
+        # confusing action at a distance here..
+        # Don't try to set the charset if one already exists
+        $c->res->content_type($c->res->content_type . "; charset=" . $c->encoding->mime_name)
+          unless($c->res->content_type_charset);
     }
 }
 
@@ -3997,6 +4021,33 @@ logical characters. On response, encodes body into encoding.
 
 By default encoding is now 'UTF-8'.  You may turn it off by setting
 the encoding configuration to undef.
+
+Encoding is automatically applied when the content-type is set to
+a type that can be encoded.  Currently we encode when the content type
+matches the following regular expression:
+
+    $content_type =~ /^text|xml$|javascript$/
+
+Encoding is set on the application, but it is copied to the response object
+so you can override encoding rules per request (See L<Catalyst::Response>
+for more information).
+
+Be default we don't automatically encode 'application/json' since the most
+popular JSON encoders (such as L<JSON::MaybeXS> which is the library that
+L<Catalyst> can make use of) will do the UTF8 encoding and decoding automatically.
+Having it on in Catalyst could result in double encoding.
+
+If you are producing JSON response in an unconventional manner (such
+as via a template or manual strings) you should perform the UTF8 encoding
+manually as well such as to conform to the JSON specification.
+
+NOTE: We also examine the value of $c->response->content_encoding.  If
+you set this (like for example 'gzip', and manually gzipping the body)
+we assume that you have done all the neccessary encoding yourself, since
+we cannot encode the gzipped contents.  If you use a plugin like
+L<Catalyst::Plugin::Compress> we will be updating that plugin to work 
+with the new UTF8 encoding code, or you can use L<Plack::Middleware::Deflater>
+or (probably best) do your compression on a front end proxy.
 
 =head2 Methods
 
