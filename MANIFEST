@@ -200,6 +200,7 @@ t/bad_middleware_error.t
 t/body_fh.t
 t/catalyst_130pix.gif
 t/conf/extra.conf.in
+t/consumes.t
 t/content_negotiation.t
 t/custom_exception_class_simple.t
 t/data_handler.t
@@ -214,6 +215,7 @@ t/encoding_set_in_app.t
 t/encoding_set_in_config.t
 t/head_middleware.t
 t/http_exceptions.t
+t/http_exceptions_backcompat.t
 t/http_method.t
 t/lib/ACLTestApp.pm
 t/lib/ACLTestApp/Controller/Root.pm
@@ -462,6 +464,5 @@ t/unit_core_script_test.t
 t/unit_stats.t
 t/unit_utils_load_class.t
 t/unit_utils_subdir.t
-t/utf8.txt
 t/utf_incoming.t
 TODO

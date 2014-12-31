@@ -8,7 +8,6 @@ use Catalyst::ActionChain;
 use Catalyst::Utils;
 use URI;
 use Scalar::Util ();
-use Encode 2.21 'decode_utf8';
 
 has _endpoints => (
                    is => 'rw',
@@ -103,7 +102,6 @@ sub list {
         my $parent = "DUMMY";
         my $extra  = $self->_list_extra_http_methods($endpoint);
         my $consumes = $self->_list_extra_consumes($endpoint);
-        my $scheme = $self->_list_extra_scheme($endpoint);
         my $curr = $endpoint;
         while ($curr) {
             if (my $cap = $curr->list_extra_info->{CaptureArgs}) {
@@ -135,18 +133,14 @@ sub list {
             if (defined(my $ct = $p->list_extra_info->{Consumes})) {
                 $name .= ' :'.$ct;
             }
-            if (defined(my $s = $p->list_extra_info->{Scheme})) {
-                $scheme = uc $s;
-            }
 
             unless ($p eq $parents[0]) {
                 $name = "-> ${name}";
             }
             push(@rows, [ '', $name ]);
         }
-        push(@rows, [ '', (@rows ? "=> " : '').($extra ? "$extra " : ''). ($scheme ? "$scheme: ":'')."/${endpoint}". ($consumes ? " :$consumes":"" ) ]);
-        my @display_parts = map { $_ =~s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg; decode_utf8 $_ } @parts;
-        $rows[0][0] = join('/', '', @display_parts) || '/';
+        push(@rows, [ '', (@rows ? "=> " : '').($extra ? "$extra " : '')."/${endpoint}". ($consumes ? " :$consumes":"" ) ]);
+        $rows[0][0] = join('/', '', @parts) || '/';
         $paths->row(@$_) for @rows;
     }
 
@@ -168,11 +162,6 @@ sub _list_extra_consumes {
     return join(', ', @{$action->list_extra_info->{CONSUMES}});
 }
 
-sub _list_extra_scheme {
-    my ( $self, $action ) = @_;
-    return unless defined $action->list_extra_info->{Scheme};
-    return uc $action->list_extra_info->{Scheme};
-}
 
 =head2 $self->match( $c, $path )
 
@@ -373,12 +362,9 @@ sub register {
         );
     }
 
-    my $encoded_part = URI->new($part)->canonical;
-    $encoded_part =~ s{(?<=[^/])/+\z}{};
+    $action->attributes->{PathPart} = [ $part ];
 
-    $action->attributes->{PathPart} = [ $encoded_part ];
-
-    unshift(@{ $children->{$encoded_part} ||= [] }, $action);
+    unshift(@{ $children->{$part} ||= [] }, $action);
 
     $self->_actions->{'/'.$action->reverse} = $action;
 

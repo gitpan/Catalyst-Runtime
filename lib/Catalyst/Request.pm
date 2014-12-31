@@ -10,7 +10,7 @@ use HTTP::Headers;
 use Stream::Buffered;
 use Hash::MultiValue;
 use Scalar::Util;
-use HTTP::Body;
+use Catalyst::Exception;
 use Moose;
 
 use namespace::clean -except => 'meta';
@@ -118,7 +118,11 @@ has body_data => (
 
 sub _build_body_data {
     my ($self) = @_;
-    my $content_type = $self->content_type;
+
+    # Not sure if these returns should not be exceptions...
+    my $content_type = $self->content_type || return;
+    return unless ($self->method eq 'POST' || $self->method eq 'PUT');
+
     my ($match) = grep { $content_type =~/$_/i }
       keys(%{$self->data_handlers});
 
@@ -127,7 +131,7 @@ sub _build_body_data {
       local $_ = $fh;
       return $self->data_handlers->{$match}->($fh, $self);
     } else { 
-      return undef;
+      Catalyst::Exception->throw("$content_type is does not have an available data handler");
     }
 }
 
@@ -312,7 +316,7 @@ sub prepare_body_chunk {
 }
 
 sub prepare_body_parameters {
-    my ( $self, $c ) = @_;
+    my ( $self ) = @_;
 
     $self->prepare_body if ! $self->_has_body;
 
@@ -320,29 +324,9 @@ sub prepare_body_parameters {
       return $self->_use_hash_multivalue ? Hash::MultiValue->new : {};
     }
 
-    my $params = $self->_body->param;
-
-    # If we have an encoding configured (like UTF-8) in general we expect a client
-    # to POST with the encoding we fufilled the request in. Otherwise don't do any
-    # encoding (good change wide chars could be in HTML entity style llike the old
-    # days -JNAP
-
-    # so, now that HTTP::Body prepared the body params, we gotta 'walk' the structure
-    # and do any needed decoding.
-
-    # This only does something if the encoding is set via the encoding param.  Remember
-    # this is assuming the client is not bad and responds with what you provided.  In
-    # general you can just use utf8 and get away with it.
-    #
-    # I need to see if $c is here since this also doubles as a builder for the object :(
-
-    if($c and $c->encoding) {
-        $params = $c->_handle_unicode_decoding($params);
-    }
-
     return $self->_use_hash_multivalue ?
-        Hash::MultiValue->from_mixed($params) :
-        $params;
+        Hash::MultiValue->from_mixed($self->_body->param) :
+        $self->_body->param;
 }
 
 sub prepare_connection {
@@ -521,6 +505,13 @@ form data, such as JSON, XML, etc.  By default, Catalyst will parse incoming
 data of the type 'application/json' and return access to that data via this
 method.  You may define addition data_handlers via a global configuration
 setting.  See L<Catalyst\DATA HANDLERS> for more information.
+
+If the POST is malformed in some way (such as undefined or not content that
+matches the content-type) we raise a L<Catalyst::Exception> with the error
+text as the message.
+
+If the POSTed content type does not match an availabled data handler, this
+will also raise an exception.
 
 =head2 $req->body_parameters
 
@@ -947,7 +938,7 @@ sub mangle_params {
         next unless defined $value;
         for ( ref $value eq 'ARRAY' ? @$value : $value ) {
             $_ = "$_";
-            #      utf8::encode($_);
+            utf8::encode( $_ ) if utf8::is_utf8($_);
         }
     };
 

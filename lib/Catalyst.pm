@@ -50,7 +50,7 @@ use Plack::Middleware::RemoveRedundantBody;
 use Catalyst::Middleware::Stash;
 use Plack::Util;
 use Class::Load 'load_class';
-use Encode 2.21 'decode_utf8', 'encode_utf8';
+use Encode 2.21 ();
 
 BEGIN { require 5.008003; }
 
@@ -86,10 +86,8 @@ has response => (
     lazy => 1,
 );
 sub _build_response_constructor_args {
-    return +{
-      _log => $_[0]->log,
-      encoding => $_[0]->encoding,
-    };
+    my $self = shift;
+    { _log => $self->log };
 }
 
 has namespace => (is => 'rw');
@@ -129,8 +127,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 __PACKAGE__->_encode_check(Encode::FB_CROAK | Encode::LEAVE_SRC);
 
 # Remember to update this in Catalyst::Runtime as well!
-our $VERSION = '5.90079_004';
-$VERSION = eval $VERSION if $VERSION =~ /_/; # numify for warning-free dev releases
+our $VERSION = '5.90078';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -498,18 +495,6 @@ Catalyst).
     # stash is automatically passed to the view for use in a template
     $c->forward( 'MyApp::View::TT' );
 
-The stash hash is currently stored in the PSGI C<$env> and is managed by
-L<Catalyst::Middleware::Stash>.  Since it's part of the C<$env> items in
-the stash can be accessed in sub applications mounted under your main
-L<Catalyst> application.  For example if you delegate the response of an
-action to another L<Catalyst> application, that sub application will have
-access to all the stash keys of the main one, and if can of course add
-more keys of its own.  However those new keys will not 'bubble' back up
-to the main application.
-
-For more information the best thing to do is to review the test case:
-t/middleware-stash.t in the distribution /t directory.
-
 =cut
 
 sub stash {
@@ -532,6 +517,9 @@ method should only be used to store fatal error messages.
 Add a new error.
 
     $c->error('Something bad happened');
+
+Calling this will always return an arrayref (if there are no errors it
+will be an empty arrayref.
 
 =cut
 
@@ -576,6 +564,29 @@ Returns true if you have errors
 =cut
 
 sub has_errors { scalar(@{shift->error}) ? 1:0 }
+
+=head2 $c->last_error
+
+Returns the most recent error in the stack (the one most recently added...)
+or nothing if there are no errors.
+
+=cut
+
+sub last_error { my ($err, @errs) = @{shift->error}; return $err }
+
+=head2 shift_errors
+
+shifts the most recently added error off the error stack and returns if.  Returns
+nothing if there are nomore errors.
+
+=cut
+
+sub shift_errors {
+    my ($self) = @_;
+    my ($err, @errors) = @{$self->error};
+    $self->{error} = \@errors;
+    return $err;
+}
 
 sub _comp_search_prefixes {
     my $c = shift;
@@ -1013,30 +1024,11 @@ And later:
 Your log class should implement the methods described in
 L<Catalyst::Log>.
 
-=head2 has_encoding
-
-Returned True if there's a valid encoding
-
-=head2 clear_encoding
-
-Clears the encoding for the current context
-
 =head2 encoding
 
 Sets or gets the application encoding.
 
 =cut
-
-sub has_encoding { shift->encoding ? 1:0 }
-
-sub clear_encoding {
-    my $c = shift;
-    if(blessed $c) {
-        $c->encoding(undef);
-    } else {
-        $c->debug->error("You can't clear encoding on the application");
-    }
-}
 
 sub encoding {
     my $c = shift;
@@ -1354,8 +1346,6 @@ sub setup_finalize {
 
 =head2 $c->uri_for( $action, \@captures?, @args?, \%query_values? )
 
-=head2 $c->uri_for( $action, [@captures, @args], \%query_values? )
-
 Constructs an absolute L<URI> object based on the application root, the
 provided path, and the additional arguments and query parameters provided.
 When used as a string, provides a textual URI.  If you need more flexibility
@@ -1395,10 +1385,6 @@ path, use C<< $c->uri_for_action >> instead.
   # Path to a static resource
   $c->uri_for('/static/images/logo.png');
 
-In general the scheme of the generated URI object will follow the incoming request
-however if your targeted action or action chain has the Scheme attribute it will
-use that instead.
-
 =cut
 
 sub uri_for {
@@ -1416,38 +1402,30 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
-
-    my @encoded_args = ();
     foreach my $arg (@args) {
-      if(ref($arg)||'' eq 'ARRAY') {
-        push @encoded_args, [map {
-          my $encoded = encode_utf8 $_;
-          $encoded =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
-         $encoded;
-        } @$arg];
-      } else {
-        push @encoded_args, do {
-          my $encoded = encode_utf8 $arg;
-          $encoded =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
-          $encoded;
-        }
-      }
+        utf8::encode($arg) if utf8::is_utf8($arg);
+        $arg =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
     }
 
-    my $target_action = $path->$_isa('Catalyst::Action') ? $path : undef;
     if ( $path->$_isa('Catalyst::Action') ) { # action object
-        s|/|%2F|g for @encoded_args;
+        s|/|%2F|g for @args;
         my $captures = [ map { s|/|%2F|g; $_; }
-                        ( scalar @encoded_args && ref $encoded_args[0] eq 'ARRAY'
-                         ? @{ shift(@encoded_args) }
+                        ( scalar @args && ref $args[0] eq 'ARRAY'
+                         ? @{ shift(@args) }
                          : ()) ];
+
+        foreach my $capture (@$captures) {
+            utf8::encode($capture) if utf8::is_utf8($capture);
+            $capture =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+        }
 
         my $action = $path;
         # ->uri_for( $action, \@captures_and_args, \%query_values? )
-        if( !@encoded_args && $action->number_of_args ) {
+        if( !@args && $action->number_of_args ) {
             my $expanded_action = $c->dispatcher->expand_action( $action );
+
             my $num_captures = $expanded_action->number_of_captures;
-            unshift @encoded_args, splice @$captures, $num_captures;
+            unshift @args, splice @$captures, $num_captures;
         }
 
        $path = $c->dispatcher->uri_for_action($action, $captures);
@@ -1459,37 +1437,25 @@ sub uri_for {
         $path = '/' if $path eq '';
     }
 
-    unshift(@encoded_args, $path);
+    unshift(@args, $path);
 
     unless (defined $path && $path =~ s!^/!!) { # in-place strip
         my $namespace = $c->namespace;
         if (defined $path) { # cheesy hack to handle path '../foo'
-           $namespace =~ s{(?:^|/)[^/]+$}{} while $encoded_args[0] =~ s{^\.\./}{};
+           $namespace =~ s{(?:^|/)[^/]+$}{} while $args[0] =~ s{^\.\./}{};
         }
-        unshift(@encoded_args, $namespace || '');
+        unshift(@args, $namespace || '');
     }
 
     # join args with '/', or a blank string
-    my $args = join('/', grep { defined($_) } @encoded_args);
+    my $args = join('/', grep { defined($_) } @args);
     $args =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
     $args =~ s!^/+!!;
 
     my ($base, $class) = ('/', 'URI::_generic');
     if(blessed($c)) {
       $base = $c->req->base;
-      if($target_action) {
-        $target_action = $c->dispatcher->expand_action($target_action);
-        if(my $s = $target_action->scheme) {
-          $s = lc($s);
-          $class = "URI::$s";
-          $base->scheme($s);
-        } else {
-          $class = ref($base);
-        }
-      } else {
-        $class = ref($base);
-      }
-
+      $class = ref($base);
       $base =~ s{(?<!/)$}{/};
     }
 
@@ -1499,22 +1465,16 @@ sub uri_for {
       # somewhat lifted from URI::_query's query_form
       $query = '?'.join('&', map {
           my $val = $params->{$_};
-          #s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go; ## Commented out because seems to lead to double encoding - JNAP
+          s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go;
           s/ /+/g;
           my $key = $_;
           $val = '' unless defined $val;
           (map {
               my $param = "$_";
-              $param = encode_utf8($param);
+              utf8::encode( $param ) if utf8::is_utf8($param);
               # using the URI::Escape pattern here so utf8 chars survive
               $param =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
               $param =~ s/ /+/g;
-
-              $key = encode_utf8($key);
-              # using the URI::Escape pattern here so utf8 chars survive
-              $key =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
-              $key =~ s/ /+/g;
-
               "${key}=$param"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
       } @keys);
     }
@@ -1841,15 +1801,7 @@ sub execute {
 
     if ( my $error = $@ ) {
         #rethow if this can be handled by middleware
-        if(
-          blessed $error && (
-            $error->can('as_psgi') ||
-            (
-              $error->can('code') &&
-              $error->code =~m/^[1-5][0-9][0-9]$/
-            )
-          )
-        ) {
+        if ( $c->_handle_http_exception($error) ) {
             foreach my $err (@{$c->error}) {
                 $c->log->error($err);
             }
@@ -1962,7 +1914,7 @@ sub finalize {
 
     # Support skipping finalize for psgix.io style 'jailbreak'.  Used to support
     # stuff like cometd and websockets
-    
+
     if($c->request->_has_io_fh) {
       $c->log_response;
       return;
@@ -2030,10 +1982,7 @@ sub finalize_error {
         $c->engine->finalize_error( $c, @_ );
     } else {
         my ($error) = @{$c->error};
-        if(
-          blessed $error &&
-          ($error->can('as_psgi') || $error->can('code'))
-        ) {
+        if ( $c->_handle_http_exception($error) ) {
             # In the case where the error 'knows what it wants', becauses its PSGI
             # aware, just rethow and let middleware catch it
             $error->can('rethrow') ? $error->rethrow : croak $error;
@@ -2068,8 +2017,6 @@ sub finalize_headers {
 
     $c->finalize_cookies;
 
-    # This currently is a NOOP but I don't want to remove it since I guess people
-    # might have Response subclasses that use it for something... (JNAP)
     $c->response->finalize_headers();
 
     # Done
@@ -2078,49 +2025,42 @@ sub finalize_headers {
 
 =head2 $c->finalize_encoding
 
-Make sure your body is encoded properly IF you set an encoding.  By
-default the encoding is UTF-8 but you can disable it by explictly setting the
-encoding configuration value to undef.
-
-We can only encode when the body is a scalar.  Methods for encoding via the
-streaming interfaces (such as C<write> and C<write_fh> on L<Catalyst::Response>
-are available).
-
+Make sure your headers and body are encoded properly IF you set an encoding.
 See L</ENCODING>.
 
 =cut
 
 sub finalize_encoding {
     my $c = shift;
-    my $res = $c->res || return;
 
-    # Warn if the set charset is different from the one you put into encoding.  We need
-    # to do this early since encodable_response is false for this condition and we need
-    # to match the debug output for backcompat (there's a test for this...) -JNAP
-    if(
-      $res->content_type_charset and $c->encoding and 
-      (uc($c->encoding->mime_name) ne uc($res->content_type_charset))
-    ) {
-        my $ct = lc($res->content_type_charset);
-        $c->log->debug("Catalyst encoding config is set to encode in '" .
-            $c->encoding->mime_name .
-            "', content type is '$ct', not encoding ");
+    my $body = $c->response->body;
+
+    return unless defined($body);
+
+    my $enc = $c->encoding;
+
+    return unless $enc;
+
+    my ($ct, $ct_enc) = $c->response->content_type;
+
+    # Only touch 'text-like' contents
+    return unless $c->response->content_type =~ /^text|xml$|javascript$/;
+
+    if ($ct_enc && $ct_enc =~ /charset=([^;]*)/) {
+        if (uc($1) ne uc($enc->mime_name)) {
+            $c->log->debug("Unicode::Encoding is set to encode in '" .
+                           $enc->mime_name .
+                           "', content type is '$1', not encoding ");
+            return;
+        }
+    } else {
+        $c->res->content_type($c->res->content_type . "; charset=" . $enc->mime_name);
     }
 
-    if(
-      ($res->encodable_response) and
-      (defined($res->body)) and
-      (ref(\$res->body) eq 'SCALAR')
-    ) {
-        $c->res->body( $c->encoding->encode( $c->res->body, $c->_encode_check ) );
-
-        # Set the charset if necessary.  This might be a bit bonkers since encodable response
-        # is false when the set charset is not the same as the encoding mimetype (maybe 
-        # confusing action at a distance here..
-        # Don't try to set the charset if one already exists
-        $c->res->content_type($c->res->content_type . "; charset=" . $c->encoding->mime_name)
-          unless($c->res->content_type_charset);
-    }
+    # Oh my, I wonder what filehandle responses and streams do... - jnap.
+    # Encode expects plain scalars (IV, NV or PV) and segfaults on ref's
+    $c->response->body( $c->encoding->encode( $body, $c->_encode_check ) )
+        if ref(\$body) eq 'SCALAR';
 }
 
 =head2 $c->finalize_output
@@ -2184,15 +2124,7 @@ sub handle_request {
         $status = $c->finalize;
     } catch {
         #rethow if this can be handled by middleware
-        if(
-          blessed($_) && (
-            $_->can('as_psgi') ||
-            (
-              $_->can('code') &&
-              $_->code =~m/^[1-5][0-9][0-9]$/
-            )
-          )
-        ) {
+        if ( $class->_handle_http_exception($_) ) {
             $_->can('rethrow') ? $_->rethrow : croak $_;
         }
         chomp(my $error = $_);
@@ -2342,7 +2274,7 @@ Prepares body parameters.
 
 sub prepare_body_parameters {
     my $c = shift;
-    $c->request->prepare_body_parameters( $c, @_ );
+    $c->engine->prepare_body_parameters( $c, @_ );
 }
 
 =head2 $c->prepare_connection
@@ -2436,10 +2368,6 @@ sub log_request {
     $method ||= '';
     $path = '/' unless length $path;
     $address ||= '';
-
-    $path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
-    $path = decode_utf8($path);
-
     $c->log->debug(qq/"$method" request for "$path" from "$address"/);
 
     $c->log_request_headers($request->headers);
@@ -2625,6 +2553,37 @@ Prepares uploads.
 sub prepare_uploads {
     my $c = shift;
     $c->engine->prepare_uploads( $c, @_ );
+
+    my $enc = $c->encoding;
+    return unless $enc;
+
+    # Uggg we hook prepare uploads to do the encoding crap on post and query
+    # parameters!  Sorry -jnap
+    for my $key (qw/ parameters query_parameters body_parameters /) {
+        for my $value ( values %{ $c->request->{$key} } ) {
+            # N.B. Check if already a character string and if so do not try to double decode.
+            #      http://www.mail-archive.com/catalyst@lists.scsys.co.uk/msg02350.html
+            #      this avoids exception if we have already decoded content, and is _not_ the
+            #      same as not encoding on output which is bad news (as it does the wrong thing
+            #      for latin1 chars for example)..
+            $value = $c->_handle_unicode_decoding($value);
+        }
+    }
+    for my $value ( values %{ $c->request->uploads } ) {
+        # skip if it fails for uploads, as we don't usually want uploads touched
+        # in any way
+        for my $inner_value ( ref($value) eq 'ARRAY' ? @{$value} : $value ) {
+            $inner_value->{filename} = try {
+                $enc->decode( $inner_value->{filename}, $c->_encode_check )
+            } catch {
+                $c->handle_unicode_encoding_exception({
+                    param_value => $inner_value->{filename},
+                    error_msg => $_,
+                    encoding_step => 'uploads',
+                });
+            };
+        }
+    }
 }
 
 =head2 $c->prepare_write
@@ -3057,9 +3016,7 @@ sub apply_default_middlewares {
     return $psgi_app;
 }
 
-=head2 App->psgi_app
-
-=head2 App->to_app
+=head2 $c->psgi_app
 
 Returns a PSGI application code reference for the catalyst application
 C<$c>. This is the bare application without any middlewares
@@ -3069,8 +3026,6 @@ This is what you want to be using to retrieve the PSGI application code
 reference of your Catalyst application for use in F<.psgi> files.
 
 =cut
-
-*to_app = \&psgi_app;
 
 sub psgi_app {
     my ($app) = @_;
@@ -3102,20 +3057,14 @@ sub setup_home {
 
 =head2 $c->setup_encoding
 
-Sets up the input/output encoding.  See L<ENCODING>
+Sets up the input/output encoding. See L<ENCODING>
 
 =cut
 
 sub setup_encoding {
     my $c = shift;
-    if( exists($c->config->{encoding}) && !defined($c->config->{encoding}) ) {
-        # Ok, so the user has explicitly said "I don't want encoding..."
-        return;
-    } else {
-      my $enc = defined($c->config->{encoding}) ?
-        delete $c->config->{encoding} : 'UTF-8'; # not sure why we delete it... (JNAP)
-      $c->encoding($enc);
-    }
+    my $enc = delete $c->config->{encoding};
+    $c->encoding( $enc ) if defined $enc;
 }
 
 =head2 handle_unicode_encoding_exception
@@ -3153,13 +3102,8 @@ sub _handle_unicode_decoding {
         return $value;
     }
     elsif ( ref $value eq 'HASH' ) {
-        foreach (keys %$value) {
-            my $encoded_key = $self->_handle_param_unicode_decoding($_);
-            $value->{$encoded_key} = $self->_handle_unicode_decoding($value->{$_});
-
-            # If the key was encoded we now have two (the original and current so
-            # delete the original.
-            delete $value->{$_} if $_ ne $encoded_key;
+        foreach ( values %$value ) {
+            $_ = $self->_handle_unicode_decoding($_);
         }
         return $value;
     }
@@ -3174,7 +3118,9 @@ sub _handle_param_unicode_decoding {
 
     my $enc = $self->encoding;
     return try {
-      $enc->decode( $value, $self->_encode_check );
+        Encode::is_utf8( $value ) ?
+            $value
+        : $enc->decode( $value, $self->_encode_check );
     }
     catch {
         $self->handle_unicode_encoding_exception({
@@ -3344,7 +3290,7 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
             $class => @roles
         ) if @roles;
     }
-}    
+}
 
 =head2 registered_middlewares
 
@@ -3403,7 +3349,7 @@ sub registered_middlewares {
 
 sub setup_middleware {
     my $class = shift;
-    my @middleware_definitions = @_ ? 
+    my @middleware_definitions = @_ ?
       reverse(@_) : reverse(@{$class->config->{'psgi_middleware'}||[]});
 
     my @middleware = ();
@@ -3495,10 +3441,32 @@ sub default_data_handlers {
             ->can('build_cgi_struct')->($params);
       },
       'application/json' => sub {
-          Class::Load::load_first_existing_class('JSON::MaybeXS', 'JSON')
-            ->can('decode_json')->(do { local $/; $_->getline });
-      },
+          my ($fh, $req) = @_;
+          my $parser = Class::Load::load_first_existing_class('JSON::MaybeXS', 'JSON');
+          my $slurped;
+          return eval { 
+            local $/;
+            $slurped = $fh->getline;
+            $parser->can("decode_json")->($slurped);
+          } || Catalyst::Exception->throw(sprintf "Error Parsing POST '%s', Error: %s", (defined($slurped) ? $slurped : 'undef') ,$@);
+        },
     };
+}
+
+sub _handle_http_exception {
+    my ( $self, $error ) = @_;
+    if (
+           !$self->config->{always_catch_http_exceptions}
+        && blessed $error
+        && (
+            $error->can('as_psgi')
+            || (   $error->can('code')
+                && $error->code =~ m/^[1-5][0-9][0-9]$/ )
+        )
+      )
+    {
+        return 1;
+    }
 }
 
 =head2 $c->stack
@@ -3567,6 +3535,13 @@ There are a number of 'base' config variables which can be set:
 
 =item *
 
+C<always_catch_http_exceptions> - As of version 5.90060 Catalyst
+rethrows errors conforming to the interface described by
+L<Plack::Middleware::HTTPExceptions> and lets the middleware deal with it.
+Set true to get the deprecated behaviour and have Catalyst catch HTTP exceptions.
+
+=item *
+
 C<default_model> - The default model picked if you say C<< $c->model >>. See L<< /$c->model($name) >>.
 
 =item *
@@ -3622,7 +3597,7 @@ to be shown in hit debug tables in the test server.
 =item *
 
 C<use_request_uri_for_path> - Controls if the C<REQUEST_URI> or C<PATH_INFO> environment
-variable should be used for determining the request path. 
+variable should be used for determining the request path.
 
 Most web server environments pass the requested path to the application using environment variables,
 from which Catalyst has to reconstruct the request base (i.e. the top level path to / in the application,
@@ -3661,7 +3636,7 @@ is having paths rewritten into it (e.g. as a .cgi/fcgi in a public_html director
 at other URIs than that which the app is 'normally' based at with C<mod_rewrite>), the resolution of
 C<< $c->request->base >> will be incorrect.
 
-=back 
+=back
 
 =item *
 
@@ -3671,9 +3646,6 @@ C<using_frontend_proxy> - See L</PROXY SUPPORT>.
 
 C<encoding> - See L</ENCODING>
 
-This now defaults to 'UTF-8'.  You my turn it off by setting this configuration
-value to undef.
-
 =item *
 
 C<abort_chain_on_error_fix>
@@ -3682,7 +3654,7 @@ When there is an error in an action chain, the default behavior is to continue
 processing the remaining actions and then catch the error upon chain end.  This
 can lead to running actions when the application is in an unexpected state.  If
 you have this issue, setting this config value to true will promptly exit a
-chain when there is an error raised in any action (thus terminating the chain 
+chain when there is an error raised in any action (thus terminating the chain
 early.)
 
 use like:
@@ -3728,7 +3700,7 @@ your stack, such as in a model that an Action is calling) that exception
 is caught by Catalyst and unless you either catch it yourself (via eval
 or something like L<Try::Tiny> or by reviewing the L</error> stack, it
 will eventually reach L</finalize_errors> and return either the debugging
-error stack page, or the default error page.  However, if your exception 
+error stack page, or the default error page.  However, if your exception
 can be caught by L<Plack::Middleware::HTTPExceptions>, L<Catalyst> will
 instead rethrow it so that it can be handled by that middleware (which
 is part of the default middleware).  For example this would allow
@@ -3738,7 +3710,7 @@ is part of the default middleware).  For example this would allow
     sub throws_exception :Local {
       my ($self, $c) = @_;
 
-      http_throw(SeeOther => { location => 
+      http_throw(SeeOther => { location =>
         $c->uri_for($self->action_for('redirect')) });
 
     }
@@ -4019,36 +3991,6 @@ Please see L<PSGI> for more on middleware.
 On request, decodes all params from encoding into a sequence of
 logical characters. On response, encodes body into encoding.
 
-By default encoding is now 'UTF-8'.  You may turn it off by setting
-the encoding configuration to undef.
-
-Encoding is automatically applied when the content-type is set to
-a type that can be encoded.  Currently we encode when the content type
-matches the following regular expression:
-
-    $content_type =~ /^text|xml$|javascript$/
-
-Encoding is set on the application, but it is copied to the response object
-so you can override encoding rules per request (See L<Catalyst::Response>
-for more information).
-
-Be default we don't automatically encode 'application/json' since the most
-popular JSON encoders (such as L<JSON::MaybeXS> which is the library that
-L<Catalyst> can make use of) will do the UTF8 encoding and decoding automatically.
-Having it on in Catalyst could result in double encoding.
-
-If you are producing JSON response in an unconventional manner (such
-as via a template or manual strings) you should perform the UTF8 encoding
-manually as well such as to conform to the JSON specification.
-
-NOTE: We also examine the value of $c->response->content_encoding.  If
-you set this (like for example 'gzip', and manually gzipping the body)
-we assume that you have done all the neccessary encoding yourself, since
-we cannot encode the gzipped contents.  If you use a plugin like
-L<Catalyst::Plugin::Compress> we will be updating that plugin to work 
-with the new UTF8 encoding code, or you can use L<Plack::Middleware::Deflater>
-or (probably best) do your compression on a front end proxy.
-
 =head2 Methods
 
 =over 4
@@ -4161,6 +4103,8 @@ chicks: Christopher Hicks
 Chisel Wright C<pause@herlpacker.co.uk>
 
 Danijel Milicevic C<me@danijel.de>
+
+davewood: David Schmidt <davewood@cpan.org>
 
 David Kamholz E<lt>dkamholz@cpan.orgE<gt>
 
