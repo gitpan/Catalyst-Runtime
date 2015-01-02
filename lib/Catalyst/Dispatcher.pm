@@ -15,7 +15,6 @@ use Text::SimpleTable;
 use Tree::Simple;
 use Tree::Simple::Visitor::FindByPath;
 use Class::Load qw(load_class try_load_class);
-use Encode 2.21 'decode_utf8';
 
 use namespace::clean -except => 'meta';
 
@@ -109,9 +108,6 @@ sub dispatch {
     }
     else {
         my $path  = $c->req->path;
-        $path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
-        $path = decode_utf8($path);
-
         my $error = $path
           ? qq/Unknown resource "$path"/
           : "No default action defined";
@@ -389,14 +385,10 @@ sub prepare_action {
 
     s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg for grep { defined } @{$req->captures||[]};
 
-    if($c->debug && defined $req->match && length $req->match) {
-      my $match = $req->match;
-      $match =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
-      $match = decode_utf8($match);
-      $c->log->debug( 'Path is "' . $match . '"' )
-    }
+    $c->log->debug( 'Path is "' . $req->match . '"' )
+      if ( $c->debug && defined $req->match && length $req->match );
 
-    $c->log->debug( 'Arguments are "' . join( '/', map { decode_utf8 $_ } @args ) . '"' )
+    $c->log->debug( 'Arguments are "' . join( '/', @args ) . '"' )
       if ( $c->debug && @args );
 }
 

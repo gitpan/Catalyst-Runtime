@@ -10,7 +10,6 @@ use HTTP::Headers;
 use Stream::Buffered;
 use Hash::MultiValue;
 use Scalar::Util;
-use HTTP::Body;
 use Catalyst::Exception;
 use Moose;
 
@@ -317,7 +316,7 @@ sub prepare_body_chunk {
 }
 
 sub prepare_body_parameters {
-    my ( $self, $c ) = @_;
+    my ( $self ) = @_;
 
     $self->prepare_body if ! $self->_has_body;
 
@@ -325,29 +324,9 @@ sub prepare_body_parameters {
       return $self->_use_hash_multivalue ? Hash::MultiValue->new : {};
     }
 
-    my $params = $self->_body->param;
-
-    # If we have an encoding configured (like UTF-8) in general we expect a client
-    # to POST with the encoding we fufilled the request in. Otherwise don't do any
-    # encoding (good change wide chars could be in HTML entity style llike the old
-    # days -JNAP
-
-    # so, now that HTTP::Body prepared the body params, we gotta 'walk' the structure
-    # and do any needed decoding.
-
-    # This only does something if the encoding is set via the encoding param.  Remember
-    # this is assuming the client is not bad and responds with what you provided.  In
-    # general you can just use utf8 and get away with it.
-    #
-    # I need to see if $c is here since this also doubles as a builder for the object :(
-
-    if($c and $c->encoding) {
-        $params = $c->_handle_unicode_decoding($params);
-    }
-
     return $self->_use_hash_multivalue ?
-        Hash::MultiValue->from_mixed($params) :
-        $params;
+        Hash::MultiValue->from_mixed($self->_body->param) :
+        $self->_body->param;
 }
 
 sub prepare_connection {
@@ -669,15 +648,11 @@ cause a hash initialization error. For a more straightforward interface see
 C<< $c->req->parameters >>.
 
 B<NOTE> Interfaces like this, which are based on L<CGI> and the C<param> method
-are known to cause demonstrated exploits. It is highly recommended that you
-avoid using this method, and migrate existing code away from it.  Here's a
+are now known to cause demonstrated exploits. It is highly recommended that you
+avoid using this method, and migrate existing code away from it.  Here's the
 whitepaper of the exploit:
 
 L<http://blog.gerv.net/2014/10/new-class-of-vulnerability-in-perl-web-applications/>
-
-B<NOTE> Further discussion on IRC indicate that the L<Catalyst> core team from 'back then'
-were well aware of this hack and this is the main reason we added the new approach to
-getting parameters in the first place.
 
 Basically this is an exploit that takes advantage of how L<\param> will do one thing
 in scalar context and another thing in list context.  This is combined with how Perl
@@ -963,7 +938,7 @@ sub mangle_params {
         next unless defined $value;
         for ( ref $value eq 'ARRAY' ? @$value : $value ) {
             $_ = "$_";
-            #      utf8::encode($_);
+            utf8::encode( $_ ) if utf8::is_utf8($_);
         }
     };
 

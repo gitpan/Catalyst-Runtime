@@ -21,7 +21,6 @@ lib/Catalyst/ActionChain.pm
 lib/Catalyst/ActionContainer.pm
 lib/Catalyst/ActionRole/ConsumesContent.pm
 lib/Catalyst/ActionRole/HTTPMethods.pm
-lib/Catalyst/ActionRole/Scheme.pm
 lib/Catalyst/Base.pm
 lib/Catalyst/ClassData.pm
 lib/Catalyst/Component.pm
@@ -51,7 +50,6 @@ lib/Catalyst/PSGI.pod
 lib/Catalyst/Request.pm
 lib/Catalyst/Request/Upload.pm
 lib/Catalyst/Response.pm
-lib/Catalyst/Response/Writer.pm
 lib/Catalyst/Runtime.pm
 lib/Catalyst/Script/CGI.pm
 lib/Catalyst/Script/Create.pm
@@ -139,7 +137,6 @@ t/aggregate/live_recursion.t
 t/aggregate/live_view_warnings.t
 t/aggregate/meta_method_unneeded.t
 t/aggregate/psgi_file.t
-t/aggregate/to_app.t
 t/aggregate/unit_controller_actions.t
 t/aggregate/unit_controller_config.t
 t/aggregate/unit_controller_namespace.t
@@ -210,7 +207,6 @@ t/dead_no_unknown_error.t
 t/dead_recursive_chained_attributes.t
 t/deprecated.t
 t/deprecated_appclass_action_warnings.t
-t/dispatch_on_scheme.t
 t/encoding_set_in_app.t
 t/encoding_set_in_config.t
 t/head_middleware.t
@@ -431,7 +427,6 @@ t/live_fork.t
 t/live_redirect_body.t
 t/live_show_internal_actions_warnings.t
 t/live_stats.t
-t/middleware-stash.t
 t/more-psgi-compat.t
 t/optional_apache-cgi-rewrite.pl
 t/optional_apache-cgi.pl
@@ -464,5 +459,4 @@ t/unit_core_script_test.t
 t/unit_stats.t
 t/unit_utils_load_class.t
 t/unit_utils_subdir.t
-t/utf8.txt
-t/utf_incoming.t
+TODO

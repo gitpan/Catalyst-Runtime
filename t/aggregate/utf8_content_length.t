@@ -29,3 +29,4 @@ my $size = -s $fn;
 }
 
 done_testing;
+

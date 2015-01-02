@@ -50,7 +50,7 @@ use Plack::Middleware::RemoveRedundantBody;
 use Catalyst::Middleware::Stash;
 use Plack::Util;
 use Class::Load 'load_class';
-use Encode 2.21 'decode_utf8', 'encode_utf8';
+use Encode 2.21 ();
 
 BEGIN { require 5.008003; }
 
@@ -86,10 +86,8 @@ has response => (
     lazy => 1,
 );
 sub _build_response_constructor_args {
-    return +{
-      _log => $_[0]->log,
-      encoding => $_[0]->encoding,
-    };
+    my $self = shift;
+    { _log => $self->log };
 }
 
 has namespace => (is => 'rw');
@@ -129,8 +127,7 @@ __PACKAGE__->stats_class('Catalyst::Stats');
 __PACKAGE__->_encode_check(Encode::FB_CROAK | Encode::LEAVE_SRC);
 
 # Remember to update this in Catalyst::Runtime as well!
-our $VERSION = '5.90079_006';
-$VERSION = eval $VERSION if $VERSION =~ /_/; # numify for warning-free dev releases
+our $VERSION = '5.90079';
 
 sub import {
     my ( $class, @arguments ) = @_;
@@ -497,18 +494,6 @@ Catalyst).
 
     # stash is automatically passed to the view for use in a template
     $c->forward( 'MyApp::View::TT' );
-
-The stash hash is currently stored in the PSGI C<$env> and is managed by
-L<Catalyst::Middleware::Stash>.  Since it's part of the C<$env> items in
-the stash can be accessed in sub applications mounted under your main
-L<Catalyst> application.  For example if you delegate the response of an
-action to another L<Catalyst> application, that sub application will have
-access to all the stash keys of the main one, and if can of course add
-more keys of its own.  However those new keys will not 'bubble' back up
-to the main application.
-
-For more information the best thing to do is to review the test case:
-t/middleware-stash.t in the distribution /t directory.
 
 =cut
 
@@ -1039,30 +1024,11 @@ And later:
 Your log class should implement the methods described in
 L<Catalyst::Log>.
 
-=head2 has_encoding
-
-Returned True if there's a valid encoding
-
-=head2 clear_encoding
-
-Clears the encoding for the current context
-
 =head2 encoding
 
 Sets or gets the application encoding.
 
 =cut
-
-sub has_encoding { shift->encoding ? 1:0 }
-
-sub clear_encoding {
-    my $c = shift;
-    if(blessed $c) {
-        $c->encoding(undef);
-    } else {
-        $c->debug->error("You can't clear encoding on the application");
-    }
-}
 
 sub encoding {
     my $c = shift;
@@ -1183,17 +1149,6 @@ Catalyst> line.
 
 B<Note:> You B<should not> wrap this method with method modifiers
 or bad things will happen - wrap the C<setup_finalize> method instead.
-
-B<Note:> You can create a custom setup stage that will execute when the
-application is starting.  Use this to customize setup.
-
-    MyApp->setup(-Custom=value);
-
-    sub setup_custom {
-      my ($class, $value) = @_;
-    }
-
-Can be handy if you want to hook into the setup phase.
 
 =cut
 
@@ -1391,8 +1346,6 @@ sub setup_finalize {
 
 =head2 $c->uri_for( $action, \@captures?, @args?, \%query_values? )
 
-=head2 $c->uri_for( $action, [@captures, @args], \%query_values? )
-
 Constructs an absolute L<URI> object based on the application root, the
 provided path, and the additional arguments and query parameters provided.
 When used as a string, provides a textual URI.  If you need more flexibility
@@ -1432,10 +1385,6 @@ path, use C<< $c->uri_for_action >> instead.
   # Path to a static resource
   $c->uri_for('/static/images/logo.png');
 
-In general the scheme of the generated URI object will follow the incoming request
-however if your targeted action or action chain has the Scheme attribute it will
-use that instead.
-
 =cut
 
 sub uri_for {
@@ -1453,38 +1402,30 @@ sub uri_for {
       ( scalar @args && ref $args[$#args] eq 'HASH' ? pop @args : {} );
 
     carp "uri_for called with undef argument" if grep { ! defined $_ } @args;
-
-    my @encoded_args = ();
     foreach my $arg (@args) {
-      if(ref($arg)||'' eq 'ARRAY') {
-        push @encoded_args, [map {
-          my $encoded = encode_utf8 $_;
-          $encoded =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
-         $encoded;
-        } @$arg];
-      } else {
-        push @encoded_args, do {
-          my $encoded = encode_utf8 $arg;
-          $encoded =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
-          $encoded;
-        }
-      }
+        utf8::encode($arg) if utf8::is_utf8($arg);
+        $arg =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
     }
 
-    my $target_action = $path->$_isa('Catalyst::Action') ? $path : undef;
     if ( $path->$_isa('Catalyst::Action') ) { # action object
-        s|/|%2F|g for @encoded_args;
+        s|/|%2F|g for @args;
         my $captures = [ map { s|/|%2F|g; $_; }
-                        ( scalar @encoded_args && ref $encoded_args[0] eq 'ARRAY'
-                         ? @{ shift(@encoded_args) }
+                        ( scalar @args && ref $args[0] eq 'ARRAY'
+                         ? @{ shift(@args) }
                          : ()) ];
+
+        foreach my $capture (@$captures) {
+            utf8::encode($capture) if utf8::is_utf8($capture);
+            $capture =~ s/([^$URI::uric])/$URI::Escape::escapes{$1}/go;
+        }
 
         my $action = $path;
         # ->uri_for( $action, \@captures_and_args, \%query_values? )
-        if( !@encoded_args && $action->number_of_args ) {
+        if( !@args && $action->number_of_args ) {
             my $expanded_action = $c->dispatcher->expand_action( $action );
+
             my $num_captures = $expanded_action->number_of_captures;
-            unshift @encoded_args, splice @$captures, $num_captures;
+            unshift @args, splice @$captures, $num_captures;
         }
 
        $path = $c->dispatcher->uri_for_action($action, $captures);
@@ -1496,37 +1437,25 @@ sub uri_for {
         $path = '/' if $path eq '';
     }
 
-    unshift(@encoded_args, $path);
+    unshift(@args, $path);
 
     unless (defined $path && $path =~ s!^/!!) { # in-place strip
         my $namespace = $c->namespace;
         if (defined $path) { # cheesy hack to handle path '../foo'
-           $namespace =~ s{(?:^|/)[^/]+$}{} while $encoded_args[0] =~ s{^\.\./}{};
+           $namespace =~ s{(?:^|/)[^/]+$}{} while $args[0] =~ s{^\.\./}{};
         }
-        unshift(@encoded_args, $namespace || '');
+        unshift(@args, $namespace || '');
     }
 
     # join args with '/', or a blank string
-    my $args = join('/', grep { defined($_) } @encoded_args);
+    my $args = join('/', grep { defined($_) } @args);
     $args =~ s/\?/%3F/g; # STUPID STUPID SPECIAL CASE
     $args =~ s!^/+!!;
 
     my ($base, $class) = ('/', 'URI::_generic');
     if(blessed($c)) {
       $base = $c->req->base;
-      if($target_action) {
-        $target_action = $c->dispatcher->expand_action($target_action);
-        if(my $s = $target_action->scheme) {
-          $s = lc($s);
-          $class = "URI::$s";
-          $base->scheme($s);
-        } else {
-          $class = ref($base);
-        }
-      } else {
-        $class = ref($base);
-      }
-
+      $class = ref($base);
       $base =~ s{(?<!/)$}{/};
     }
 
@@ -1536,22 +1465,16 @@ sub uri_for {
       # somewhat lifted from URI::_query's query_form
       $query = '?'.join('&', map {
           my $val = $params->{$_};
-          #s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go; ## Commented out because seems to lead to double encoding - JNAP
+          s/([;\/?:@&=+,\$\[\]%])/$URI::Escape::escapes{$1}/go;
           s/ /+/g;
           my $key = $_;
           $val = '' unless defined $val;
           (map {
               my $param = "$_";
-              $param = encode_utf8($param);
+              utf8::encode( $param ) if utf8::is_utf8($param);
               # using the URI::Escape pattern here so utf8 chars survive
               $param =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
               $param =~ s/ /+/g;
-
-              $key = encode_utf8($key);
-              # using the URI::Escape pattern here so utf8 chars survive
-              $key =~ s/([^A-Za-z0-9\-_.!~*'() ])/$URI::Escape::escapes{$1}/go;
-              $key =~ s/ /+/g;
-
               "${key}=$param"; } ( ref $val eq 'ARRAY' ? @$val : $val ));
       } @keys);
     }
@@ -2094,8 +2017,6 @@ sub finalize_headers {
 
     $c->finalize_cookies;
 
-    # This currently is a NOOP but I don't want to remove it since I guess people
-    # might have Response subclasses that use it for something... (JNAP)
     $c->response->finalize_headers();
 
     # Done
@@ -2104,49 +2025,42 @@ sub finalize_headers {
 
 =head2 $c->finalize_encoding
 
-Make sure your body is encoded properly IF you set an encoding.  By
-default the encoding is UTF-8 but you can disable it by explictly setting the
-encoding configuration value to undef.
-
-We can only encode when the body is a scalar.  Methods for encoding via the
-streaming interfaces (such as C<write> and C<write_fh> on L<Catalyst::Response>
-are available).
-
+Make sure your headers and body are encoded properly IF you set an encoding.
 See L</ENCODING>.
 
 =cut
 
 sub finalize_encoding {
     my $c = shift;
-    my $res = $c->res || return;
 
-    # Warn if the set charset is different from the one you put into encoding.  We need
-    # to do this early since encodable_response is false for this condition and we need
-    # to match the debug output for backcompat (there's a test for this...) -JNAP
-    if(
-      $res->content_type_charset and $c->encoding and 
-      (uc($c->encoding->mime_name) ne uc($res->content_type_charset))
-    ) {
-        my $ct = lc($res->content_type_charset);
-        $c->log->debug("Catalyst encoding config is set to encode in '" .
-            $c->encoding->mime_name .
-            "', content type is '$ct', not encoding ");
+    my $body = $c->response->body;
+
+    return unless defined($body);
+
+    my $enc = $c->encoding;
+
+    return unless $enc;
+
+    my ($ct, $ct_enc) = $c->response->content_type;
+
+    # Only touch 'text-like' contents
+    return unless $c->response->content_type =~ /^text|xml$|javascript$/;
+
+    if ($ct_enc && $ct_enc =~ /charset=([^;]*)/) {
+        if (uc($1) ne uc($enc->mime_name)) {
+            $c->log->debug("Unicode::Encoding is set to encode in '" .
+                           $enc->mime_name .
+                           "', content type is '$1', not encoding ");
+            return;
+        }
+    } else {
+        $c->res->content_type($c->res->content_type . "; charset=" . $enc->mime_name);
     }
 
-    if(
-      ($res->encodable_response) and
-      (defined($res->body)) and
-      (ref(\$res->body) eq 'SCALAR')
-    ) {
-        $c->res->body( $c->encoding->encode( $c->res->body, $c->_encode_check ) );
-
-        # Set the charset if necessary.  This might be a bit bonkers since encodable response
-        # is false when the set charset is not the same as the encoding mimetype (maybe 
-        # confusing action at a distance here..
-        # Don't try to set the charset if one already exists
-        $c->res->content_type($c->res->content_type . "; charset=" . $c->encoding->mime_name)
-          unless($c->res->content_type_charset);
-    }
+    # Oh my, I wonder what filehandle responses and streams do... - jnap.
+    # Encode expects plain scalars (IV, NV or PV) and segfaults on ref's
+    $c->response->body( $c->encoding->encode( $body, $c->_encode_check ) )
+        if ref(\$body) eq 'SCALAR';
 }
 
 =head2 $c->finalize_output
@@ -2360,7 +2274,7 @@ Prepares body parameters.
 
 sub prepare_body_parameters {
     my $c = shift;
-    $c->request->prepare_body_parameters( $c, @_ );
+    $c->engine->prepare_body_parameters( $c, @_ );
 }
 
 =head2 $c->prepare_connection
@@ -2454,10 +2368,6 @@ sub log_request {
     $method ||= '';
     $path = '/' unless length $path;
     $address ||= '';
-
-    $path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
-    $path = decode_utf8($path);
-
     $c->log->debug(qq/"$method" request for "$path" from "$address"/);
 
     $c->log_request_headers($request->headers);
@@ -2643,6 +2553,37 @@ Prepares uploads.
 sub prepare_uploads {
     my $c = shift;
     $c->engine->prepare_uploads( $c, @_ );
+
+    my $enc = $c->encoding;
+    return unless $enc;
+
+    # Uggg we hook prepare uploads to do the encoding crap on post and query
+    # parameters!  Sorry -jnap
+    for my $key (qw/ parameters query_parameters body_parameters /) {
+        for my $value ( values %{ $c->request->{$key} } ) {
+            # N.B. Check if already a character string and if so do not try to double decode.
+            #      http://www.mail-archive.com/catalyst@lists.scsys.co.uk/msg02350.html
+            #      this avoids exception if we have already decoded content, and is _not_ the
+            #      same as not encoding on output which is bad news (as it does the wrong thing
+            #      for latin1 chars for example)..
+            $value = $c->_handle_unicode_decoding($value);
+        }
+    }
+    for my $value ( values %{ $c->request->uploads } ) {
+        # skip if it fails for uploads, as we don't usually want uploads touched
+        # in any way
+        for my $inner_value ( ref($value) eq 'ARRAY' ? @{$value} : $value ) {
+            $inner_value->{filename} = try {
+                $enc->decode( $inner_value->{filename}, $c->_encode_check )
+            } catch {
+                $c->handle_unicode_encoding_exception({
+                    param_value => $inner_value->{filename},
+                    error_msg => $_,
+                    encoding_step => 'uploads',
+                });
+            };
+        }
+    }
 }
 
 =head2 $c->prepare_write
@@ -3017,30 +2958,15 @@ EOW
 Adds the following L<Plack> middlewares to your application, since they are
 useful and commonly needed:
 
-L<Plack::Middleware::LighttpdScriptNameFix> (if you are using Lighttpd),
-L<Plack::Middleware::IIS6ScriptNameFix> (always applied since this middleware
-is smart enough to conditionally apply itself).
-
-We will also automatically add L<Plack::Middleware::ReverseProxy> if we notice
-that your HTTP $env variable C<REMOTE_ADDR> is '127.0.0.1'.  This is usually
-an indication that your server is running behind a proxy frontend.  However in
-2014 this is often not the case.  We preserve this code for backwards compatibility
-however I B<highly> recommend that if you are running the server behind a front
-end proxy that you clearly indicate so with the C<using_frontend_proxy> configuration
-setting to true for your environment configurations that run behind a proxy.  This
-way if you change your front end proxy address someday your code would inexplicably
-stop working as expected.
+L<Plack::Middleware::ReverseProxy>, (conditionally added based on the status
+of your $ENV{REMOTE_ADDR}, and can be forced on with C<using_frontend_proxy>
+or forced off with C<ignore_frontend_proxy>), L<Plack::Middleware::LighttpdScriptNameFix>
+(if you are using Lighttpd), L<Plack::Middleware::IIS6ScriptNameFix> (always
+applied since this middleware is smart enough to conditionally apply itself).
 
 Additionally if we detect we are using Nginx, we add a bit of custom middleware
 to solve some problems with the way that server handles $ENV{PATH_INFO} and
-$ENV{SCRIPT_NAME}.
-
-Please B<NOTE> that if you do use C<using_frontend_proxy> the middleware is now
-adding via C<registered_middleware> rather than this method.
-
-If you are using Lighttp or IIS6 you may wish to apply these middlewares.  In
-general this is no longer a common case but we have this here for backward
-compatibility.
+$ENV{SCRIPT_NAME}
 
 =cut
 
@@ -3048,21 +2974,16 @@ compatibility.
 sub apply_default_middlewares {
     my ($app, $psgi_app) = @_;
 
-    # Don't add this conditional IF we are explicitly saying we want the
-    # frontend proxy support.  We don't need it here since if that is the
-    # case it will be always loaded in the default_middleware.
-
-    unless($app->config->{using_frontend_proxy}) {
-      $psgi_app = Plack::Middleware::Conditional->wrap(
-          $psgi_app,
-          builder   => sub { Plack::Middleware::ReverseProxy->wrap($_[0]) },
-          condition => sub {
-              my ($env) = @_;
-              return if $app->config->{ignore_frontend_proxy};
-              return $env->{REMOTE_ADDR} eq '127.0.0.1';
-          },
-      );
-    }
+    $psgi_app = Plack::Middleware::Conditional->wrap(
+        $psgi_app,
+        builder   => sub { Plack::Middleware::ReverseProxy->wrap($_[0]) },
+        condition => sub {
+            my ($env) = @_;
+            return if $app->config->{ignore_frontend_proxy};
+            return $env->{REMOTE_ADDR} eq '127.0.0.1'
+                || $app->config->{using_frontend_proxy};
+        },
+    );
 
     # If we're running under Lighttpd, swap PATH_INFO and SCRIPT_NAME
     # http://lists.scsys.co.uk/pipermail/catalyst/2006-June/008361.html
@@ -3095,33 +3016,16 @@ sub apply_default_middlewares {
     return $psgi_app;
 }
 
-=head2 App->psgi_app
-
-=head2 App->to_app
+=head2 $c->psgi_app
 
 Returns a PSGI application code reference for the catalyst application
-C<$c>. This is the bare application created without the C<apply_default_middlewares>
-method called.  We do however apply C<registered_middleware> since those are
-integral to how L<Catalyst> functions.  Also, unlike starting your application
-with a generated server script (via L<Catalyst::Devel> and C<catalyst.pl>) we do
-not attempt to return a valid L<PSGI> application using any existing C<${myapp}.psgi>
-scripts in your $HOME directory.
-
-B<NOTE> C<apply_default_middlewares> was orginally created when the first PSGI
-port was done for v5.90000.  These are middlewares that are added to achieve
-backward compatibility with older applications.  If you start your application
-using one of the supplied server scripts (generated with L<Catalyst::Devel> and
-the project skeleton script C<catalyst.pl>) we apply C<apply_default_middlewares>
-automatically.  This was done so that pre and post PSGI port applications would
-work the same way.
+C<$c>. This is the bare application without any middlewares
+applied. C<${myapp}.psgi> is not taken into account.
 
 This is what you want to be using to retrieve the PSGI application code
-reference of your Catalyst application for use in a custom F<.psgi> or in your
-own created server modules.
+reference of your Catalyst application for use in F<.psgi> files.
 
 =cut
-
-*to_app = \&psgi_app;
 
 sub psgi_app {
     my ($app) = @_;
@@ -3159,14 +3063,8 @@ Sets up the input/output encoding. See L<ENCODING>
 
 sub setup_encoding {
     my $c = shift;
-    if( exists($c->config->{encoding}) && !defined($c->config->{encoding}) ) {
-        # Ok, so the user has explicitly said "I don't want encoding..."
-        return;
-    } else {
-      my $enc = defined($c->config->{encoding}) ?
-        delete $c->config->{encoding} : 'UTF-8'; # not sure why we delete it... (JNAP)
-      $c->encoding($enc);
-    }
+    my $enc = delete $c->config->{encoding};
+    $c->encoding( $enc ) if defined $enc;
 }
 
 =head2 handle_unicode_encoding_exception
@@ -3204,13 +3102,8 @@ sub _handle_unicode_decoding {
         return $value;
     }
     elsif ( ref $value eq 'HASH' ) {
-        foreach (keys %$value) {
-            my $encoded_key = $self->_handle_param_unicode_decoding($_);
-            $value->{$encoded_key} = $self->_handle_unicode_decoding($value->{$_});
-
-            # If the key was encoded we now have two (the original and current so
-            # delete the original.
-            delete $value->{$_} if $_ ne $encoded_key;
+        foreach ( values %$value ) {
+            $_ = $self->_handle_unicode_decoding($_);
         }
         return $value;
     }
@@ -3225,7 +3118,9 @@ sub _handle_param_unicode_decoding {
 
     my $enc = $self->encoding;
     return try {
-      $enc->decode( $value, $self->_encode_check );
+        Encode::is_utf8( $value ) ?
+            $value
+        : $enc->decode( $value, $self->_encode_check );
     }
     catch {
         $self->handle_unicode_encoding_exception({
@@ -3397,68 +3292,6 @@ the plugin name does not begin with C<Catalyst::Plugin::>.
     }
 }
 
-=head2 default_middleware
-
-Returns a list of instantiated PSGI middleware objects which is the default
-middleware that is active for this application (taking any configuration
-options into account, excluding your custom added middleware via the C<psgi_middleware>
-configuration option).  You can override this method if you wish to change
-the default middleware (although do so at risk since some middleware is vital
-to application function.)
-
-The current default middleware list is:
-
-      Catalyst::Middleware::Stash
-      Plack::Middleware::HTTPExceptions
-      Plack::Middleware::RemoveRedundantBody
-      Plack::Middleware::FixMissingBodyInRedirect
-      Plack::Middleware::ContentLength
-      Plack::Middleware::MethodOverride
-      Plack::Middleware::Head
-
-If the configuration setting C<using_frontend_proxy> is true we add:
-
-      Plack::Middleware::ReverseProxy
-
-If the configuration setting C<using_frontend_proxy_path> is true we add:
-
-      Plack::Middleware::ReverseProxyPath
-
-But B<NOTE> that L<Plack::Middleware::ReverseProxyPath> is not a dependency of the
-L<Catalyst> distribution so if you want to use this option you should add it to
-your project distribution file.
-
-These middlewares will be added at L</setup_middleware> during the
-L</setup> phase of application startup.
-
-=cut
-
-sub default_middleware {
-    my $class = shift;
-    my @mw = (
-      Catalyst::Middleware::Stash->new,
-      Plack::Middleware::HTTPExceptions->new,
-      Plack::Middleware::RemoveRedundantBody->new,
-      Plack::Middleware::FixMissingBodyInRedirect->new,
-      Plack::Middleware::ContentLength->new,
-      Plack::Middleware::MethodOverride->new,
-      Plack::Middleware::Head->new);
-
-    if($class->config->{using_frontend_proxy}) {
-        push @mw, Plack::Middleware::ReverseProxy->new;
-    }
-
-    if($class->config->{using_frontend_proxy_path}) {
-        if(Class::Load::try_load_class('Plack::Middleware::ReverseProxyPath')) {
-            push @mw, Plack::Middleware::ReverseProxyPath->new;
-        } else {
-          $class->log->error("Cannot use configuration 'using_frontend_proxy_path' because 'Plack::Middleware::ReverseProxyPath' is not installed");
-        }
-    }
-
-    return @mw;
-}
-
 =head2 registered_middlewares
 
 Read only accessor that returns an array of all the middleware in the order
@@ -3500,13 +3333,15 @@ up.
 sub registered_middlewares {
     my $class = shift;
     if(my $middleware = $class->_psgi_middleware) {
-        my @mw = ($class->default_middleware, @$middleware);
-
-        if($class->config->{using_frontend_proxy}) {
-          push @mw, Plack::Middleware::ReverseProxy->new;
-        }
-
-        return @mw;
+        return (
+          Catalyst::Middleware::Stash->new,
+          Plack::Middleware::HTTPExceptions->new,
+          Plack::Middleware::RemoveRedundantBody->new,
+          Plack::Middleware::FixMissingBodyInRedirect->new,
+          Plack::Middleware::ContentLength->new,
+          Plack::Middleware::MethodOverride->new,
+          Plack::Middleware::Head->new,
+          @$middleware);
     } else {
         die "You cannot call ->registered_middlewares until middleware has been setup";
     }
@@ -3514,17 +3349,8 @@ sub registered_middlewares {
 
 sub setup_middleware {
     my $class = shift;
-    my @middleware_definitions;
-
-    # If someone calls this method you can add middleware with args.  However if its
-    # called without an arg we need to setup the configuration middleware.
-    if(@_) {
-      @middleware_definitions = reverse(@_);
-    } else {
-      @middleware_definitions = reverse(@{$class->config->{'psgi_middleware'}||[]})
-        unless $class->config->{__configured_from_psgi_middleware};
-      $class->config->{__configured_from_psgi_middleware} = 1; # Only do this once, just in case some people call setup over and over...
-    }
+    my @middleware_definitions = @_ ?
+      reverse(@_) : reverse(@{$class->config->{'psgi_middleware'}||[]});
 
     my @middleware = ();
     while(my $next = shift(@middleware_definitions)) {
@@ -3818,19 +3644,7 @@ C<using_frontend_proxy> - See L</PROXY SUPPORT>.
 
 =item *
 
-C<using_frontend_proxy_path> - Enabled L<Plack::Middleware::ReverseProxyPath> on your application (if
-installed, otherwise log an error).  This is useful if your application is not running on the
-'root' (or /) of your host server.  B<NOTE> if you use this feature you should add the required
-middleware to your project dependency list since its not automatically a dependency of L<Catalyst>.
-This has been done since not all people need this feature and we wish to restrict the growth of
-L<Catalyst> dependencies.
-
-=item *
-
 C<encoding> - See L</ENCODING>
-
-This now defaults to 'UTF-8'.  You my turn it off by setting this configuration
-value to undef.
 
 =item *
 
@@ -4177,35 +3991,6 @@ Please see L<PSGI> for more on middleware.
 On request, decodes all params from encoding into a sequence of
 logical characters. On response, encodes body into encoding.
 
-By default encoding is now 'UTF-8'.  You may turn it off by setting
-the encoding configuration to undef.
-
-Encoding is automatically applied when the content-type is set to
-a type that can be encoded.  Currently we encode when the content type
-matches the following regular expression:
-
-    $content_type =~ /^text|xml$|javascript$/
-
-Encoding is set on the application, but it is copied to the context object
-so that you can override it on a request basis.
-
-Be default we don't automatically encode 'application/json' since the most
-popular JSON encoders (such as L<JSON::MaybeXS> which is the library that
-L<Catalyst> can make use of) will do the UTF8 encoding and decoding automatically.
-Having it on in Catalyst could result in double encoding.
-
-If you are producing JSON response in an unconventional manner (such
-as via a template or manual strings) you should perform the UTF8 encoding
-manually as well such as to conform to the JSON specification.
-
-NOTE: We also examine the value of $c->response->content_encoding.  If
-you set this (like for example 'gzip', and manually gzipping the body)
-we assume that you have done all the neccessary encoding yourself, since
-we cannot encode the gzipped contents.  If you use a plugin like
-L<Catalyst::Plugin::Compress> we will be updating that plugin to work 
-with the new UTF8 encoding code, or you can use L<Plack::Middleware::Deflater>
-or (probably best) do your compression on a front end proxy.
-
 =head2 Methods
 
 =over 4
@@ -4434,8 +4219,6 @@ rainboxx: Matthias Dietrich, C<perl@rainboxx.de>
 dd070: Dhaval Dhanani <dhaval070@gmail.com>
 
 Upasana <me@upasana.me>
-
-John Napiorkowski (jnap) <jjnapiork@cpan.org>
 
 =head1 COPYRIGHT
 
